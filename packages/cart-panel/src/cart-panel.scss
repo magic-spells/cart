@@ -2,10 +2,7 @@
 // These can be customized by importing this file and overriding variables
 
 // Import cart-item styles since cart items are used within the cart panel
-// Note: Import cart-item styles manually in your project:
-// @import '@magic-spells/cart-item/scss';
-// or include the CSS:
-// @import '@magic-spells/cart-item/css';
+@use '@magic-spells/cart-item/dist/cart-item.scss';
 
 // Layout and positioning
 $cart-dialog-z-index: 1000 !default;

@@ -5,7 +5,6 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Cart Panel Demo</title>
 
-		<link rel="stylesheet" href="https://unpkg.com/@magic-spells/cart-item/dist/cart-item.css" />
 
 		<style>
 			/* Demo-specific styles */
@@ -532,10 +531,8 @@
 			</cart-panel>
 		</cart-dialog>
 
-		<script src="https://unpkg.com/@magic-spells/cart-item"></script>
-
 		<script type="module">
-			// Import the cart dialog component (cart-item imported separately above)
+			// Import the cart dialog component (includes cart-item automatically)
 			// To build: npm run build (creates ./dist/cart-panel.esm.js)
 			import './cart-panel.esm.js';
 

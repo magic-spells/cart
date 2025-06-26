@@ -8,7 +8,11 @@ const dev = process.env.ROLLUP_WATCH;
 const name = 'cart-panel';
 
 // External dependencies that should not be bundled
-const external = ['@magic-spells/focus-trap', '@magic-spells/event-emitter'];
+const external = [
+  '@magic-spells/cart-item',
+  '@magic-spells/focus-trap',
+  '@magic-spells/event-emitter',
+];
 
 export default [
   // ESM build
@@ -25,7 +29,15 @@ export default [
       postcss({
         extract: true,
         minimize: false,
-        use: ['sass'],
+        includePaths: ['./node_modules'],
+        use: [
+          [
+            'sass',
+            {
+              includePaths: ['node_modules'],
+            },
+          ],
+        ],
         extensions: ['.css', '.scss'],
       }),
       copy({
@@ -53,9 +65,17 @@ export default [
       postcss({
         extract: true,
         minimize: false,
-        use: ['sass'],
+        includePaths: ['./node_modules'],
+        use: [
+          [
+            'sass',
+            {
+              includePaths: ['node_modules'],
+            },
+          ],
+        ],
         extensions: ['.css', '.scss'],
-      })
+      }),
     ],
   },
   // UMD build (includes all dependencies for standalone use)
@@ -73,9 +93,16 @@ export default [
       postcss({
         extract: true,
         minimize: false,
-        use: ['sass'],
+        use: [
+          [
+            'sass',
+            {
+              includePaths: ['node_modules'],
+            },
+          ],
+        ],
         extensions: ['.css', '.scss'],
-      })
+      }),
     ],
   },
   // Minified UMD for browsers
@@ -93,6 +120,15 @@ export default [
       postcss({
         extract: true,
         minimize: true,
+        use: [
+          [
+            'sass',
+            {
+              includePaths: ['node_modules'],
+            },
+          ],
+        ],
+        extensions: ['.css', '.scss'],
       }),
       terser({
         keep_classnames: true,
@@ -117,7 +153,15 @@ export default [
             postcss({
               extract: true,
               minimize: false,
-              use: ['sass'],
+              includePaths: ['./node_modules'],
+              use: [
+                [
+                  'sass',
+                  {
+                    includePaths: ['node_modules'],
+                  },
+                ],
+              ],
               extensions: ['.css', '.scss'],
             }),
             serve({

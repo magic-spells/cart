@@ -2,6 +2,7 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
+require('@magic-spells/cart-item');
 require('@magic-spells/focus-trap');
 var EventEmitter = require('@magic-spells/event-emitter');
 

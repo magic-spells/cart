@@ -1,4 +1,5 @@
 import './cart-panel.scss';
+import '@magic-spells/cart-item';
 import '@magic-spells/focus-trap';
 import EventEmitter from '@magic-spells/event-emitter';
 

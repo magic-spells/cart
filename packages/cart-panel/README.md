@@ -19,28 +19,22 @@ A professional, highly-customizable modal shopping cart dialog built with Web Co
 ## Installation
 
 ```bash
-npm install @magic-spells/cart-panel @magic-spells/cart-item
+npm install @magic-spells/cart-panel
 ```
 
-> **Note:** `@magic-spells/cart-item` is a peer dependency and must be installed separately. This gives you flexibility in choosing which version to use and allows for custom cart item implementations.
-
 ```javascript
-// Import the components
-import '@magic-spells/cart-item'; // Required: cart item component
-import '@magic-spells/cart-panel'; // Cart panel dialog component
+// Import the component (includes cart-item automatically)
+import '@magic-spells/cart-panel';
 
-// Import styles
-import '@magic-spells/cart-panel/css'; // Include cart panel styles
-import '@magic-spells/cart-item/css'; // Include cart item styles (required)
+// Import styles (includes cart-item styles automatically)
+import '@magic-spells/cart-panel/css';
 ```
 
 Or include directly in your HTML:
 
 ```html
-<script src="https://unpkg.com/@magic-spells/cart-item"></script>
 <script src="https://unpkg.com/@magic-spells/cart-panel"></script>
 <link rel="stylesheet" href="https://unpkg.com/@magic-spells/cart-panel/dist/cart-panel.css" />
-<link rel="stylesheet" href="https://unpkg.com/@magic-spells/cart-item/dist/cart-item.css" />
 ```
 
 ## Usage
