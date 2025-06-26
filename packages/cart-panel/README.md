@@ -377,7 +377,7 @@ The component is optimized for:
 
 The cart panel automatically integrates with Shopify's AJAX Cart API. Simply add the component to your theme and it handles all cart operations:
 
-```liquid
+```html
 <!-- In your Shopify theme layout -->
 <button
   aria-haspopup="dialog"
