@@ -390,50 +390,21 @@ The cart panel automatically integrates with Shopify's AJAX Cart API. Simply add
 <cart-dialog id="shopify-cart" aria-labelledby="cart-heading">
   <cart-panel>
     <header class="cart-header">
-      <h2 id="cart-heading">{{ 'cart.general.title' | t }}</h2>
-      <button data-action="hide-cart" aria-label="{{ 'cart.general.close' | t }}">
-        {% render 'icon-close' %}
+      <h2 id="cart-heading">Your Cart</h2>
+      <button data-action="hide-cart" aria-label="hide cart">
+        X
       </button>
     </header>
 
     <div class="cart-content">
-      <!-- Cart items will be populated automatically -->
-      {% for item in cart.items %}
-        <cart-item data-key="{{ item.key }}">
-          <cart-item-content>
-            <div class="cart-item-layout">
-              <img src="{{ item.image | img_url: '100x100' }}" alt="{{ item.title | escape }}">
-              <div class="item-details">
-                <h4>{{ item.product.title }}</h4>
-                {% unless item.variant.title == 'Default Title' %}
-                  <p class="variant">{{ item.variant.title }}</p>
-                {% endunless %}
-                <p class="price">{{ item.final_price | money }}</p>
-              </div>
-              <div class="item-controls">
-                <input
-                  type="number"
-                  data-cart-quantity
-                  value="{{ item.quantity }}"
-                  min="0">
-                <button data-action="remove">{{ 'cart.general.remove' | t }}</button>
-              </div>
-            </div>
-          </cart-item-content>
-          <cart-item-processing>
-            <div class="spinner"></div>
-            <span>{{ 'cart.general.updating' | t }}</span>
-          </cart-item-processing>
-        </cart-item>
-      {% endfor %}
+      <!-- Cart items will be populated automatically in javascript -->
     </div>
 
     <footer class="cart-footer">
       <div class="cart-total">
-        {{ 'cart.general.total' | t }}: <span data-cart-total>{{ cart.total_price | money }}</span>
       </div>
-      <a href="/checkout" class="checkout-btn">
-        {{ 'cart.general.checkout' | t }}
+      <a href="/checkout" class="button">
+        Checkout
       </a>
     </footer>
   </cart-panel>
