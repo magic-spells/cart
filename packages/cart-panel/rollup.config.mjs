@@ -180,6 +180,10 @@ export default [
                   dest: 'demo',
                 },
                 {
+                  src: `dist/${name}.css`,
+                  dest: 'demo',
+                },
+                {
                   src: `src/${name}.scss`,
                   dest: 'dist',
                 },

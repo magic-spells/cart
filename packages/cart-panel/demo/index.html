@@ -5,6 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Cart Panel Demo</title>
 
+		<!-- Import compiled cart-panel CSS (includes cart-item styles automatically) -->
+		<link rel="stylesheet" href="./cart-panel.css" />
 
 		<style>
 			/* Demo-specific styles */
@@ -90,65 +92,6 @@
 				--cp-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
 			}
 
-			/* Cart dialog styling */
-			cart-dialog {
-				display: contents;
-			}
-
-			cart-dialog[aria-hidden='false'] {
-				cart-overlay,
-				cart-panel {
-					pointer-events: auto;
-					opacity: 1;
-					transform: scale(1);
-					filter: blur(0px);
-				}
-			}
-
-			/* Overlay background */
-			cart-overlay {
-				position: fixed;
-				top: 0;
-				left: 0;
-				width: 100vw;
-				height: 100vh;
-				opacity: 0;
-				pointer-events: none;
-				z-index: 1000;
-				transition: all 300ms ease-out;
-				background-color: rgba(0, 0, 0, 0.15);
-				backdrop-filter: blur(4px);
-			}
-
-			cart-panel {
-				position: fixed;
-				top: 0;
-				right: 0;
-				transform: translateX(100%);
-				width: min(400px, 90vw);
-				height: 100vh;
-				display: flex;
-				flex-direction: column;
-				opacity: 0;
-				background: var(--cp-content-background, white);
-				pointer-events: none;
-				z-index: 1001;
-				box-shadow: var(--cp-content-shadow, -5px 0 25px rgba(0, 0, 0, 0.15));
-				overflow: hidden;
-				transition:
-					opacity var(--cp-transition-duration, 300ms) var(--cp-transition-timing, ease-out),
-					transform var(--cp-transition-duration, 300ms) var(--cp-transition-timing, ease-out);
-			}
-
-			/* When shown, slide in from right */
-			cart-dialog[aria-hidden='false'] cart-panel {
-				transform: translateX(0);
-			}
-
-			/* When explicitly hidden, remove from layout */
-			cart-panel.hidden {
-				display: none;
-			}
 
 			/* Cart content internal styling */
 			.cart-header {
@@ -316,23 +259,6 @@
 				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 			}
 
-			/* Cart item states */
-			cart-item {
-				display: block;
-				position: relative;
-				overflow: hidden;
-				transition: all 0.3s ease;
-			}
-
-			cart-item-content {
-				display: block;
-				transition: all 0.3s ease;
-			}
-
-			cart-item[data-state='processing'] cart-item-processing {
-				opacity: 1;
-				visibility: visible;
-			}
 
 			/* Event log styling */
 			.event-log {
