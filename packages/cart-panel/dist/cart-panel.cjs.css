@@ -1,0 +1,69 @@
+:root {
+  --cart-dialog-z-index: 1000;
+  --cart-overlay-z-index: 1000;
+  --cart-panel-z-index: 1001;
+  --cart-panel-width: min(400px, 90vw);
+  --cart-overlay-background: rgba(0, 0, 0, 0.15);
+  --cart-overlay-backdrop-filter: blur(4px);
+  --cart-panel-background: #ffffff;
+  --cart-panel-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+  --cart-panel-border-radius: 0;
+  --cart-transition-duration: 350ms;
+  --cart-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+cart-dialog {
+  display: contents;
+}
+cart-dialog[aria-hidden=false] cart-overlay,
+cart-dialog[aria-hidden=false] cart-panel {
+  pointer-events: auto;
+  opacity: 1;
+}
+cart-dialog[aria-hidden=false] cart-panel {
+  transform: translateX(0);
+}
+
+cart-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  opacity: 0;
+  pointer-events: none;
+  z-index: var(--cart-overlay-z-index);
+  background-color: var(--cart-overlay-background);
+  backdrop-filter: var(--cart-overlay-backdrop-filter);
+  transition: opacity var(--cart-transition-duration) var(--cart-transition-timing), backdrop-filter var(--cart-transition-duration) var(--cart-transition-timing);
+}
+
+cart-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--cart-panel-width);
+  height: 100vh;
+  opacity: 0;
+  transform: translateX(100%);
+  pointer-events: none;
+  z-index: var(--cart-panel-z-index);
+  background: var(--cart-panel-background);
+  box-shadow: var(--cart-panel-shadow);
+  border-radius: var(--cart-panel-border-radius);
+  overflow: hidden;
+  transition: opacity var(--cart-transition-duration) var(--cart-transition-timing), transform var(--cart-transition-duration) var(--cart-transition-timing);
+}
+cart-panel.hidden {
+  display: none;
+}
+
+body.overflow-hidden {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  right: 0;
+  margin: 0;
+}

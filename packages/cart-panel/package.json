@@ -1,0 +1,84 @@
+{
+  "name": "@magic-spells/cart-panel",
+  "version": "0.0.1",
+  "description": "Accessible modal shopping cart dialog web component with Shopify integration, focus management, and smooth animations.",
+  "author": "Cory Schulz",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/cart-panel.cjs.js",
+  "module": "dist/cart-panel.esm.js",
+  "unpkg": "dist/cart-panel.min.js",
+  "style": "dist/cart-panel.css",
+  "sass": "dist/cart-panel.scss",
+  "exports": {
+    ".": {
+      "import": "./dist/cart-panel.esm.js",
+      "require": "./dist/cart-panel.cjs.js",
+      "default": "./dist/cart-panel.esm.js"
+    },
+    "./css": "./dist/cart-panel.css",
+    "./scss": "./dist/cart-panel.scss"
+  },
+  "sideEffects": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/magic-spells/cart-panel"
+  },
+  "homepage": "https://github.com/magic-spells/cart-panel#readme",
+  "bugs": {
+    "url": "https://github.com/magic-spells/cart-panel/issues"
+  },
+  "keywords": [
+    "cart-panel",
+    "web-components",
+    "e-commerce",
+    "shopping-cart",
+    "custom-elements",
+    "shopify",
+    "modal",
+    "dialog",
+    "accessibility",
+    "a11y"
+  ],
+  "files": [
+    "dist/",
+    "src/"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "lint": "eslint src/ rollup.config.mjs",
+    "format": "prettier --write .",
+    "prepublishOnly": "npm run build",
+    "serve": "rollup -c --watch",
+    "dev": "rollup -c --watch"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "browserslist": [
+    "last 2 versions",
+    "not dead",
+    "not ie <= 11"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^8.57.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "eslint": "^8.0.0",
+    "globals": "^13.24.0",
+    "prettier": "^3.3.3",
+    "rollup": "^3.0.0",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-serve": "^1.1.1",
+    "sass": "^1.89.2"
+  },
+  "dependencies": {
+    "@magic-spells/event-emitter": "^0.1.0",
+    "@magic-spells/focus-trap": "^1.0.6"
+  },
+  "peerDependencies": {
+    "@magic-spells/cart-item": "^0.1.0"
+  }
+}
