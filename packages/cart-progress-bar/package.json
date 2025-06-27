@@ -1,0 +1,75 @@
+{
+  "name": "@magic-spells/cart-progress-bar",
+  "version": "0.1.0",
+  "description": "Cart progress bar web component for free shipping thresholds.",
+  "author": "Cory Schulz",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/cart-progress-bar.cjs.js",
+  "module": "dist/cart-progress-bar.esm.js",
+  "unpkg": "dist/cart-progress-bar.min.js",
+  "style": "dist/cart-progress-bar.min.css",
+  "sass": "dist/cart-progress-bar.scss",
+  "exports": {
+    ".": {
+      "import": "./dist/cart-progress-bar.esm.js",
+      "require": "./dist/cart-progress-bar.cjs.js",
+      "default": "./dist/cart-progress-bar.esm.js"
+    },
+    "./css": "./dist/cart-progress-bar.css",
+    "./css/min": "./dist/cart-progress-bar.min.css",
+    "./scss": "./dist/cart-progress-bar.scss"
+  },
+  "sideEffects": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/magic-spells/cart-progress-bar"
+  },
+  "homepage": "https://github.com/magic-spells/cart-progress-bar#readme",
+  "bugs": {
+    "url": "https://github.com/magic-spells/cart-progress-bar/issues"
+  },
+  "keywords": [
+    "cart-progress-bar",
+    "progress-bar",
+    "web-components",
+    "free-shipping",
+    "e-commerce",
+    "custom-elements",
+    "cart-threshold"
+  ],
+  "files": [
+    "dist/",
+    "src/"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "lint": "eslint src/ rollup.config.mjs",
+    "format": "prettier --write .",
+    "prepublishOnly": "npm run build",
+    "serve": "rollup -c --watch",
+    "dev": "rollup -c --watch"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "browserslist": [
+    "last 2 versions",
+    "not dead",
+    "not ie <= 11"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^8.57.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "eslint": "^8.0.0",
+    "globals": "^13.24.0",
+    "prettier": "^3.3.3",
+    "rollup": "^3.0.0",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-serve": "^1.1.1",
+    "sass": "^1.86.3"
+  }
+}
