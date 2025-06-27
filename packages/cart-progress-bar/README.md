@@ -59,6 +59,21 @@ progressBar.setMessages(
 );
 ```
 
+## Cart Integration
+
+The component automatically listens for cart data changes when placed inside a `<cart-panel>` component:
+
+```html
+<cart-panel>
+  <cart-progress-bar 
+    threshold="75.00"
+    message-below="Add ${left} more for FREE shipping!">
+  </cart-progress-bar>
+</cart-panel>
+```
+
+When the cart-panel emits a `cart-dialog:data-changed` event (typically from Shopify cart updates), the progress bar will automatically update with the new cart total.
+
 ## Attributes
 
 | Attribute | Description | Example |
