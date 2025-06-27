@@ -5,7 +5,6 @@ A beautiful, accessible cart progress bar web component for free shipping thresh
 ## Features
 
 - 🎯 **Smart Messaging** - Template-based messages with automatic currency formatting
-- ♿ **Accessible** - Proper ARIA attributes and screen reader support
 - 🎨 **Highly Customizable** - CSS custom properties for easy theming
 - 📱 **Responsive** - Mobile-optimized with responsive breakpoints
 - ⚡ **Smooth Animations** - Buttery smooth transitions and completion effects
@@ -20,13 +19,13 @@ npm install @magic-spells/cart-progress-bar
 ## Basic Usage
 
 ```html
-<cart-progress-bar 
-  threshold="75.00" 
-  current="25.50"
-  message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-  message-below="Add ${left} more for FREE shipping!">
-  <p data-content-cart-progress-message>Add ${left} more for FREE shipping!</p>
-  <progress-bar></progress-bar>
+<cart-progress-bar
+	threshold="75.00"
+	current="25.50"
+	message-above="🎉 Congratulations! You've qualified for FREE shipping!"
+	message-below="Add ${left} more for FREE shipping!">
+	<p data-content-cart-progress-message>Add ${left} more for FREE shipping!</p>
+	<progress-bar></progress-bar>
 </cart-progress-bar>
 ```
 
@@ -43,20 +42,17 @@ const progressBar = document.querySelector('cart-progress-bar');
 progressBar.setPercent(67);
 
 // Update cart amount
-progressBar.setCurrentAmount(45.50);
+progressBar.setCurrentAmount(45.5);
 
 // Change threshold
-progressBar.setThresholdAmount(100.00);
+progressBar.setThresholdAmount(100.0);
 
 // Get current progress info
 const info = progressBar.getProgress();
 console.log(info.percent, info.isComplete, info.thresholdAmount);
 
 // Update message templates
-progressBar.setMessages(
-  "Almost there!", 
-  "Only ${left} more to go!"
-);
+progressBar.setMessages('Almost there!', 'Only ${left} more to go!');
 ```
 
 ## Cart Integration
@@ -65,10 +61,8 @@ The component automatically listens for cart data changes when placed inside a `
 
 ```html
 <cart-panel>
-  <cart-progress-bar 
-    threshold="75.00"
-    message-below="Add ${left} more for FREE shipping!">
-  </cart-progress-bar>
+	<cart-progress-bar threshold="75.00" message-below="Add ${left} more for FREE shipping!">
+	</cart-progress-bar>
 </cart-panel>
 ```
 
@@ -76,12 +70,12 @@ When the cart-panel emits a `cart-dialog:data-changed` event (typically from Sho
 
 ## Attributes
 
-| Attribute | Description | Example |
-|-----------|-------------|---------|
-| `threshold` | Threshold amount for free shipping | `"75.00"` |
-| `current` | Current cart amount | `"25.50"` |
+| Attribute       | Description                               | Example                        |
+| --------------- | ----------------------------------------- | ------------------------------ |
+| `threshold`     | Threshold amount for free shipping        | `"75.00"`                      |
+| `current`       | Current cart amount                       | `"25.50"`                      |
 | `message-above` | Success message when threshold is reached | `"🎉 FREE shipping unlocked!"` |
-| `message-below` | Message template shown below the bar | `"Add ${left} more!"` |
+| `message-below` | Message template shown below the bar      | `"Add ${left} more!"`          |
 
 ## Customization
 
@@ -89,39 +83,40 @@ Use CSS custom properties to customize the appearance:
 
 ```css
 cart-progress-bar {
-  --cart-progress-bar-height: 16px;
-  --cart-progress-bar-fill-bg: #ff6b6b;
-  --cart-progress-bar-border-radius: 8px;
-  --cart-progress-message-font-size: 1rem;
-  --cart-progress-message-color: #333;
+	--cart-progress-bar-height: 16px;
+	--cart-progress-bar-fill-bg: #ff6b6b;
+	--cart-progress-bar-border-radius: 8px;
+	--cart-progress-message-font-size: 1rem;
+	--cart-progress-message-color: #333;
 }
 ```
 
 ## Available CSS Custom Properties
 
-| Property | Description | Default |
-|----------|-------------|---------|
-| `--cart-progress-bar-height` | Height of the progress bar | `12px` |
-| `--cart-progress-bar-border-radius` | Border radius | `6px` |
-| `--cart-progress-bar-bg` | Background color | `#e9ecef` |
-| `--cart-progress-bar-fill-bg` | Fill color | `#28a745` |
-| `--cart-progress-bar-complete-bg` | Color when complete | `#007bff` |
-| `--cart-progress-message-font-size` | Message font size | `0.875rem` |
-| `--cart-progress-message-color` | Message text color | `#495057` |
+| Property                            | Description                | Default    |
+| ----------------------------------- | -------------------------- | ---------- |
+| `--cart-progress-bar-height`        | Height of the progress bar | `12px`     |
+| `--cart-progress-bar-border-radius` | Border radius              | `6px`      |
+| `--cart-progress-bar-bg`            | Background color           | `#e9ecef`  |
+| `--cart-progress-bar-fill-bg`       | Fill color                 | `#28a745`  |
+| `--cart-progress-bar-complete-bg`   | Color when complete        | `#007bff`  |
+| `--cart-progress-message-font-size` | Message font size          | `0.875rem` |
+| `--cart-progress-message-color`     | Message text color         | `#495057`  |
 
 ## Message Templates
 
 Use `${left}` in your message templates for automatic currency formatting:
 
 ```html
-<cart-progress-bar 
-  message-above="🎉 FREE shipping unlocked!"
-  message-below="You need ${left} more for free shipping!">
-  <p data-content-cart-progress-message>You need ${left} more for free shipping!</p>
+<cart-progress-bar
+	message-above="🎉 FREE shipping unlocked!"
+	message-below="You need ${left} more for free shipping!">
+	<p data-content-cart-progress-message>You need ${left} more for free shipping!</p>
 </cart-progress-bar>
 ```
 
 The component automatically:
+
 - Shows `message-below` when incomplete (with `${left}` replaced)
 - Shows `message-above` when threshold is reached (success message)
 - Formats the amount as currency (USD by default)
@@ -132,11 +127,12 @@ The component automatically:
 The component automatically adds CSS classes based on progress:
 
 - `.progress-low` - 0-49% progress
-- `.progress-medium` - 50-74% progress  
+- `.progress-medium` - 50-74% progress
 - `.progress-high` - 75-99% progress
 - `.progress-complete` - 100% progress
 
 And data attributes:
+
 - `data-complete="true"` - When threshold is reached
 - `data-incomplete="true"` - When threshold is not reached
 

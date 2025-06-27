@@ -1,350 +1,315 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cart Progress Bar Demo - @magic-spells/cart-progress-bar</title>
-    <link rel="stylesheet" href="cart-progress-bar.min.css" />
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Cart Progress Bar Demo - @magic-spells/cart-progress-bar</title>
+		<link rel="stylesheet" href="cart-progress-bar.min.css" />
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
 
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        line-height: 1.6;
-        color: #333;
-        background: #f8f9fa;
-        padding: 2rem 1rem;
-      }
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+				line-height: 1.6;
+				color: #333;
+				background: #f8f9fa;
+				padding: 2rem 1rem;
+			}
 
-      .container {
-        max-width: 1000px;
-        margin: 0 auto;
-      }
+			.container {
+				max-width: 1000px;
+				margin: 0 auto;
+			}
 
-      h1 {
-        text-align: center;
-        margin-bottom: 2rem;
-        color: #2c3e50;
-        font-size: 2.5rem;
-        font-weight: 300;
-      }
+			h1 {
+				text-align: center;
+				margin-bottom: 2rem;
+				color: #2c3e50;
+				font-size: 2.5rem;
+				font-weight: 300;
+			}
 
-      .demo-section {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
+			.demo-section {
+				background: white;
+				border-radius: 12px;
+				padding: 2rem;
+				margin-bottom: 2rem;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			}
 
-      .demo-section h2 {
-        margin-bottom: 1rem;
-        color: #34495e;
-        font-size: 1.5rem;
-        font-weight: 400;
-      }
+			.demo-section h2 {
+				margin-bottom: 1rem;
+				color: #34495e;
+				font-size: 1.5rem;
+				font-weight: 400;
+			}
 
-      .demo-section p {
-        margin-bottom: 1.5rem;
-        color: #666;
-      }
+			.demo-section p {
+				margin-bottom: 1.5rem;
+				color: #666;
+			}
 
-      .controls {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin: 1.5rem 0;
-        padding: 1rem;
-        background: #f8f9fa;
-        border-radius: 8px;
-      }
+			.controls {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 1rem;
+				margin: 1.5rem 0;
+				padding: 1rem;
+				background: #f8f9fa;
+				border-radius: 8px;
+			}
 
-      .control-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
+			.control-group {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+			}
 
-      .control-group label {
-        font-weight: 600;
-        color: #495057;
-        font-size: 0.9rem;
-      }
+			.control-group label {
+				font-weight: 600;
+				color: #495057;
+				font-size: 0.9rem;
+			}
 
-      .control-group input,
-      .control-group select,
-      .control-group button {
-        padding: 0.5rem;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        font-size: 0.9rem;
-      }
+			.control-group input,
+			.control-group select,
+			.control-group button {
+				padding: 0.5rem;
+				border: 1px solid #ced4da;
+				border-radius: 4px;
+				font-size: 0.9rem;
+			}
 
-      .control-group button {
-        background: #007bff;
-        color: white;
-        border-color: #007bff;
-        cursor: pointer;
-        font-weight: 600;
-      }
+			.control-group button {
+				background: #007bff;
+				color: white;
+				border-color: #007bff;
+				cursor: pointer;
+				font-weight: 600;
+			}
 
-      .control-group button:hover {
-        background: #0056b3;
-        border-color: #0056b3;
-      }
+			.control-group button:hover {
+				background: #0056b3;
+				border-color: #0056b3;
+			}
 
-      .control-group button.secondary {
-        background: #6c757d;
-        border-color: #6c757d;
-      }
+			.control-group button.secondary {
+				background: #6c757d;
+				border-color: #6c757d;
+			}
 
-      .control-group button.secondary:hover {
-        background: #545b62;
-        border-color: #545b62;
-      }
+			.control-group button.secondary:hover {
+				background: #545b62;
+				border-color: #545b62;
+			}
 
-      /* Demo progress bar containers */
-      .progress-demo {
-        margin: 2rem 0;
-        padding: 1.5rem;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        background: #ffffff;
-      }
+			/* Demo progress bar containers */
+			.progress-demo {
+				margin: 2rem 0;
+				padding: 1.5rem;
+				border: 1px solid #dee2e6;
+				border-radius: 8px;
+				background: #ffffff;
+			}
 
-      .progress-demo h3 {
-        margin-bottom: 1rem;
-        color: #495057;
-        font-size: 1.1rem;
-      }
+			.progress-demo h3 {
+				margin-bottom: 1rem;
+				color: #495057;
+				font-size: 1.1rem;
+			}
 
-      /* Ensure message text is visible in demos */
-      .progress-demo p[data-content-cart-progress-message] {
-        color: #333 !important;
-      }
+			/* Ensure message text is visible in demos */
+			.progress-demo p[data-content-cart-progress-message] {
+				color: #333 !important;
+			}
 
-      /* Custom themed progress bars */
-      .theme-minimal {
-        --cart-progress-bar-height: 8px;
-        --cart-progress-bar-bg: #f1f3f4;
-        --cart-progress-bar-fill-bg: #1a73e8;
-        --cart-progress-message-font-size: 0.8rem;
-      }
+			/* Custom themed progress bars */
+			.theme-minimal {
+				--cart-progress-bar-height: 8px;
+				--cart-progress-bar-bg: #f1f3f4;
+				--cart-progress-bar-fill-bg: #1a73e8;
+				--cart-progress-message-font-size: 0.8rem;
+			}
 
-      .theme-bold {
-        --cart-progress-bar-height: 16px;
-        --cart-progress-bar-border-radius: 8px;
-        --cart-progress-bar-fill-bg: #ff6b6b;
-        --cart-progress-message-font-size: 1rem;
-        --cart-progress-message-color: #2c3e50;
-      }
+			.theme-bold {
+				--cart-progress-bar-height: 16px;
+				--cart-progress-bar-border-radius: 8px;
+				--cart-progress-bar-fill-bg: #ff6b6b;
+				--cart-progress-message-font-size: 1rem;
+				--cart-progress-message-color: #2c3e50;
+			}
 
-      .theme-neon {
-        --cart-progress-bar-height: 14px;
-        --cart-progress-bar-bg: #1a1a2e;
-        --cart-progress-bar-fill-bg: #00d4ff;
-        --cart-progress-message-color: #16213e;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 12px;
-        color: white;
-      }
+			.theme-neon {
+				--cart-progress-bar-height: 14px;
+				--cart-progress-bar-bg: #1a1a2e;
+				--cart-progress-bar-fill-bg: #00d4ff;
+				--cart-progress-message-color: #16213e;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				padding: 1.5rem;
+				border-radius: 12px;
+				color: white;
+			}
 
-      .theme-neon p[data-content-cart-progress-message] {
-        color: white !important;
-      }
+			.theme-neon p[data-content-cart-progress-message] {
+				color: white !important;
+			}
 
-      .code-block {
-        background: #2d3748;
-        color: #e2e8f0;
-        padding: 1rem;
-        border-radius: 6px;
-        margin: 1rem 0;
-        overflow-x: auto;
-        font-family:
-          "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas,
-          "Courier New", monospace;
-        font-size: 0.9rem;
-      }
+			.code-block {
+				background: #2d3748;
+				color: #e2e8f0;
+				padding: 1rem;
+				border-radius: 6px;
+				margin: 1rem 0;
+				overflow-x: auto;
+				font-family:
+					'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+				font-size: 0.9rem;
+			}
 
-      .features-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1rem;
-        margin: 2rem 0;
-      }
+			.features-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+				gap: 1rem;
+				margin: 2rem 0;
+			}
 
-      .feature {
-        background: #f8f9fa;
-        padding: 1.5rem;
-        border-radius: 8px;
-        border-left: 4px solid #007bff;
-      }
+			.feature {
+				background: #f8f9fa;
+				padding: 1.5rem;
+				border-radius: 8px;
+				border-left: 4px solid #007bff;
+			}
 
-      .feature h3 {
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-        font-size: 1.1rem;
-      }
+			.feature h3 {
+				color: #2c3e50;
+				margin-bottom: 0.5rem;
+				font-size: 1.1rem;
+			}
 
-      .feature p {
-        color: #666;
-        margin: 0;
-        font-size: 0.9rem;
-      }
+			.feature p {
+				color: #666;
+				margin: 0;
+				font-size: 0.9rem;
+			}
 
-      @media (max-width: 768px) {
-        body {
-          padding: 1rem 0.5rem;
-        }
+			@media (max-width: 768px) {
+				body {
+					padding: 1rem 0.5rem;
+				}
 
-        h1 {
-          font-size: 2rem;
-        }
+				h1 {
+					font-size: 2rem;
+				}
 
-        .demo-section {
-          padding: 1rem;
-        }
+				.demo-section {
+					padding: 1rem;
+				}
 
-        .controls {
-          grid-template-columns: 1fr;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Cart Progress Bar Demo</h1>
+				.controls {
+					grid-template-columns: 1fr;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>Cart Progress Bar Demo</h1>
 
-      <section class="demo-section">
-        <h2>Interactive Demo</h2>
-        <p>
-          Control the cart progress bar in real-time. Adjust the cart amount and
-          minimum threshold to see how the progress bar and messages update.
-        </p>
+			<section class="demo-section">
+				<h2>Interactive Demo</h2>
+				<p>
+					Control the cart progress bar in real-time. Adjust the cart amount and minimum threshold
+					to see how the progress bar and messages update.
+				</p>
 
-        <div class="controls">
-          <div class="control-group">
-            <label for="cartAmount">Current Cart Amount ($)</label>
-            <input
-              type="number"
-              id="cartAmount"
-              value="25.50"
-              step="0.01"
-              min="0"
-            />
-          </div>
-          <div class="control-group">
-            <label for="thresholdAmount">Free Shipping Threshold ($)</label>
-            <input
-              type="number"
-              id="thresholdAmount"
-              value="75.00"
-              step="0.01"
-              min="0"
-            />
-          </div>
-          <div class="control-group">
-            <label for="percentInput">Set Progress Percent</label>
-            <input
-              type="range"
-              id="percentInput"
-              min="0"
-              max="100"
-              value="34"
-            />
-            <span id="percentDisplay">34%</span>
-          </div>
-          <div class="control-group">
-            <label>Quick Actions</label>
-            <button onclick="setProgress(0)">0%</button>
-            <button onclick="setProgress(50)" class="secondary">50%</button>
-            <button onclick="setProgress(100)">Complete</button>
-          </div>
-        </div>
+				<div class="controls">
+					<div class="control-group">
+						<label for="cartAmount">Current Cart Amount ($)</label>
+						<input type="number" id="cartAmount" value="25.50" step="0.01" min="0" />
+					</div>
+					<div class="control-group">
+						<label for="thresholdAmount">Free Shipping Threshold ($)</label>
+						<input type="number" id="thresholdAmount" value="75.00" step="0.01" min="0" />
+					</div>
+					<div class="control-group">
+						<label for="percentInput">Set Progress Percent</label>
+						<input type="range" id="percentInput" min="0" max="100" value="34" />
+						<span id="percentDisplay">34%</span>
+					</div>
+					<div class="control-group">
+						<label>Quick Actions</label>
+						<button onclick="setProgress(0)">0%</button>
+						<button onclick="setProgress(50)" class="secondary">50%</button>
+						<button onclick="setProgress(100)">Complete</button>
+					</div>
+				</div>
 
-        <div class="progress-demo">
-          <h3>Main Demo</h3>
-          <cart-progress-bar
-            id="mainDemo"
-            threshold="75.00"
-            current="25.50"
-            message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-            message-below="Add ${left} more to get FREE shipping! 🚚"
-          >
-            <p data-content-cart-progress-message>
-              Add ${left} more to get FREE shipping! 🚚
-            </p>
-            <progress-bar></progress-bar>
-          </cart-progress-bar>
-        </div>
-      </section>
+				<div class="progress-demo">
+					<h3>Main Demo</h3>
+					<cart-progress-bar
+						id="mainDemo"
+						threshold="75.00"
+						current="25.50"
+						message-above="🎉 Congratulations! You've qualified for FREE shipping!"
+						message-below="Add ${left} more to get FREE shipping! 🚚">
+						<p data-content-cart-progress-message>Add ${left} more to get FREE shipping! 🚚</p>
+						<progress-bar></progress-bar>
+					</cart-progress-bar>
+				</div>
+			</section>
 
-      <section class="demo-section">
-        <h2>Different Themes</h2>
-        <p>
-          Examples of different visual themes you can create with CSS custom
-          properties.
-        </p>
+			<section class="demo-section">
+				<h2>Different Themes</h2>
+				<p>Examples of different visual themes you can create with CSS custom properties.</p>
 
-        <div class="progress-demo">
-          <h3>Minimal Theme</h3>
-          <cart-progress-bar
-            class="theme-minimal"
-            threshold="50.00"
-            current="32.50"
-            message-below="${left} away from free delivery"
-          >
-            <p data-content-cart-progress-message>
-              ${left} away from free delivery
-            </p>
-            <progress-bar></progress-bar>
-          </cart-progress-bar>
-        </div>
+				<div class="progress-demo">
+					<h3>Minimal Theme</h3>
+					<cart-progress-bar
+						class="theme-minimal"
+						threshold="50.00"
+						current="32.50"
+						message-below="${left} away from free delivery">
+						<p data-content-cart-progress-message>${left} away from free delivery</p>
+						<progress-bar></progress-bar>
+					</cart-progress-bar>
+				</div>
 
-        <div class="progress-demo">
-          <h3>Bold Theme</h3>
-          <cart-progress-bar
-            class="theme-bold"
-            threshold="100.00"
-            current="78.90"
-            message-above="🎉 FREE shipping unlocked!"
-            message-below="🎯 ${left} more for FREE shipping!"
-          >
-            <p data-content-cart-progress-message>
-              🎯 ${left} more for FREE shipping!
-            </p>
-            <progress-bar></progress-bar>
-          </cart-progress-bar>
-        </div>
+				<div class="progress-demo">
+					<h3>Bold Theme</h3>
+					<cart-progress-bar
+						class="theme-bold"
+						threshold="100.00"
+						current="78.90"
+						message-above="🎉 FREE shipping unlocked!"
+						message-below="🎯 ${left} more for FREE shipping!">
+						<p data-content-cart-progress-message>🎯 ${left} more for FREE shipping!</p>
+						<progress-bar></progress-bar>
+					</cart-progress-bar>
+				</div>
 
-        <div class="progress-demo theme-neon">
-          <h3>Neon Theme</h3>
-          <cart-progress-bar
-            class="theme-neon"
-            threshold="150.00"
-            current="120.00"
-            message-above="⚡ TURBO shipping activated!"
-            message-below="⚡ Only ${left} until TURBO shipping!"
-          >
-            <p data-content-cart-progress-message>
-              ⚡ Only ${left} until TURBO shipping!
-            </p>
-            <progress-bar></progress-bar>
-          </cart-progress-bar>
-        </div>
-      </section>
+				<div class="progress-demo theme-neon">
+					<h3>Neon Theme</h3>
+					<cart-progress-bar
+						class="theme-neon"
+						threshold="150.00"
+						current="120.00"
+						message-above="⚡ TURBO shipping activated!"
+						message-below="⚡ Only ${left} until TURBO shipping!">
+						<p data-content-cart-progress-message>⚡ Only ${left} until TURBO shipping!</p>
+						<progress-bar></progress-bar>
+					</cart-progress-bar>
+				</div>
+			</section>
 
-      <section class="demo-section">
-        <h2>Usage Examples</h2>
+			<section class="demo-section">
+				<h2>Usage Examples</h2>
 
-        <h3>Basic Setup</h3>
-        <pre class="code-block"><code>&lt;cart-progress-bar 
+				<h3>Basic Setup</h3>
+				<pre class="code-block"><code>&lt;cart-progress-bar 
   threshold="75.00" 
   current="25.50"
   message-above="🎉 Congratulations! You've qualified for FREE shipping!"
@@ -353,10 +318,9 @@
   &lt;progress-bar&gt;&lt;/progress-bar&gt;
 &lt;/cart-progress-bar&gt;</code></pre>
 
-        <h3>JavaScript API</h3>
-        <pre
-          class="code-block"
-        ><code>const progressBar = document.querySelector('cart-progress-bar');
+				<h3>JavaScript API</h3>
+				<pre
+					class="code-block"><code>const progressBar = document.querySelector('cart-progress-bar');
 
 // Set progress percentage directly
 progressBar.setPercent(67);
@@ -371,126 +335,113 @@ progressBar.setThresholdAmount(100.00);
 const info = progressBar.getProgress();
 console.log(info.percent, info.isComplete, info.thresholdAmount);</code></pre>
 
-        <h3>Custom Styling</h3>
-        <pre class="code-block"><code>cart-progress-bar {
+				<h3>Custom Styling</h3>
+				<pre class="code-block"><code>cart-progress-bar {
   --cart-progress-bar-height: 16px;
   --cart-progress-bar-fill-bg: #ff6b6b;
   --cart-progress-bar-border-radius: 8px;
   --cart-progress-message-font-size: 1rem;
 }</code></pre>
-      </section>
+			</section>
 
-      <section class="demo-section">
-        <h2>Features</h2>
-        <div class="features-grid">
-          <div class="feature">
-            <h3>🎯 Smart Messaging</h3>
-            <p>
-              Template-based messages with automatic currency formatting and
-              show/hide logic based on completion status.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>♿ Accessible</h3>
-            <p>
-              Proper ARIA attributes, high contrast support, and reduced motion
-              preferences respected.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>🎨 Highly Customizable</h3>
-            <p>
-              CSS custom properties for colors, sizing, fonts, and spacing. Easy
-              theming support.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>📱 Responsive</h3>
-            <p>
-              Mobile-optimized with responsive breakpoints and touch-friendly
-              interactions.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>⚡ Smooth Animations</h3>
-            <p>
-              Buttery smooth transitions with completion shine effects and
-              progress level indicators.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>🔧 Easy Integration</h3>
-            <p>
-              Drop-in web component that works with any framework. Clean
-              JavaScript API for dynamic updates.
-            </p>
-          </div>
-        </div>
-      </section>
-    </div>
+			<section class="demo-section">
+				<h2>Features</h2>
+				<div class="features-grid">
+					<div class="feature">
+						<h3>🎯 Smart Messaging</h3>
+						<p>
+							Template-based messages with automatic currency formatting and show/hide logic based
+							on completion status.
+						</p>
+					</div>
+					<div class="feature">
+						<h3>🎨 Highly Customizable</h3>
+						<p>
+							CSS custom properties for colors, sizing, fonts, and spacing. Easy theming support.
+						</p>
+					</div>
+					<div class="feature">
+						<h3>📱 Responsive</h3>
+						<p>Mobile-optimized with responsive breakpoints and touch-friendly interactions.</p>
+					</div>
+					<div class="feature">
+						<h3>⚡ Smooth Animations</h3>
+						<p>
+							Buttery smooth transitions with completion shine effects and progress level
+							indicators.
+						</p>
+					</div>
+					<div class="feature">
+						<h3>🔧 Easy Integration</h3>
+						<p>
+							Drop-in web component that works with any framework. Clean JavaScript API for dynamic
+							updates.
+						</p>
+					</div>
+				</div>
+			</section>
+		</div>
 
-    <script type="module" src="./cart-progress-bar.esm.js"></script>
-    <script>
-      // Demo functionality
-      document.addEventListener("DOMContentLoaded", function () {
-        const mainDemo = document.getElementById("mainDemo");
-        const cartAmountInput = document.getElementById("cartAmount");
-        const thresholdAmountInput = document.getElementById("thresholdAmount");
-        const percentInput = document.getElementById("percentInput");
-        const percentDisplay = document.getElementById("percentDisplay");
+		<script type="module" src="./cart-progress-bar.esm.js"></script>
+		<script>
+			// Demo functionality
+			document.addEventListener('DOMContentLoaded', function () {
+				const mainDemo = document.getElementById('mainDemo');
+				const cartAmountInput = document.getElementById('cartAmount');
+				const thresholdAmountInput = document.getElementById('thresholdAmount');
+				const percentInput = document.getElementById('percentInput');
+				const percentDisplay = document.getElementById('percentDisplay');
 
-        // Update main demo when inputs change
-        cartAmountInput.addEventListener("input", function () {
-          const amount = parseFloat(this.value) || 0;
-          mainDemo.setCurrentAmount(amount);
-          updatePercentSlider();
-        });
+				// Update main demo when inputs change
+				cartAmountInput.addEventListener('input', function () {
+					const amount = parseFloat(this.value) || 0;
+					mainDemo.setCurrentAmount(amount);
+					updatePercentSlider();
+				});
 
-        thresholdAmountInput.addEventListener("input", function () {
-          const amount = parseFloat(this.value) || 0;
-          mainDemo.setThresholdAmount(amount);
-          updatePercentSlider();
-        });
+				thresholdAmountInput.addEventListener('input', function () {
+					const amount = parseFloat(this.value) || 0;
+					mainDemo.setThresholdAmount(amount);
+					updatePercentSlider();
+				});
 
-        percentInput.addEventListener("input", function () {
-          const percent = parseInt(this.value);
-          percentDisplay.textContent = percent + "%";
-          mainDemo.setPercent(percent);
-          updateAmountInputs();
-        });
+				percentInput.addEventListener('input', function () {
+					const percent = parseInt(this.value);
+					percentDisplay.textContent = percent + '%';
+					mainDemo.setPercent(percent);
+					updateAmountInputs();
+				});
 
-        function updatePercentSlider() {
-          const progress = mainDemo.getProgress();
-          percentInput.value = Math.round(progress.percent);
-          percentDisplay.textContent = Math.round(progress.percent) + "%";
-        }
+				function updatePercentSlider() {
+					const progress = mainDemo.getProgress();
+					percentInput.value = Math.round(progress.percent);
+					percentDisplay.textContent = Math.round(progress.percent) + '%';
+				}
 
-        function updateAmountInputs() {
-          const progress = mainDemo.getProgress();
-          cartAmountInput.value = progress.currentAmount.toFixed(2);
-        }
+				function updateAmountInputs() {
+					const progress = mainDemo.getProgress();
+					cartAmountInput.value = progress.currentAmount.toFixed(2);
+				}
 
-        // Global function for quick actions
-        window.setProgress = function (percent) {
-          percentInput.value = percent;
-          percentDisplay.textContent = percent + "%";
-          mainDemo.setPercent(percent);
-          updateAmountInputs();
-        };
+				// Global function for quick actions
+				window.setProgress = function (percent) {
+					percentInput.value = percent;
+					percentDisplay.textContent = percent + '%';
+					mainDemo.setPercent(percent);
+					updateAmountInputs();
+				};
 
-        // Demonstrate API usage
-        console.log("Cart Progress Bar Demo loaded!");
-        console.log("Try the following in the console:");
-        console.log("mainDemo.setPercent(75)");
-        console.log("mainDemo.getProgress()");
-        console.log("mainDemo.setThresholdAmount(100)");
-        console.log(
-          'mainDemo.setMessages(null, "Only {{ amount }} left to save!")',
-        );
+				// Demonstrate API usage
+				console.log('Cart Progress Bar Demo loaded!');
+				console.log('Try the following in the console:');
+				console.log('mainDemo.setPercent(75)');
+				console.log('mainDemo.getProgress()');
+				console.log('mainDemo.setThresholdAmount(100)');
+				console.log('mainDemo.setMessages(null, "Only {{ amount }} left to save!")');
 
-        // Make mainDemo globally accessible for console testing
-        window.mainDemo = mainDemo;
-      });
-    </script>
-  </body>
+				// Make mainDemo globally accessible for console testing
+				window.mainDemo = mainDemo;
+			});
+		</script>
+	</body>
 </html>
