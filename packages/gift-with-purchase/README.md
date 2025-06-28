@@ -2,6 +2,8 @@
 
 A powerful, e-commerce web component for automatic gift-with-purchase threshold promotions. Seamlessly integrates with Shopify and automatically manages gift items in the cart based on spending thresholds.
 
+[**Live Demo**](https://magic-spells.github.io/gift-with-purchase/demo/)
+
 ## Features
 
 - 🎁 **Automatic Gift Management** - Adds/removes gifts based on cart thresholds
@@ -21,9 +23,9 @@ npm install @magic-spells/gift-with-purchase
 ## Basic Usage
 
 ```html
-<gift-with-purchase 
-  threshold="75.00" 
-  current="45.00" 
+<gift-with-purchase
+  threshold="75.00"
+  current="45.00"
   variant-id="12345678"
   message-above="🎉 Congratulations! You've qualified for your FREE gift!"
   message-below="Add ${{ amount }} more to unlock your free gift! 🎁">
@@ -38,7 +40,7 @@ npm install @magic-spells/gift-with-purchase
 ```
 
 ```css
-@import "@magic-spells/gift-with-purchase/css";
+@import '@magic-spells/gift-with-purchase/css';
 ```
 
 ## Cart Integration
@@ -47,8 +49,8 @@ The component automatically listens for cart data changes when placed inside a `
 
 ```html
 <cart-panel>
-  <gift-with-purchase 
-    threshold="75.00" 
+  <gift-with-purchase
+    threshold="75.00"
     variant-id="12345678"
     message-above="🎉 Congratulations! You've qualified for FREE shipping!"
     message-below="Add ${{ amount }} more to get FREE shipping! 🚚">
@@ -67,7 +69,7 @@ When the cart-panel emits a `cart-dialog:data-changed` event (typically from Sho
 ## JavaScript API
 
 ```javascript
-const gwp = document.querySelector("gift-with-purchase");
+const gwp = document.querySelector('gift-with-purchase');
 
 // Update cart amount
 gwp.setCurrentAmount(85.5);
@@ -76,7 +78,7 @@ gwp.setCurrentAmount(85.5);
 gwp.setThreshold(100.0);
 
 // Update variant ID
-gwp.setVariantId("87654321");
+gwp.setVariantId('87654321');
 
 // Get current state
 const state = gwp.getState();
@@ -84,22 +86,22 @@ console.log(state.isActive, state.isAdded, state.remainingAmount);
 
 // Update product information
 gwp.updateProduct({
-  image: "new-gift.jpg",
-  title: "Updated Gift",
-  variantTitle: "New Variant",
-  alt: "New gift image",
+  image: 'new-gift.jpg',
+  title: 'Updated Gift',
+  variantTitle: 'New Variant',
+  alt: 'New gift image',
 });
 ```
 
 ## Attributes
 
-| Attribute        | Description                                    | Example                                                    |
-| ---------------- | ---------------------------------------------- | ---------------------------------------------------------- |
-| `threshold`      | Spending threshold to unlock the gift          | `"75.00"`                                                  |
-| `current`        | Current cart amount                            | `"45.00"`                                                  |
-| `variant-id`     | Shopify variant ID for the gift product       | `"12345678"`                                               |
-| `message-above`  | Message shown when threshold is met           | `"🎉 Congratulations! You've qualified for your FREE gift!"` |
-| `message-below`  | Message shown when below threshold (uses `{{ amount }}` placeholder) | `"Add ${{ amount }} more to unlock your free gift! 🎁"`   |
+| Attribute       | Description                                                          | Example                                                      |
+| --------------- | -------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `threshold`     | Spending threshold to unlock the gift                                | `"75.00"`                                                    |
+| `current`       | Current cart amount                                                  | `"45.00"`                                                    |
+| `variant-id`    | Shopify variant ID for the gift product                              | `"12345678"`                                                 |
+| `message-above` | Message shown when threshold is met                                  | `"🎉 Congratulations! You've qualified for your FREE gift!"` |
+| `message-below` | Message shown when below threshold (uses `{{ amount }}` placeholder) | `"Add ${{ amount }} more to unlock your free gift! 🎁"`      |
 
 ## Data Attributes for Content
 
@@ -117,19 +119,19 @@ The component emits custom events for integration:
 
 ```javascript
 // Gift successfully added to cart
-gwp.addEventListener("gwp:added", (event) => {
-  console.log("Gift added:", event.detail.variantId);
+gwp.addEventListener('gwp:added', (event) => {
+  console.log('Gift added:', event.detail.variantId);
 });
 
 // Gift successfully removed from cart
-gwp.addEventListener("gwp:removed", (event) => {
-  console.log("Gift removed:", event.detail.variantId);
+gwp.addEventListener('gwp:removed', (event) => {
+  console.log('Gift removed:', event.detail.variantId);
 });
 
 // Error occurred during add/remove
-gwp.addEventListener("gwp:error", (event) => {
-  console.error("Error:", event.detail.error);
-  console.log("Action:", event.detail.action); // 'add' or 'remove'
+gwp.addEventListener('gwp:error', (event) => {
+  console.error('Error:', event.detail.error);
+  console.log('Action:', event.detail.action); // 'add' or 'remove'
 });
 ```
 
@@ -234,8 +236,8 @@ In your Shopify cart template, you can identify and handle gift items:
 
 ```html
 <!-- Low tier gift -->
-<gift-with-purchase 
-  threshold="50.00" 
+<gift-with-purchase
+  threshold="50.00"
   variant-id="111111"
   message-above="🎉 You've unlocked a free tote bag!"
   message-below="Add ${{ amount }} more for a free tote bag! 👜">
@@ -246,8 +248,8 @@ In your Shopify cart template, you can identify and handle gift items:
 </gift-with-purchase>
 
 <!-- High tier gift -->
-<gift-with-purchase 
-  threshold="100.00" 
+<gift-with-purchase
+  threshold="100.00"
   variant-id="222222"
   message-above="✨ Amazing! You've earned our premium gift set!"
   message-below="Spend ${{ amount }} more for our exclusive premium gift set! ✨">
