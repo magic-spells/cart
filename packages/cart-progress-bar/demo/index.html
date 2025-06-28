@@ -255,8 +255,8 @@
 						threshold="75.00"
 						current="25.50"
 						message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-						message-below="Add ${left} more to get FREE shipping! 🚚">
-						<p data-content-cart-progress-message>Add ${left} more to get FREE shipping! 🚚</p>
+						message-below="Add {{ amount }} more to get FREE shipping! 🚚">
+						<p data-content-cart-progress-message>Add {{ amount }} more to get FREE shipping! 🚚</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -272,8 +272,8 @@
 						class="theme-minimal"
 						threshold="50.00"
 						current="32.50"
-						message-below="${left} away from free delivery">
-						<p data-content-cart-progress-message>${left} away from free delivery</p>
+						message-below="{{ amount }} away from free delivery">
+						<p data-content-cart-progress-message>{{ amount }} away from free delivery</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -285,8 +285,8 @@
 						threshold="100.00"
 						current="78.90"
 						message-above="🎉 FREE shipping unlocked!"
-						message-below="🎯 ${left} more for FREE shipping!">
-						<p data-content-cart-progress-message>🎯 ${left} more for FREE shipping!</p>
+						message-below="🎯 {{ amount }} more for FREE shipping!">
+						<p data-content-cart-progress-message>🎯 {{ amount }} more for FREE shipping!</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -298,8 +298,8 @@
 						threshold="150.00"
 						current="120.00"
 						message-above="⚡ TURBO shipping activated!"
-						message-below="⚡ Only ${left} until TURBO shipping!">
-						<p data-content-cart-progress-message>⚡ Only ${left} until TURBO shipping!</p>
+						message-below="⚡ Only {{ amount }} until TURBO shipping!">
+						<p data-content-cart-progress-message>⚡ Only {{ amount }} until TURBO shipping!</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -313,8 +313,8 @@
   threshold="75.00" 
   current="25.50"
   message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-  message-below="Add ${left} more for FREE shipping!"&gt;
-  &lt;p data-content-cart-progress-message&gt;Add ${left} more for FREE shipping!&lt;/p&gt;
+  message-below="Add {{ amount }} more for FREE shipping!"&gt;
+  &lt;p data-content-cart-progress-message&gt;Add {{ amount }} more for FREE shipping!&lt;/p&gt;
   &lt;progress-bar&gt;&lt;/progress-bar&gt;
 &lt;/cart-progress-bar&gt;</code></pre>
 

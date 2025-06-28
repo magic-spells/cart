@@ -196,7 +196,7 @@ class CartProgressBar extends HTMLElement {
 			}
 
 			if (messageTemplate) {
-				const message = messageTemplate.replace(/\$\{left\}/g, formattedAmount);
+				const message = messageTemplate.replace(/\{\{\s*amount\s*\}\}/g, formattedAmount);
 				this.#messageElement.textContent = message;
 				this.#messageElement.style.display = 'block';
 			} else {

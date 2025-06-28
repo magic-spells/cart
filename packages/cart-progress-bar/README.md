@@ -25,8 +25,8 @@ npm install @magic-spells/cart-progress-bar
 	threshold="75.00"
 	current="25.50"
 	message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-	message-below="Add ${left} more for FREE shipping!">
-	<p data-content-cart-progress-message>Add ${left} more for FREE shipping!</p>
+	message-below="Add {{ amount }} more for FREE shipping!">
+	<p data-content-cart-progress-message>Add {{ amount }} more for FREE shipping!</p>
 	<progress-bar></progress-bar>
 </cart-progress-bar>
 ```
@@ -54,7 +54,7 @@ const info = progressBar.getProgress();
 console.log(info.percent, info.isComplete, info.thresholdAmount);
 
 // Update message templates
-progressBar.setMessages('Almost there!', 'Only ${left} more to go!');
+progressBar.setMessages('Almost there!', 'Only {{ amount }} more to go!');
 ```
 
 ## Cart Integration
@@ -63,7 +63,7 @@ The component automatically listens for cart data changes when placed inside a `
 
 ```html
 <cart-panel>
-	<cart-progress-bar threshold="75.00" message-below="Add ${left} more for FREE shipping!">
+	<cart-progress-bar threshold="75.00" message-below="Add {{ amount }} more for FREE shipping!">
 	</cart-progress-bar>
 </cart-panel>
 ```
@@ -107,19 +107,19 @@ cart-progress-bar {
 
 ## Message Templates
 
-Use `${left}` in your message templates for automatic currency formatting:
+Use `{{ amount }}` in your message templates for automatic currency formatting:
 
 ```html
 <cart-progress-bar
 	message-above="🎉 FREE shipping unlocked!"
-	message-below="You need ${left} more for free shipping!">
-	<p data-content-cart-progress-message>You need ${left} more for free shipping!</p>
+	message-below="You need {{ amount }} more for free shipping!">
+	<p data-content-cart-progress-message>You need {{ amount }} more for free shipping!</p>
 </cart-progress-bar>
 ```
 
 The component automatically:
 
-- Shows `message-below` when incomplete (with `${left}` replaced)
+- Shows `message-below` when incomplete (with `{{ amount }}` replaced)
 - Shows `message-above` when threshold is reached (success message)
 - Formats the amount as currency (USD by default)
 - Updates messages when amounts change
