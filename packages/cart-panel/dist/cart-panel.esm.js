@@ -458,9 +458,15 @@ class CartPanel extends HTMLElement {
 	}
 }
 
-customElements.define('cart-dialog', CartDialog);
-customElements.define('cart-overlay', CartOverlay);
-customElements.define('cart-panel', CartPanel);
+if (!customElements.get('cart-dialog')) {
+	customElements.define('cart-dialog', CartDialog);
+}
+if (!customElements.get('cart-overlay')) {
+	customElements.define('cart-overlay', CartOverlay);
+}
+if (!customElements.get('cart-panel')) {
+	customElements.define('cart-panel', CartPanel);
+}
 
 export { CartDialog, CartOverlay, CartPanel, CartDialog as default };
 //# sourceMappingURL=cart-panel.esm.js.map

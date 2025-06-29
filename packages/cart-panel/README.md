@@ -42,44 +42,44 @@ Or include directly in your HTML:
 ```html
 <!-- Trigger button -->
 <button aria-haspopup="dialog" aria-controls="my-cart" aria-expanded="false">
-  Open Cart (3 items)
+	Open Cart (3 items)
 </button>
 
 <!-- Cart modal dialog -->
 <cart-dialog id="my-cart" aria-labelledby="cart-title">
-  <cart-panel>
-    <div class="cart-header">
-      <h2 id="cart-title">Shopping Cart</h2>
-      <button data-action="hide-cart" aria-label="Close cart">&times;</button>
-    </div>
+	<cart-panel>
+		<div class="cart-header">
+			<h2 id="cart-title">Shopping Cart</h2>
+			<button data-action="hide-cart" aria-label="Close cart">&times;</button>
+		</div>
 
-    <div class="cart-body">
-      <!-- Cart items using @magic-spells/cart-item -->
-      <cart-item data-key="shopify-line-item-123">
-        <cart-item-content>
-          <div class="product-info">
-            <img src="product.jpg" alt="Product" />
-            <div>
-              <h4>Awesome T-Shirt</h4>
-              <div class="price">$29.99</div>
-            </div>
-          </div>
-          <div class="quantity-controls">
-            <input type="number" data-cart-quantity value="1" min="1" />
-            <button data-action="remove">Remove</button>
-          </div>
-        </cart-item-content>
-        <cart-item-processing>
-          <div>Processing...</div>
-        </cart-item-processing>
-      </cart-item>
-    </div>
+		<div class="cart-body">
+			<!-- Cart items using @magic-spells/cart-item -->
+			<cart-item data-key="shopify-line-item-123">
+				<cart-item-content>
+					<div class="product-info">
+						<img src="product.jpg" alt="Product" />
+						<div>
+							<h4>Awesome T-Shirt</h4>
+							<div class="price">$29.99</div>
+						</div>
+					</div>
+					<div class="quantity-controls">
+						<input type="number" data-cart-quantity value="1" min="1" />
+						<button data-action="remove">Remove</button>
+					</div>
+				</cart-item-content>
+				<cart-item-processing>
+					<div>Processing...</div>
+				</cart-item-processing>
+			</cart-item>
+		</div>
 
-    <div class="cart-footer">
-      <div class="cart-total">Total: $29.99</div>
-      <button class="checkout-btn">Checkout</button>
-    </div>
-  </cart-panel>
+		<div class="cart-footer">
+			<div class="cart-total">Total: $29.99</div>
+			<button class="checkout-btn">Checkout</button>
+		</div>
+	</cart-panel>
 </cart-dialog>
 ```
 
@@ -132,28 +132,28 @@ Example:
 ```html
 <!-- Minimal cart modal -->
 <cart-dialog id="simple-cart">
-  <cart-panel>
-    <h2>Cart</h2>
-    <button data-action="hide-cart">Close</button>
-    <!-- Cart content here -->
-  </cart-panel>
+	<cart-panel>
+		<h2>Cart</h2>
+		<button data-action="hide-cart">Close</button>
+		<!-- Cart content here -->
+	</cart-panel>
 </cart-dialog>
 
 <!-- Complete cart with all features -->
 <cart-dialog id="full-cart" aria-modal="true" aria-labelledby="cart-heading">
-  <cart-overlay></cart-overlay>
-  <cart-panel>
-    <header class="cart-header">
-      <h2 id="cart-heading">Shopping Cart</h2>
-      <button data-action="hide-cart" aria-label="Close cart">×</button>
-    </header>
-    <div class="cart-content">
-      <!-- Cart items will be rendered here -->
-    </div>
-    <footer class="cart-footer">
-      <button class="checkout-btn">Checkout</button>
-    </footer>
-  </cart-panel>
+	<cart-overlay></cart-overlay>
+	<cart-panel>
+		<header class="cart-header">
+			<h2 id="cart-heading">Shopping Cart</h2>
+			<button data-action="hide-cart" aria-label="Close cart">×</button>
+		</header>
+		<div class="cart-content">
+			<!-- Cart items will be rendered here -->
+		</div>
+		<footer class="cart-footer">
+			<button class="checkout-btn">Checkout</button>
+		</footer>
+	</cart-panel>
 </cart-dialog>
 ```
 
@@ -166,52 +166,52 @@ The component provides complete styling control through CSS custom properties an
 ```css
 /* Customize modal positioning and sizing */
 cart-dialog {
-  --cart-panel-width: min(500px, 95vw);
-  --cart-panel-z-index: 9999;
-  --cart-overlay-z-index: 9998;
+	--cart-panel-width: min(500px, 95vw);
+	--cart-panel-z-index: 9999;
+	--cart-overlay-z-index: 9998;
 }
 
 /* Customize overlay appearance */
 cart-overlay {
-  --cart-overlay-background: rgba(0, 0, 0, 0.3);
-  --cart-overlay-backdrop-filter: blur(8px);
+	--cart-overlay-background: rgba(0, 0, 0, 0.3);
+	--cart-overlay-backdrop-filter: blur(8px);
 }
 
 /* Customize panel styling */
 cart-panel {
-  --cart-panel-background: #ffffff;
-  --cart-panel-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
-  --cart-panel-border-radius: 12px 0 0 12px;
+	--cart-panel-background: #ffffff;
+	--cart-panel-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
+	--cart-panel-border-radius: 12px 0 0 12px;
 }
 
 /* Customize animations */
 cart-dialog {
-  --cart-transition-duration: 400ms;
-  --cart-transition-timing: cubic-bezier(0.25, 0.8, 0.25, 1);
+	--cart-transition-duration: 400ms;
+	--cart-transition-timing: cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 /* Style your cart content layout */
 cart-panel {
-  display: flex;
-  flex-direction: column;
+	display: flex;
+	flex-direction: column;
 }
 
 .cart-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #eee;
-  background: #f8f9fa;
+	padding: 1.5rem;
+	border-bottom: 1px solid #eee;
+	background: #f8f9fa;
 }
 
 .cart-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
+	flex: 1;
+	overflow-y: auto;
+	padding: 1rem;
 }
 
 .cart-footer {
-  padding: 1.5rem;
-  border-top: 1px solid #eee;
-  background: #f8f9fa;
+	padding: 1.5rem;
+	border-top: 1px solid #eee;
+	background: #f8f9fa;
 }
 ```
 
@@ -238,26 +238,26 @@ The component supports both CSS custom properties and SCSS variables for maximum
 ```css
 /* Dramatic slide-in effect */
 .dramatic-cart {
-  --cart-transition-duration: 600ms;
-  --cart-transition-timing: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  --cart-overlay-background: rgba(0, 0, 0, 0.4);
-  --cart-overlay-backdrop-filter: blur(10px);
+	--cart-transition-duration: 600ms;
+	--cart-transition-timing: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+	--cart-overlay-background: rgba(0, 0, 0, 0.4);
+	--cart-overlay-backdrop-filter: blur(10px);
 }
 
 /* Subtle minimal styling */
 .minimal-cart {
-  --cart-panel-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --cart-panel-border-radius: 8px;
-  --cart-transition-duration: 200ms;
-  --cart-overlay-background: rgba(0, 0, 0, 0.05);
+	--cart-panel-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	--cart-panel-border-radius: 8px;
+	--cart-transition-duration: 200ms;
+	--cart-overlay-background: rgba(0, 0, 0, 0.05);
 }
 
 /* Mobile-optimized full-width */
 @media (max-width: 768px) {
-  .mobile-cart {
-    --cart-panel-width: 100vw;
-    --cart-panel-border-radius: 0;
-  }
+	.mobile-cart {
+		--cart-panel-width: 100vw;
+		--cart-panel-border-radius: 0;
+	}
 }
 ```
 
@@ -276,8 +276,8 @@ $cart-overlay-background: rgba(0, 0, 0, 0.25);
 @import '@magic-spells/cart-panel/css';
 
 .my-store cart-dialog {
-  --cart-transition-duration: 400ms;
-  --cart-panel-background: #f8f9fa;
+	--cart-transition-duration: 400ms;
+	--cart-panel-background: #f8f9fa;
 }
 ```
 
@@ -330,32 +330,32 @@ await cartDialog.refreshCart();
 
 // Event emitter pattern (recommended)
 cartDialog
-  .on('cart-dialog:show', (e) => {
-    console.log('Cart opened by:', e.detail.triggerElement);
-  })
-  .on('cart-dialog:data-changed', (cartData) => {
-    console.log('Cart updated:', cartData);
-    // Update header cart count, etc.
-  });
+	.on('cart-dialog:show', (e) => {
+		console.log('Cart opened by:', e.detail.triggerElement);
+	})
+	.on('cart-dialog:data-changed', (cartData) => {
+		console.log('Cart updated:', cartData);
+		// Update header cart count, etc.
+	});
 
 // Traditional event listeners (also supported)
 cartDialog.addEventListener('cart-item:remove', (e) => {
-  console.log('Remove requested:', e.detail.cartKey);
+	console.log('Remove requested:', e.detail.cartKey);
 
-  // The component handles the API calls automatically
-  // Just listen for the data changes
+	// The component handles the API calls automatically
+	// Just listen for the data changes
 });
 
 cartDialog.addEventListener('cart-item:quantity-change', (e) => {
-  console.log('Quantity changed:', e.detail.quantity);
-  // Component automatically syncs with Shopify
+	console.log('Quantity changed:', e.detail.quantity);
+	// Component automatically syncs with Shopify
 });
 
 // Listen for all cart changes
 cartDialog.on('cart-dialog:data-changed', (cartData) => {
-  // Update your UI when cart changes
-  updateCartBadge(cartData.item_count);
-  updateCartTotal(cartData.total_price);
+	// Update your UI when cart changes
+	updateCartBadge(cartData.item_count);
+	updateCartTotal(cartData.total_price);
 });
 ```
 
@@ -380,49 +380,43 @@ The cart panel automatically integrates with Shopify's AJAX Cart API. Simply add
 ```html
 <!-- In your Shopify theme layout -->
 <button
-  aria-haspopup="dialog"
-  aria-controls="shopify-cart"
-  aria-expanded="false"
-  class="cart-trigger">
-  Cart ({{ cart.item_count }})
+	aria-haspopup="dialog"
+	aria-controls="shopify-cart"
+	aria-expanded="false"
+	class="cart-trigger">
+	Cart ({{ cart.item_count }})
 </button>
 
 <cart-dialog id="shopify-cart" aria-labelledby="cart-heading">
-  <cart-panel>
-    <header class="cart-header">
-      <h2 id="cart-heading">Your Cart</h2>
-      <button data-action="hide-cart" aria-label="hide cart">
-        X
-      </button>
-    </header>
+	<cart-panel>
+		<header class="cart-header">
+			<h2 id="cart-heading">Your Cart</h2>
+			<button data-action="hide-cart" aria-label="hide cart">X</button>
+		</header>
 
-    <div class="cart-content">
-      <!-- Cart items will be populated automatically in javascript -->
-    </div>
+		<div class="cart-content">
+			<!-- Cart items will be populated automatically in javascript -->
+		</div>
 
-    <footer class="cart-footer">
-      <div class="cart-total">
-      </div>
-      <a href="/checkout" class="button">
-        Checkout
-      </a>
-    </footer>
-  </cart-panel>
+		<footer class="cart-footer">
+			<div class="cart-total"></div>
+			<a href="/checkout" class="button"> Checkout </a>
+		</footer>
+	</cart-panel>
 </cart-dialog>
 
 <script>
-// Optional: Listen for cart updates to sync with other UI elements
-document.querySelector('cart-dialog').on('cart-dialog:data-changed', (cartData) => {
-  // Update cart count in header
-  document.querySelector('.cart-trigger').textContent = `Cart (${cartData.item_count})`;
+	// Optional: Listen for cart updates to sync with other UI elements
+	document.querySelector('cart-dialog').on('cart-dialog:data-changed', (cartData) => {
+		// Update cart count in header
+		document.querySelector('.cart-trigger').textContent = `Cart (${cartData.item_count})`;
 
-  // Update cart total
-  document.querySelector('[data-cart-total]').textContent =
-    new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(cartData.total_price / 100);
-});
+		// Update cart total
+		document.querySelector('[data-cart-total]').textContent = new Intl.NumberFormat('en-US', {
+			style: 'currency',
+			currency: 'USD',
+		}).format(cartData.total_price / 100);
+	});
 </script>
 ```
 
@@ -431,63 +425,63 @@ document.querySelector('cart-dialog').on('cart-dialog:data-changed', (cartData) 
 ```javascript
 // Example for non-Shopify platforms
 class CustomCartManager {
-  constructor() {
-    this.cartDialog = document.querySelector('cart-dialog');
-    this.setupEventListeners();
-  }
+	constructor() {
+		this.cartDialog = document.querySelector('cart-dialog');
+		this.setupEventListeners();
+	}
 
-  setupEventListeners() {
-    // Listen for cart data changes
-    this.cartDialog.on('cart-dialog:data-changed', (cartData) => {
-      this.updateCartUI(cartData);
-    });
+	setupEventListeners() {
+		// Listen for cart data changes
+		this.cartDialog.on('cart-dialog:data-changed', (cartData) => {
+			this.updateCartUI(cartData);
+		});
 
-    // Override default cart operations for custom API
-    this.cartDialog.getCart = this.customGetCart.bind(this);
-    this.cartDialog.updateCartItem = this.customUpdateCartItem.bind(this);
-  }
+		// Override default cart operations for custom API
+		this.cartDialog.getCart = this.customGetCart.bind(this);
+		this.cartDialog.updateCartItem = this.customUpdateCartItem.bind(this);
+	}
 
-  async customGetCart() {
-    try {
-      const response = await fetch('/api/cart');
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to fetch cart:', error);
-      return { error: true, message: error.message };
-    }
-  }
+	async customGetCart() {
+		try {
+			const response = await fetch('/api/cart');
+			return await response.json();
+		} catch (error) {
+			console.error('Failed to fetch cart:', error);
+			return { error: true, message: error.message };
+		}
+	}
 
-  async customUpdateCartItem(itemId, quantity) {
-    try {
-      const response = await fetch('/api/cart/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId, quantity }),
-      });
+	async customUpdateCartItem(itemId, quantity) {
+		try {
+			const response = await fetch('/api/cart/update', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ itemId, quantity }),
+			});
 
-      if (!response.ok) throw new Error(response.statusText);
+			if (!response.ok) throw new Error(response.statusText);
 
-      // Return updated cart data
-      return this.customGetCart();
-    } catch (error) {
-      console.error('Failed to update cart:', error);
-      return { error: true, message: error.message };
-    }
-  }
+			// Return updated cart data
+			return this.customGetCart();
+		} catch (error) {
+			console.error('Failed to update cart:', error);
+			return { error: true, message: error.message };
+		}
+	}
 
-  updateCartUI(cartData) {
-    // Update cart count in navigation
-    const cartCount = document.querySelector('.cart-count');
-    if (cartCount) {
-      cartCount.textContent = cartData.items?.length || 0;
-    }
+	updateCartUI(cartData) {
+		// Update cart count in navigation
+		const cartCount = document.querySelector('.cart-count');
+		if (cartCount) {
+			cartCount.textContent = cartData.items?.length || 0;
+		}
 
-    // Update cart total display
-    const cartTotal = document.querySelector('.cart-total-display');
-    if (cartTotal && cartData.total) {
-      cartTotal.textContent = cartData.total;
-    }
-  }
+		// Update cart total display
+		const cartTotal = document.querySelector('.cart-total-display');
+		if (cartTotal && cartData.total) {
+			cartTotal.textContent = cartData.total;
+		}
+	}
 }
 
 // Initialize
