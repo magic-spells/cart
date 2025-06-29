@@ -1,12 +1,8 @@
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined'
-		? factory(exports)
-		: typeof define === 'function' && define.amd
-			? define(['exports'], factory)
-			: ((global = typeof globalThis !== 'undefined' ? globalThis : global || self),
-				factory((global.CartDialog = {})));
-})(this, function (exports) {
-	'use strict';
+	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+	typeof define === 'function' && define.amd ? define(['exports'], factory) :
+	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.CartDialog = {}));
+})(this, (function (exports) { 'use strict';
 
 	/**
 	 * CartItem class that handles the functionality of a cart item component
@@ -490,7 +486,8 @@
 			if (focusableElements.length === 0) return;
 
 			const firstElement = focusableElements[0];
-			const lastElement = focusableElements[focusableElements.length - 1];
+			const lastElement =
+				focusableElements[focusableElements.length - 1];
 
 			if (e.relatedTarget === firstElement) {
 				lastElement.focus();
@@ -528,95 +525,101 @@
 		};
 	}
 
-	customElements.define('focus-trap', FocusTrap);
-	customElements.define('focus-trap-start', FocusTrapStart);
-	customElements.define('focus-trap-end', FocusTrapEnd);
+	if (!customElements.get('focus-trap')) {
+		customElements.define('focus-trap', FocusTrap);
+	}
+	if (!customElements.get('focus-trap-start')) {
+		customElements.define('focus-trap-start', FocusTrapStart);
+	}
+	if (!customElements.get('focus-trap-end')) {
+		customElements.define('focus-trap-end', FocusTrapEnd);
+	}
 
 	class EventEmitter {
-		#events;
+	  #events;
 
-		constructor() {
-			this.#events = new Map();
-		}
+	  constructor() {
+	    this.#events = new Map();
+	  }
 
-		/**
-		 * Binds a listener to an event.
-		 * @param {string} event - The event to bind the listener to.
-		 * @param {Function} listener - The listener function to bind.
-		 * @returns {EventEmitter} The current instance for chaining.
-		 * @throws {TypeError} If the listener is not a function.
-		 */
-		on(event, listener) {
-			if (typeof listener !== 'function') {
-				throw new TypeError('Listener must be a function');
-			}
+	  /**
+	   * Binds a listener to an event.
+	   * @param {string} event - The event to bind the listener to.
+	   * @param {Function} listener - The listener function to bind.
+	   * @returns {EventEmitter} The current instance for chaining.
+	   * @throws {TypeError} If the listener is not a function.
+	   */
+	  on(event, listener) {
+	    if (typeof listener !== "function") {
+	      throw new TypeError("Listener must be a function");
+	    }
 
-			const listeners = this.#events.get(event) || [];
-			if (!listeners.includes(listener)) {
-				listeners.push(listener);
-			}
-			this.#events.set(event, listeners);
+	    const listeners = this.#events.get(event) || [];
+	    if (!listeners.includes(listener)) {
+	      listeners.push(listener);
+	    }
+	    this.#events.set(event, listeners);
 
-			return this;
-		}
+	    return this;
+	  }
 
-		/**
-		 * Unbinds a listener from an event.
-		 * @param {string} event - The event to unbind the listener from.
-		 * @param {Function} listener - The listener function to unbind.
-		 * @returns {EventEmitter} The current instance for chaining.
-		 */
-		off(event, listener) {
-			const listeners = this.#events.get(event);
-			if (!listeners) return this;
+	  /**
+	   * Unbinds a listener from an event.
+	   * @param {string} event - The event to unbind the listener from.
+	   * @param {Function} listener - The listener function to unbind.
+	   * @returns {EventEmitter} The current instance for chaining.
+	   */
+	  off(event, listener) {
+	    const listeners = this.#events.get(event);
+	    if (!listeners) return this;
 
-			const index = listeners.indexOf(listener);
-			if (index !== -1) {
-				listeners.splice(index, 1);
-				if (listeners.length === 0) {
-					this.#events.delete(event);
-				} else {
-					this.#events.set(event, listeners);
-				}
-			}
+	    const index = listeners.indexOf(listener);
+	    if (index !== -1) {
+	      listeners.splice(index, 1);
+	      if (listeners.length === 0) {
+	        this.#events.delete(event);
+	      } else {
+	        this.#events.set(event, listeners);
+	      }
+	    }
 
-			return this;
-		}
+	    return this;
+	  }
 
-		/**
-		 * Triggers an event and calls all bound listeners.
-		 * @param {string} event - The event to trigger.
-		 * @param {...*} args - Arguments to pass to the listener functions.
-		 * @returns {boolean} True if the event had listeners, false otherwise.
-		 */
-		emit(event, ...args) {
-			const listeners = this.#events.get(event);
-			if (!listeners || listeners.length === 0) return false;
+	  /**
+	   * Triggers an event and calls all bound listeners.
+	   * @param {string} event - The event to trigger.
+	   * @param {...*} args - Arguments to pass to the listener functions.
+	   * @returns {boolean} True if the event had listeners, false otherwise.
+	   */
+	  emit(event, ...args) {
+	    const listeners = this.#events.get(event);
+	    if (!listeners || listeners.length === 0) return false;
 
-			for (let i = 0, n = listeners.length; i < n; ++i) {
-				try {
-					listeners[i].apply(this, args);
-				} catch (error) {
-					console.error(`Error in listener for event '${event}':`, error);
-				}
-			}
+	    for (let i = 0, n = listeners.length; i < n; ++i) {
+	      try {
+	        listeners[i].apply(this, args);
+	      } catch (error) {
+	        console.error(`Error in listener for event '${event}':`, error);
+	      }
+	    }
 
-			return true;
-		}
+	    return true;
+	  }
 
-		/**
-		 * Removes all listeners for a specific event or all events.
-		 * @param {string} [event] - The event to remove listeners from. If not provided, removes all listeners.
-		 * @returns {EventEmitter} The current instance for chaining.
-		 */
-		removeAllListeners(event) {
-			if (event) {
-				this.#events.delete(event);
-			} else {
-				this.#events.clear();
-			}
-			return this;
-		}
+	  /**
+	   * Removes all listeners for a specific event or all events.
+	   * @param {string} [event] - The event to remove listeners from. If not provided, removes all listeners.
+	   * @returns {EventEmitter} The current instance for chaining.
+	   */
+	  removeAllListeners(event) {
+	    if (event) {
+	      this.#events.delete(event);
+	    } else {
+	      this.#events.clear();
+	    }
+	    return this;
+	  }
 	}
 
 	/**
@@ -725,13 +728,18 @@
 				}
 			}
 
+			// Insert focus trap before the cart-panel
 			_.contentPanel.parentNode.insertBefore(_.focusTrap, _.contentPanel);
+			// Move cart-panel inside the focus trap
 			_.focusTrap.appendChild(_.contentPanel);
 
+			// Setup the trap - this will add focus-trap-start/end elements around the content
 			_.focusTrap.setupTrap();
 
-			// Add modal overlay
-			_.prepend(document.createElement('cart-overlay'));
+			// Add modal overlay if it doesn't already exist
+			if (!_.querySelector('cart-overlay')) {
+				_.prepend(document.createElement('cart-overlay'));
+			}
 			_.#attachListeners();
 			_.#bindKeyboard();
 		}
@@ -789,7 +797,7 @@
 
 			// Handle close buttons
 			_.addEventListener('click', (e) => {
-				if (!e.target.closest('[data-action="hide-cart"]')) return;
+				if (!e.target.closest('[data-action-hide-cart]')) return;
 				_.hide();
 			});
 
@@ -879,8 +887,9 @@
 			this.updateCartItem(cartKey, quantity)
 				.then((updatedCart) => {
 					if (updatedCart && !updatedCart.error) {
-						// Success - update cart data
+						// Success - update cart data and refresh items
 						this.#currentCart = updatedCart;
+						this.#renderCartItems(updatedCart);
 						this.#updateCartItems(updatedCart);
 						element.setState('ready');
 
@@ -901,13 +910,33 @@
 		}
 
 		/**
-		 * Update cart items
+		 * Update cart items display based on cart data
 		 * @private
 		 */
 		#updateCartItems(cart = null) {
-			// Placeholder for cart item updates
-			// Could be used to sync cart items with server data
-			cart || this.#currentCart;
+			const cartData = cart || this.#currentCart;
+			if (!cartData) return;
+
+			// Get cart sections
+			const hasItemsSection = this.querySelector('[data-cart-has-items]');
+			const emptySection = this.querySelector('[data-cart-is-empty]');
+			const itemsContainer = this.querySelector('[data-content-cart-items]');
+
+			if (!hasItemsSection || !emptySection || !itemsContainer) {
+				console.warn(
+					'Cart sections not found. Expected [data-cart-has-items], [data-cart-is-empty], and [data-content-cart-items]'
+				);
+				return;
+			}
+
+			// Show/hide sections based on item count
+			if (cartData.item_count > 0) {
+				hasItemsSection.style.display = 'block';
+				emptySection.style.display = 'none';
+			} else {
+				hasItemsSection.style.display = 'none';
+				emptySection.style.display = 'block';
+			}
 		}
 
 		/**
@@ -962,17 +991,68 @@
 		 * @returns {Promise<Object>} Cart data object
 		 */
 		refreshCart() {
+			console.log('Refreshing cart...');
 			return this.getCart().then((cartData) => {
+				console.log('Cart data received:', cartData);
 				if (cartData && !cartData.error) {
 					this.#currentCart = cartData;
+					this.#renderCartItems(cartData);
 					this.#updateCartItems(cartData);
 
 					// Emit cart refreshed and data changed events
 					this.#emit('cart-dialog:refreshed', { cart: cartData });
 					this.#emit('cart-dialog:data-changed', cartData);
+				} else {
+					console.warn('Cart data has error or is null:', cartData);
 				}
 				return cartData;
 			});
+		}
+
+		/**
+		 * Render cart items from Shopify cart data
+		 * @private
+		 */
+		#renderCartItems(cartData) {
+			const itemsContainer = this.querySelector('[data-content-cart-items]');
+
+			if (!itemsContainer || !cartData || !cartData.items) {
+				console.warn('Cannot render cart items:', {
+					itemsContainer: !!itemsContainer,
+					cartData: !!cartData,
+					items: cartData?.items?.length,
+				});
+				return;
+			}
+
+			console.log('Rendering cart items:', cartData.items.length, 'items');
+
+			// Clear existing items
+			itemsContainer.innerHTML = '';
+
+			// Create cart-item elements for each item in the cart
+			cartData.items.forEach((itemData) => {
+				const cartItem = new CartItem(itemData);
+				itemsContainer.appendChild(cartItem);
+			});
+
+			console.log('Cart items rendered, container children:', itemsContainer.children.length);
+		}
+
+		/**
+		 * Set the template function for cart items
+		 * @param {Function} templateFn - Function that takes item data and returns HTML string
+		 */
+		setCartItemTemplate(templateFn) {
+			CartItem.setTemplate(templateFn);
+		}
+
+		/**
+		 * Set the processing template function for cart items
+		 * @param {Function} templateFn - Function that returns HTML string for processing state
+		 */
+		setCartItemProcessingTemplate(templateFn) {
+			CartItem.setProcessingTemplate(templateFn);
 		}
 
 		/**
@@ -1085,11 +1165,18 @@
 		customElements.define('cart-panel', CartPanel);
 	}
 
+	// Make CartItem available globally for Shopify themes
+	if (typeof window !== 'undefined') {
+		window.CartItem = CartItem;
+	}
+
 	exports.CartDialog = CartDialog;
+	exports.CartItem = CartItem;
 	exports.CartOverlay = CartOverlay;
 	exports.CartPanel = CartPanel;
 	exports.default = CartDialog;
 
 	Object.defineProperty(exports, '__esModule', { value: true });
-});
+
+}));
 //# sourceMappingURL=cart-panel.js.map

@@ -2,7 +2,7 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-require('@magic-spells/cart-item');
+var cartItem = require('@magic-spells/cart-item');
 require('@magic-spells/focus-trap');
 var EventEmitter = require('@magic-spells/event-emitter');
 
@@ -112,13 +112,18 @@ class CartDialog extends HTMLElement {
 			}
 		}
 
+		// Insert focus trap before the cart-panel
 		_.contentPanel.parentNode.insertBefore(_.focusTrap, _.contentPanel);
+		// Move cart-panel inside the focus trap
 		_.focusTrap.appendChild(_.contentPanel);
 
+		// Setup the trap - this will add focus-trap-start/end elements around the content
 		_.focusTrap.setupTrap();
 
-		// Add modal overlay
-		_.prepend(document.createElement('cart-overlay'));
+		// Add modal overlay if it doesn't already exist
+		if (!_.querySelector('cart-overlay')) {
+			_.prepend(document.createElement('cart-overlay'));
+		}
 		_.#attachListeners();
 		_.#bindKeyboard();
 	}
@@ -176,7 +181,7 @@ class CartDialog extends HTMLElement {
 
 		// Handle close buttons
 		_.addEventListener('click', (e) => {
-			if (!e.target.closest('[data-action="hide-cart"]')) return;
+			if (!e.target.closest('[data-action-hide-cart]')) return;
 			_.hide();
 		});
 
@@ -266,8 +271,9 @@ class CartDialog extends HTMLElement {
 		this.updateCartItem(cartKey, quantity)
 			.then((updatedCart) => {
 				if (updatedCart && !updatedCart.error) {
-					// Success - update cart data
+					// Success - update cart data and refresh items
 					this.#currentCart = updatedCart;
+					this.#renderCartItems(updatedCart);
 					this.#updateCartItems(updatedCart);
 					element.setState('ready');
 
@@ -288,13 +294,33 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
-	 * Update cart items
+	 * Update cart items display based on cart data
 	 * @private
 	 */
 	#updateCartItems(cart = null) {
-		// Placeholder for cart item updates
-		// Could be used to sync cart items with server data
-		cart || this.#currentCart;
+		const cartData = cart || this.#currentCart;
+		if (!cartData) return;
+
+		// Get cart sections
+		const hasItemsSection = this.querySelector('[data-cart-has-items]');
+		const emptySection = this.querySelector('[data-cart-is-empty]');
+		const itemsContainer = this.querySelector('[data-content-cart-items]');
+
+		if (!hasItemsSection || !emptySection || !itemsContainer) {
+			console.warn(
+				'Cart sections not found. Expected [data-cart-has-items], [data-cart-is-empty], and [data-content-cart-items]'
+			);
+			return;
+		}
+
+		// Show/hide sections based on item count
+		if (cartData.item_count > 0) {
+			hasItemsSection.style.display = 'block';
+			emptySection.style.display = 'none';
+		} else {
+			hasItemsSection.style.display = 'none';
+			emptySection.style.display = 'block';
+		}
 	}
 
 	/**
@@ -349,17 +375,68 @@ class CartDialog extends HTMLElement {
 	 * @returns {Promise<Object>} Cart data object
 	 */
 	refreshCart() {
+		console.log('Refreshing cart...');
 		return this.getCart().then((cartData) => {
+			console.log('Cart data received:', cartData);
 			if (cartData && !cartData.error) {
 				this.#currentCart = cartData;
+				this.#renderCartItems(cartData);
 				this.#updateCartItems(cartData);
 
 				// Emit cart refreshed and data changed events
 				this.#emit('cart-dialog:refreshed', { cart: cartData });
 				this.#emit('cart-dialog:data-changed', cartData);
+			} else {
+				console.warn('Cart data has error or is null:', cartData);
 			}
 			return cartData;
 		});
+	}
+
+	/**
+	 * Render cart items from Shopify cart data
+	 * @private
+	 */
+	#renderCartItems(cartData) {
+		const itemsContainer = this.querySelector('[data-content-cart-items]');
+
+		if (!itemsContainer || !cartData || !cartData.items) {
+			console.warn('Cannot render cart items:', {
+				itemsContainer: !!itemsContainer,
+				cartData: !!cartData,
+				items: cartData?.items?.length,
+			});
+			return;
+		}
+
+		console.log('Rendering cart items:', cartData.items.length, 'items');
+
+		// Clear existing items
+		itemsContainer.innerHTML = '';
+
+		// Create cart-item elements for each item in the cart
+		cartData.items.forEach((itemData) => {
+			const cartItem$1 = new cartItem.CartItem(itemData);
+			itemsContainer.appendChild(cartItem$1);
+		});
+
+		console.log('Cart items rendered, container children:', itemsContainer.children.length);
+	}
+
+	/**
+	 * Set the template function for cart items
+	 * @param {Function} templateFn - Function that takes item data and returns HTML string
+	 */
+	setCartItemTemplate(templateFn) {
+		cartItem.CartItem.setTemplate(templateFn);
+	}
+
+	/**
+	 * Set the processing template function for cart items
+	 * @param {Function} templateFn - Function that returns HTML string for processing state
+	 */
+	setCartItemProcessingTemplate(templateFn) {
+		cartItem.CartItem.setProcessingTemplate(templateFn);
 	}
 
 	/**
@@ -472,6 +549,15 @@ if (!customElements.get('cart-panel')) {
 	customElements.define('cart-panel', CartPanel);
 }
 
+// Make CartItem available globally for Shopify themes
+if (typeof window !== 'undefined') {
+	window.CartItem = cartItem.CartItem;
+}
+
+Object.defineProperty(exports, 'CartItem', {
+	enumerable: true,
+	get: function () { return cartItem.CartItem; }
+});
 exports.CartDialog = CartDialog;
 exports.CartOverlay = CartOverlay;
 exports.CartPanel = CartPanel;

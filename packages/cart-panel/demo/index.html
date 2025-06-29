@@ -364,88 +364,97 @@
 			<cart-panel>
 				<div class="cart-header">
 					<h2 id="cart-title">Shopping Cart</h2>
-					<button aria-label="Close cart" class="close-button" data-action="hide-cart">
+					<button aria-label="Close cart" class="close-button" data-action-hide-cart>
 						&times;
 					</button>
 				</div>
 				<div class="cart-body">
-					<div class="cart-items" id="cart-items-container">
-						<!-- Sample cart items for demo -->
-						<cart-item data-key="1" data-state="ready">
-							<cart-item-content>
-								<div class="sample-cart-item">
-									<div class="item-image">🎧</div>
-									<div class="item-details">
-										<div class="item-name">Wireless Headphones</div>
-										<div class="item-price">$99.99</div>
+					<!-- Cart has items section -->
+					<div data-cart-has-items>
+						<div class="cart-items" data-content-cart-items>
+							<!-- Cart items will be dynamically rendered here by the cart-panel component -->
+							<!-- Sample cart items for demo (these will be replaced by dynamic rendering) -->
+							<cart-item key="1" state="ready">
+								<cart-item-content>
+									<div class="sample-cart-item">
+										<div class="item-image">🎧</div>
+										<div class="item-details">
+											<div class="item-name">Wireless Headphones</div>
+											<div class="item-price">$99.99</div>
+										</div>
+										<div class="item-controls">
+											<input
+												type="number"
+												class="quantity-input"
+												value="1"
+												min="1"
+												data-cart-quantity />
+											<button class="remove-button" data-action-remove-item>Remove</button>
+										</div>
 									</div>
-									<div class="item-controls">
-										<input
-											type="number"
-											class="quantity-input"
-											value="1"
-											min="1"
-											data-cart-quantity />
-										<button class="remove-button" data-action="remove">Remove</button>
-									</div>
-								</div>
-							</cart-item-content>
-							<cart-item-processing>
-								<div>Processing...</div>
-							</cart-item-processing>
-						</cart-item>
+								</cart-item-content>
+								<cart-item-processing>
+									<div class="cart-item-loader"></div>
+								</cart-item-processing>
+							</cart-item>
 
-						<cart-item data-key="2" data-state="ready">
-							<cart-item-content>
-								<div class="sample-cart-item">
-									<div class="item-image">📱</div>
-									<div class="item-details">
-										<div class="item-name">Smartphone Case</div>
-										<div class="item-price">$24.99</div>
+							<cart-item key="2" state="ready">
+								<cart-item-content>
+									<div class="sample-cart-item">
+										<div class="item-image">📱</div>
+										<div class="item-details">
+											<div class="item-name">Smartphone Case</div>
+											<div class="item-price">$24.99</div>
+										</div>
+										<div class="item-controls">
+											<input
+												type="number"
+												class="quantity-input"
+												value="2"
+												min="1"
+												data-cart-quantity />
+											<button class="remove-button" data-action-remove-item>Remove</button>
+										</div>
 									</div>
-									<div class="item-controls">
-										<input
-											type="number"
-											class="quantity-input"
-											value="2"
-											min="1"
-											data-cart-quantity />
-										<button class="remove-button" data-action="remove">Remove</button>
-									</div>
-								</div>
-							</cart-item-content>
-							<cart-item-processing>
-								<div>Processing...</div>
-							</cart-item-processing>
-						</cart-item>
+								</cart-item-content>
+								<cart-item-processing>
+									<div class="cart-item-loader"></div>
+								</cart-item-processing>
+							</cart-item>
 
-						<cart-item data-key="3" data-state="ready">
-							<cart-item-content>
-								<div class="sample-cart-item">
-									<div class="item-image">🔌</div>
-									<div class="item-details">
-										<div class="item-name">USB Cable</div>
-										<div class="item-price">$12.99</div>
+							<cart-item key="3" state="ready">
+								<cart-item-content>
+									<div class="sample-cart-item">
+										<div class="item-image">🔌</div>
+										<div class="item-details">
+											<div class="item-name">USB Cable</div>
+											<div class="item-price">$12.99</div>
+										</div>
+										<div class="item-controls">
+											<input
+												type="number"
+												class="quantity-input"
+												value="1"
+												min="1"
+												data-cart-quantity />
+											<button class="remove-button" data-action-remove-item>Remove</button>
+										</div>
 									</div>
-									<div class="item-controls">
-										<input
-											type="number"
-											class="quantity-input"
-											value="1"
-											min="1"
-											data-cart-quantity />
-										<button class="remove-button" data-action="remove">Remove</button>
-									</div>
-								</div>
-							</cart-item-content>
-							<cart-item-processing>
-								<div>Processing...</div>
-							</cart-item-processing>
-						</cart-item>
+								</cart-item-content>
+								<cart-item-processing>
+									<div class="cart-item-loader"></div>
+								</cart-item-processing>
+							</cart-item>
+						</div>
 					</div>
-					<div class="empty-cart" id="empty-cart" style="display: none">
-						<div class="empty-cart-icon">🛒</div>
-						<p>Your cart is empty</p>
+
+					<!-- Cart is empty section -->
+					<div data-cart-is-empty style="display: none">
+						<div class="empty-cart">
+							<div class="empty-cart-icon">🛒</div>
+							<p>Your cart is empty</p>
+							<p>Add some items to get started!</p>
+						</div>
 					</div>
 				</div>
 				<div class="cart-footer">
@@ -493,8 +502,8 @@
 
 				// Create cart item element and add it to the cart
 				const cartItem = document.createElement('cart-item');
-				cartItem.setAttribute('data-key', newItem.id);
-				cartItem.setAttribute('data-state', 'ready');
+				cartItem.setAttribute('key', newItem.id);
+				cartItem.setAttribute('state', 'appearing');
 
 				cartItem.innerHTML = `
 				<cart-item-content>
@@ -506,20 +515,22 @@
 						</div>
 						<div class="item-controls">
 							<input type="number" class="quantity-input" value="${newItem.quantity}" min="1" data-cart-quantity>
-							<button class="remove-button" data-action="remove">Remove</button>
+							<button class="remove-button" data-action-remove-item>Remove</button>
 						</div>
 					</div>
 				</cart-item-content>
 				<cart-item-processing>
-					<div>Processing...</div>
+					<div class="cart-item-loader"></div>
 				</cart-item-processing>
 			`;
 
-				const cartItemsContainer = document.getElementById('cart-items-container');
-				const emptyCartElement = document.getElementById('empty-cart');
+				const cartItemsContainer = document.querySelector('[data-content-cart-items]');
+				const hasItemsSection = document.querySelector('[data-cart-has-items]');
+				const emptySection = document.querySelector('[data-cart-is-empty]');
 
 				cartItemsContainer.appendChild(cartItem);
-				emptyCartElement.style.display = 'none';
+				hasItemsSection.style.display = 'block';
+				emptySection.style.display = 'none';
 
 				logEvent('item-added', { item: newItem });
 			});
@@ -527,11 +538,13 @@
 			// Clear cart functionality (demo only)
 			clearCartBtn.addEventListener('click', () => {
 				if (confirm('Are you sure you want to clear your cart?')) {
-					const cartItemsContainer = document.getElementById('cart-items-container');
-					const emptyCartElement = document.getElementById('empty-cart');
+					const cartItemsContainer = document.querySelector('[data-content-cart-items]');
+					const hasItemsSection = document.querySelector('[data-cart-has-items]');
+					const emptySection = document.querySelector('[data-cart-is-empty]');
 
 					cartItemsContainer.innerHTML = '';
-					emptyCartElement.style.display = 'block';
+					hasItemsSection.style.display = 'none';
+					emptySection.style.display = 'block';
 
 					logEvent('cart-cleared');
 				}
