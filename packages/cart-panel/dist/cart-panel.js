@@ -1,8 +1,12 @@
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-	typeof define === 'function' && define.amd ? define(['exports'], factory) :
-	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.CartDialog = {}));
-})(this, (function (exports) { 'use strict';
+	typeof exports === 'object' && typeof module !== 'undefined'
+		? factory(exports)
+		: typeof define === 'function' && define.amd
+			? define(['exports'], factory)
+			: ((global = typeof globalThis !== 'undefined' ? globalThis : global || self),
+				factory((global.CartDialog = {})));
+})(this, function (exports) {
+	'use strict';
 
 	/**
 	 * CartItem class that handles the functionality of a cart item component
@@ -41,6 +45,15 @@
 		}
 
 		/**
+		 * Create a cart item with appearing animation
+		 * @param {Object} itemData - Shopify cart item data
+		 * @returns {CartItem} Cart item instance that will animate in
+		 */
+		static createAnimated(itemData) {
+			return new CartItem(itemData, { animate: true });
+		}
+
+		/**
 		 * Define which attributes should be observed for changes
 		 */
 		static get observedAttributes() {
@@ -58,14 +71,16 @@
 			}
 		}
 
-		constructor(itemData = null) {
+		constructor(itemData = null, options = {}) {
 			super();
 
 			// Store item data if provided
 			this.#itemData = itemData;
 
-			// Set initial state - start with 'appearing' if we have item data to render
-			this.#currentState = itemData ? 'appearing' : this.getAttribute('state') || 'ready';
+			// Set initial state - start with 'appearing' only if explicitly requested
+			const shouldAnimate = options.animate || this.hasAttribute('animate-in');
+			this.#currentState =
+				itemData && shouldAnimate ? 'appearing' : this.getAttribute('state') || 'ready';
 
 			// Bind event handlers
 			this.#handlers = {
@@ -101,13 +116,9 @@
 					this.style.height = `${naturalHeight}px`;
 
 					// Transition to ready state after a brief delay
-					setTimeout(() => {
+					requestAnimationFrame(() => {
 						this.setState('ready');
-						// Remove explicit height after animation completes
-						setTimeout(() => {
-							this.style.height = '';
-						}, 400); // Match appearing duration
-					}, 50);
+					});
 				});
 			}
 		}
@@ -173,12 +184,15 @@
 		}
 
 		/**
-		 * Handle transition end events for destroy animation
+		 * Handle transition end events for destroy animation and appearing animation
 		 */
 		#handleTransitionEnd(e) {
 			if (e.propertyName === 'height' && this.#isDestroying) {
 				// Remove from DOM after height animation completes
 				this.remove();
+			} else if (e.propertyName === 'height' && this.#currentState === 'ready') {
+				// Remove explicit height after appearing animation completes
+				this.style.height = '';
 			}
 		}
 
@@ -486,8 +500,7 @@
 			if (focusableElements.length === 0) return;
 
 			const firstElement = focusableElements[0];
-			const lastElement =
-				focusableElements[focusableElements.length - 1];
+			const lastElement = focusableElements[focusableElements.length - 1];
 
 			if (e.relatedTarget === firstElement) {
 				lastElement.focus();
@@ -536,90 +549,90 @@
 	}
 
 	class EventEmitter {
-	  #events;
+		#events;
 
-	  constructor() {
-	    this.#events = new Map();
-	  }
+		constructor() {
+			this.#events = new Map();
+		}
 
-	  /**
-	   * Binds a listener to an event.
-	   * @param {string} event - The event to bind the listener to.
-	   * @param {Function} listener - The listener function to bind.
-	   * @returns {EventEmitter} The current instance for chaining.
-	   * @throws {TypeError} If the listener is not a function.
-	   */
-	  on(event, listener) {
-	    if (typeof listener !== "function") {
-	      throw new TypeError("Listener must be a function");
-	    }
+		/**
+		 * Binds a listener to an event.
+		 * @param {string} event - The event to bind the listener to.
+		 * @param {Function} listener - The listener function to bind.
+		 * @returns {EventEmitter} The current instance for chaining.
+		 * @throws {TypeError} If the listener is not a function.
+		 */
+		on(event, listener) {
+			if (typeof listener !== 'function') {
+				throw new TypeError('Listener must be a function');
+			}
 
-	    const listeners = this.#events.get(event) || [];
-	    if (!listeners.includes(listener)) {
-	      listeners.push(listener);
-	    }
-	    this.#events.set(event, listeners);
+			const listeners = this.#events.get(event) || [];
+			if (!listeners.includes(listener)) {
+				listeners.push(listener);
+			}
+			this.#events.set(event, listeners);
 
-	    return this;
-	  }
+			return this;
+		}
 
-	  /**
-	   * Unbinds a listener from an event.
-	   * @param {string} event - The event to unbind the listener from.
-	   * @param {Function} listener - The listener function to unbind.
-	   * @returns {EventEmitter} The current instance for chaining.
-	   */
-	  off(event, listener) {
-	    const listeners = this.#events.get(event);
-	    if (!listeners) return this;
+		/**
+		 * Unbinds a listener from an event.
+		 * @param {string} event - The event to unbind the listener from.
+		 * @param {Function} listener - The listener function to unbind.
+		 * @returns {EventEmitter} The current instance for chaining.
+		 */
+		off(event, listener) {
+			const listeners = this.#events.get(event);
+			if (!listeners) return this;
 
-	    const index = listeners.indexOf(listener);
-	    if (index !== -1) {
-	      listeners.splice(index, 1);
-	      if (listeners.length === 0) {
-	        this.#events.delete(event);
-	      } else {
-	        this.#events.set(event, listeners);
-	      }
-	    }
+			const index = listeners.indexOf(listener);
+			if (index !== -1) {
+				listeners.splice(index, 1);
+				if (listeners.length === 0) {
+					this.#events.delete(event);
+				} else {
+					this.#events.set(event, listeners);
+				}
+			}
 
-	    return this;
-	  }
+			return this;
+		}
 
-	  /**
-	   * Triggers an event and calls all bound listeners.
-	   * @param {string} event - The event to trigger.
-	   * @param {...*} args - Arguments to pass to the listener functions.
-	   * @returns {boolean} True if the event had listeners, false otherwise.
-	   */
-	  emit(event, ...args) {
-	    const listeners = this.#events.get(event);
-	    if (!listeners || listeners.length === 0) return false;
+		/**
+		 * Triggers an event and calls all bound listeners.
+		 * @param {string} event - The event to trigger.
+		 * @param {...*} args - Arguments to pass to the listener functions.
+		 * @returns {boolean} True if the event had listeners, false otherwise.
+		 */
+		emit(event, ...args) {
+			const listeners = this.#events.get(event);
+			if (!listeners || listeners.length === 0) return false;
 
-	    for (let i = 0, n = listeners.length; i < n; ++i) {
-	      try {
-	        listeners[i].apply(this, args);
-	      } catch (error) {
-	        console.error(`Error in listener for event '${event}':`, error);
-	      }
-	    }
+			for (let i = 0, n = listeners.length; i < n; ++i) {
+				try {
+					listeners[i].apply(this, args);
+				} catch (error) {
+					console.error(`Error in listener for event '${event}':`, error);
+				}
+			}
 
-	    return true;
-	  }
+			return true;
+		}
 
-	  /**
-	   * Removes all listeners for a specific event or all events.
-	   * @param {string} [event] - The event to remove listeners from. If not provided, removes all listeners.
-	   * @returns {EventEmitter} The current instance for chaining.
-	   */
-	  removeAllListeners(event) {
-	    if (event) {
-	      this.#events.delete(event);
-	    } else {
-	      this.#events.clear();
-	    }
-	    return this;
-	  }
+		/**
+		 * Removes all listeners for a specific event or all events.
+		 * @param {string} [event] - The event to remove listeners from. If not provided, removes all listeners.
+		 * @returns {EventEmitter} The current instance for chaining.
+		 */
+		removeAllListeners(event) {
+			if (event) {
+				this.#events.delete(event);
+			} else {
+				this.#events.clear();
+			}
+			return this;
+		}
 	}
 
 	/**
@@ -631,6 +644,7 @@
 		#scrollPosition = 0;
 		#currentCart = null;
 		#eventEmitter;
+		#isInitialRender = true;
 
 		/**
 		 * Clean up event listeners when component is removed from DOM
@@ -852,9 +866,9 @@
 			this.updateCartItem(cartKey, 0)
 				.then((updatedCart) => {
 					if (updatedCart && !updatedCart.error) {
-						// Success - remove with animation
-						element.destroyYourself();
+						// Success - let smart comparison handle the removal animation
 						this.#currentCart = updatedCart;
+						this.#renderCartItems(updatedCart);
 						this.#updateCartItems(updatedCart);
 
 						// Emit cart updated and data changed events
@@ -1010,7 +1024,69 @@
 		}
 
 		/**
-		 * Render cart items from Shopify cart data
+		 * Remove items from DOM that are no longer in cart data
+		 * @private
+		 */
+		#removeItemsFromDOM(itemsContainer, newKeysSet) {
+			const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+			const itemsToRemove = currentItems.filter(
+				(item) => !newKeysSet.has(item.getAttribute('key'))
+			);
+
+			console.log(
+				`Removing ${itemsToRemove.length} items:`,
+				itemsToRemove.map((item) => item.getAttribute('key'))
+			);
+
+			itemsToRemove.forEach((item) => {
+				item.destroyYourself();
+			});
+		}
+
+		/**
+		 * Add new items to DOM with animation delay
+		 * @private
+		 */
+		#addItemsToDOM(itemsContainer, itemsToAdd, newKeys) {
+			console.log(
+				`Adding ${itemsToAdd.length} items:`,
+				itemsToAdd.map((item) => item.key || item.id)
+			);
+
+			// Delay adding new items by 300ms to let cart slide open first
+			setTimeout(() => {
+				itemsToAdd.forEach((itemData) => {
+					const cartItem = CartItem.createAnimated(itemData);
+					const targetIndex = newKeys.indexOf(itemData.key || itemData.id);
+
+					// Find the correct position to insert the new item
+					if (targetIndex === 0) {
+						// Insert at the beginning
+						itemsContainer.insertBefore(cartItem, itemsContainer.firstChild);
+					} else {
+						// Find the item that should come before this one
+						let insertAfter = null;
+						for (let i = targetIndex - 1; i >= 0; i--) {
+							const prevKey = newKeys[i];
+							const prevItem = itemsContainer.querySelector(`cart-item[key="${prevKey}"]`);
+							if (prevItem) {
+								insertAfter = prevItem;
+								break;
+							}
+						}
+
+						if (insertAfter) {
+							insertAfter.insertAdjacentElement('afterend', cartItem);
+						} else {
+							itemsContainer.appendChild(cartItem);
+						}
+					}
+				});
+			}, 100);
+		}
+
+		/**
+		 * Render cart items from Shopify cart data with smart comparison
 		 * @private
 		 */
 		#renderCartItems(cartData) {
@@ -1025,18 +1101,45 @@
 				return;
 			}
 
-			console.log('Rendering cart items:', cartData.items.length, 'items');
+			// Handle initial render - load all items without animation
+			if (this.#isInitialRender) {
+				console.log('Initial cart render:', cartData.items.length, 'items');
 
-			// Clear existing items
-			itemsContainer.innerHTML = '';
+				// Clear existing items
+				itemsContainer.innerHTML = '';
 
-			// Create cart-item elements for each item in the cart
-			cartData.items.forEach((itemData) => {
-				const cartItem = new CartItem(itemData);
-				itemsContainer.appendChild(cartItem);
-			});
+				// Create cart-item elements without animation
+				cartData.items.forEach((itemData) => {
+					const cartItem = new CartItem(itemData); // No animation
+					itemsContainer.appendChild(cartItem);
+				});
 
-			console.log('Cart items rendered, container children:', itemsContainer.children.length);
+				this.#isInitialRender = false;
+				console.log('Initial render complete, container children:', itemsContainer.children.length);
+				return;
+			}
+
+			console.log('Smart rendering cart items:', cartData.items.length, 'items');
+
+			// Get current DOM items and their keys
+			const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+			const currentKeys = new Set(currentItems.map((item) => item.getAttribute('key')));
+
+			// Get new cart data keys in order
+			const newKeys = cartData.items.map((item) => item.key || item.id);
+			const newKeysSet = new Set(newKeys);
+
+			// Step 1: Remove items that are no longer in cart data
+			this.#removeItemsFromDOM(itemsContainer, newKeysSet);
+
+			// Step 2: Add new items that weren't in DOM (with animation delay)
+			const itemsToAdd = cartData.items.filter(
+				(itemData) => !currentKeys.has(itemData.key || itemData.id)
+			);
+
+			this.#addItemsToDOM(itemsContainer, itemsToAdd, newKeys);
+
+			console.log('Smart rendering complete, container children:', itemsContainer.children.length);
 		}
 
 		/**
@@ -1177,6 +1280,5 @@
 	exports.default = CartDialog;
 
 	Object.defineProperty(exports, '__esModule', { value: true });
-
-}));
+});
 //# sourceMappingURL=cart-panel.js.map

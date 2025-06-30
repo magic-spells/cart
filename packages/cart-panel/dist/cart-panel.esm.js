@@ -1,620 +1,7 @@
-/**
- * CartItem class that handles the functionality of a cart item component
- */
-class CartItem extends HTMLElement {
-	// Static template functions shared across all instances
-	static #template = null;
-	static #processingTemplate = null;
-
-	// Private fields
-	#currentState = 'ready';
-	#isDestroying = false;
-	#handlers = {};
-	#itemData = null;
-
-	/**
-	 * Set the template function for rendering cart items
-	 * @param {Function} templateFn - Function that takes item data and returns HTML string
-	 */
-	static setTemplate(templateFn) {
-		if (typeof templateFn !== 'function') {
-			throw new Error('Template must be a function');
-		}
-		CartItem.#template = templateFn;
-	}
-
-	/**
-	 * Set the processing template function for rendering processing overlay
-	 * @param {Function} templateFn - Function that returns HTML string for processing state
-	 */
-	static setProcessingTemplate(templateFn) {
-		if (typeof templateFn !== 'function') {
-			throw new Error('Processing template must be a function');
-		}
-		CartItem.#processingTemplate = templateFn;
-	}
-
-	/**
-	 * Define which attributes should be observed for changes
-	 */
-	static get observedAttributes() {
-		return ['state', 'key'];
-	}
-
-	/**
-	 * Called when observed attributes change
-	 */
-	attributeChangedCallback(name, oldValue, newValue) {
-		if (oldValue === newValue) return;
-
-		if (name === 'state') {
-			this.#currentState = newValue || 'ready';
-		}
-	}
-
-	constructor(itemData = null) {
-		super();
-
-		// Store item data if provided
-		this.#itemData = itemData;
-
-		// Set initial state - start with 'appearing' if we have item data to render
-		this.#currentState = itemData ? 'appearing' : this.getAttribute('state') || 'ready';
-
-		// Bind event handlers
-		this.#handlers = {
-			click: this.#handleClick.bind(this),
-			change: this.#handleChange.bind(this),
-			transitionEnd: this.#handleTransitionEnd.bind(this),
-		};
-	}
-
-	connectedCallback() {
-		// If we have item data, render it first
-		if (this.#itemData) {
-			this.#renderFromData();
-		}
-
-		// Find child elements
-		this.content = this.querySelector('cart-item-content');
-		this.processing = this.querySelector('cart-item-processing');
-
-		// Attach event listeners
-		this.#attachListeners();
-
-		// If we started with 'appearing' state, handle the entry animation
-		if (this.#currentState === 'appearing') {
-			// Set the state attribute
-			this.setAttribute('state', 'appearing');
-
-			// Get the natural height after rendering
-			requestAnimationFrame(() => {
-				const naturalHeight = this.scrollHeight;
-
-				// Set explicit height for animation
-				this.style.height = `${naturalHeight}px`;
-
-				// Transition to ready state after a brief delay
-				setTimeout(() => {
-					this.setState('ready');
-					// Remove explicit height after animation completes
-					setTimeout(() => {
-						this.style.height = '';
-					}, 400); // Match appearing duration
-				}, 50);
-			});
-		}
-	}
-
-	disconnectedCallback() {
-		// Cleanup event listeners
-		this.#detachListeners();
-	}
-
-	/**
-	 * Attach event listeners
-	 */
-	#attachListeners() {
-		this.addEventListener('click', this.#handlers.click);
-		this.addEventListener('change', this.#handlers.change);
-		this.addEventListener('transitionend', this.#handlers.transitionEnd);
-	}
-
-	/**
-	 * Detach event listeners
-	 */
-	#detachListeners() {
-		this.removeEventListener('click', this.#handlers.click);
-		this.removeEventListener('change', this.#handlers.change);
-		this.removeEventListener('transitionend', this.#handlers.transitionEnd);
-	}
-
-	/**
-	 * Get the current state
-	 */
-	get state() {
-		return this.#currentState;
-	}
-
-	/**
-	 * Get the cart key for this item
-	 */
-	get cartKey() {
-		return this.getAttribute('key');
-	}
-
-	/**
-	 * Handle click events (for Remove buttons, etc.)
-	 */
-	#handleClick(e) {
-		// Check if clicked element is a remove button
-		const removeButton = e.target.closest('[data-action-remove-item]');
-		if (removeButton) {
-			e.preventDefault();
-			this.#emitRemoveEvent();
-		}
-	}
-
-	/**
-	 * Handle change events (for quantity inputs)
-	 */
-	#handleChange(e) {
-		// Check if changed element is a quantity input
-		const quantityInput = e.target.closest('[data-cart-quantity]');
-		if (quantityInput) {
-			this.#emitQuantityChangeEvent(quantityInput.value);
-		}
-	}
-
-	/**
-	 * Handle transition end events for destroy animation
-	 */
-	#handleTransitionEnd(e) {
-		if (e.propertyName === 'height' && this.#isDestroying) {
-			// Remove from DOM after height animation completes
-			this.remove();
-		}
-	}
-
-	/**
-	 * Emit remove event
-	 */
-	#emitRemoveEvent() {
-		this.dispatchEvent(
-			new CustomEvent('cart-item:remove', {
-				bubbles: true,
-				detail: {
-					cartKey: this.cartKey,
-					element: this,
-				},
-			})
-		);
-	}
-
-	/**
-	 * Emit quantity change event
-	 */
-	#emitQuantityChangeEvent(quantity) {
-		this.dispatchEvent(
-			new CustomEvent('cart-item:quantity-change', {
-				bubbles: true,
-				detail: {
-					cartKey: this.cartKey,
-					quantity: parseInt(quantity),
-					element: this,
-				},
-			})
-		);
-	}
-
-	/**
-	 * Render cart item from data using the static template
-	 */
-	#renderFromData() {
-		if (!this.#itemData || !CartItem.#template) {
-			return;
-		}
-
-		// Set the key attribute from item data
-		const key = this.#itemData.key || this.#itemData.id;
-		if (key) {
-			this.setAttribute('key', key);
-		}
-
-		// Generate HTML from template
-		const templateHTML = CartItem.#template(this.#itemData);
-
-		// Generate processing HTML from template or use default
-		const processingHTML = CartItem.#processingTemplate
-			? CartItem.#processingTemplate()
-			: '<div class="cart-item-loader"></div>';
-
-		// Create the cart-item structure with template content inside cart-item-content
-		this.innerHTML = `
-      <cart-item-content>
-        ${templateHTML}
-      </cart-item-content>
-      <cart-item-processing>
-        ${processingHTML}
-      </cart-item-processing>
-    `;
-	}
-
-	/**
-	 * Update the cart item with new data
-	 * @param {Object} itemData - Shopify cart item data
-	 */
-	setData(itemData) {
-		this.#itemData = itemData;
-		this.#renderFromData();
-
-		// Re-find child elements after re-rendering
-		this.content = this.querySelector('cart-item-content');
-		this.processing = this.querySelector('cart-item-processing');
-	}
-
-	/**
-	 * Get the current item data
-	 */
-	get itemData() {
-		return this.#itemData;
-	}
-
-	/**
-	 * Set the state of the cart item
-	 * @param {string} state - 'ready', 'processing', 'destroying', or 'appearing'
-	 */
-	setState(state) {
-		if (['ready', 'processing', 'destroying', 'appearing'].includes(state)) {
-			this.setAttribute('state', state);
-		}
-	}
-
-	/**
-	 * gracefully animate this cart item closed, then let #handleTransitionEnd remove it
-	 *
-	 * @returns {void}
-	 */
-	destroyYourself() {
-		// bail if already in the middle of a destroy cycle
-		if (this.#isDestroying) return;
-
-		this.#isDestroying = true;
-
-		// snapshot the current rendered height before applying any "destroying" styles
-		const initialHeight = this.offsetHeight;
-
-		// switch to 'destroying' state so css can fade / slide visuals
-		this.setState('destroying');
-
-		// lock the measured height on the next animation frame to ensure layout is fully flushed
-		requestAnimationFrame(() => {
-			this.style.height = `${initialHeight}px`;
-			this.offsetHeight; // force a reflow so the browser registers the fixed height
-
-			// read the css custom property for timing, defaulting to 400ms
-			const elementStyle = getComputedStyle(this);
-			const destroyDuration =
-				elementStyle.getPropertyValue('--cart-item-destroying-duration')?.trim() || '400ms';
-
-			// animate only the height to zero; other properties stay under stylesheet control
-			this.style.transition = `height ${destroyDuration} ease`;
-			this.style.height = '0px';
-		});
-	}
-}
-
-/**
- * Supporting component classes for cart item
- */
-class CartItemContent extends HTMLElement {
-	constructor() {
-		super();
-	}
-}
-
-class CartItemProcessing extends HTMLElement {
-	constructor() {
-		super();
-	}
-}
-
-// Define custom elements (check if not already defined)
-if (!customElements.get('cart-item')) {
-	customElements.define('cart-item', CartItem);
-}
-if (!customElements.get('cart-item-content')) {
-	customElements.define('cart-item-content', CartItemContent);
-}
-if (!customElements.get('cart-item-processing')) {
-	customElements.define('cart-item-processing', CartItemProcessing);
-}
-
-/**
- * Retrieves all focusable elements within a given container.
- *
- * @param {HTMLElement} container - The container element to search for focusable elements.
- * @returns {HTMLElement[]} An array of focusable elements found within the container.
- */
-const getFocusableElements = (container) => {
-	const focusableSelectors =
-		'summary, a[href], button:not(:disabled), [tabindex]:not([tabindex^="-"]):not(focus-trap-start):not(focus-trap-end), [draggable], area, input:not([type=hidden]):not(:disabled), select:not(:disabled), textarea:not(:disabled), object, iframe';
-	return Array.from(container.querySelectorAll(focusableSelectors));
-};
-
-class FocusTrap extends HTMLElement {
-	/** @type {boolean} Indicates whether the styles have been injected into the DOM. */
-	static styleInjected = false;
-
-	constructor() {
-		super();
-		this.trapStart = null;
-		this.trapEnd = null;
-
-		// Inject styles only once, when the first FocusTrap instance is created.
-		if (!FocusTrap.styleInjected) {
-			this.injectStyles();
-			FocusTrap.styleInjected = true;
-		}
-	}
-
-	/**
-	 * Injects necessary styles for the focus trap into the document's head.
-	 * This ensures that focus-trap-start and focus-trap-end elements are hidden.
-	 */
-	injectStyles() {
-		const style = document.createElement('style');
-		style.textContent = `
-      focus-trap-start,
-      focus-trap-end {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        margin: -1px;
-        padding: 0;
-        border: 0;
-        clip: rect(0, 0, 0, 0);
-        overflow: hidden;
-        white-space: nowrap;
-      }
-    `;
-		document.head.appendChild(style);
-	}
-
-	/**
-	 * Called when the element is connected to the DOM.
-	 * Sets up the focus trap and adds the keydown event listener.
-	 */
-	connectedCallback() {
-		this.setupTrap();
-		this.addEventListener('keydown', this.handleKeyDown);
-	}
-
-	/**
-	 * Called when the element is disconnected from the DOM.
-	 * Removes the keydown event listener.
-	 */
-	disconnectedCallback() {
-		this.removeEventListener('keydown', this.handleKeyDown);
-	}
-
-	/**
-	 * Sets up the focus trap by adding trap start and trap end elements.
-	 * Focuses the trap start element to initiate the focus trap.
-	 */
-	setupTrap() {
-		// check to see it there are any focusable children
-		const focusableElements = getFocusableElements(this);
-		// exit if there aren't any
-		if (focusableElements.length === 0) return;
-
-		// create trap start and end elements
-		this.trapStart = document.createElement('focus-trap-start');
-		this.trapEnd = document.createElement('focus-trap-end');
-
-		// add to DOM
-		this.prepend(this.trapStart);
-		this.append(this.trapEnd);
-	}
-
-	/**
-	 * Handles the keydown event. If the Escape key is pressed, the focus trap is exited.
-	 *
-	 * @param {KeyboardEvent} e - The keyboard event object.
-	 */
-	handleKeyDown = (e) => {
-		if (e.key === 'Escape') {
-			e.preventDefault();
-			this.exitTrap();
-		}
-	};
-
-	/**
-	 * Exits the focus trap by hiding the current container and shifting focus
-	 * back to the trigger element that opened the trap.
-	 */
-	exitTrap() {
-		const container = this.closest('[aria-hidden="false"]');
-		if (!container) return;
-
-		container.setAttribute('aria-hidden', 'true');
-
-		const trigger = document.querySelector(
-			`[aria-expanded="true"][aria-controls="${container.id}"]`
-		);
-		if (trigger) {
-			trigger.setAttribute('aria-expanded', 'false');
-			trigger.focus();
-		}
-	}
-}
-
-class FocusTrapStart extends HTMLElement {
-	/**
-	 * Called when the element is connected to the DOM.
-	 * Sets the tabindex and adds the focus event listener.
-	 */
-	connectedCallback() {
-		this.setAttribute('tabindex', '0');
-		this.addEventListener('focus', this.handleFocus);
-	}
-
-	/**
-	 * Called when the element is disconnected from the DOM.
-	 * Removes the focus event listener.
-	 */
-	disconnectedCallback() {
-		this.removeEventListener('focus', this.handleFocus);
-	}
-
-	/**
-	 * Handles the focus event. If focus moves backwards from the first focusable element,
-	 * it is cycled to the last focusable element, and vice versa.
-	 *
-	 * @param {FocusEvent} e - The focus event object.
-	 */
-	handleFocus = (e) => {
-		const trap = this.closest('focus-trap');
-		const focusableElements = getFocusableElements(trap);
-
-		if (focusableElements.length === 0) return;
-
-		const firstElement = focusableElements[0];
-		const lastElement =
-			focusableElements[focusableElements.length - 1];
-
-		if (e.relatedTarget === firstElement) {
-			lastElement.focus();
-		} else {
-			firstElement.focus();
-		}
-	};
-}
-
-class FocusTrapEnd extends HTMLElement {
-	/**
-	 * Called when the element is connected to the DOM.
-	 * Sets the tabindex and adds the focus event listener.
-	 */
-	connectedCallback() {
-		this.setAttribute('tabindex', '0');
-		this.addEventListener('focus', this.handleFocus);
-	}
-
-	/**
-	 * Called when the element is disconnected from the DOM.
-	 * Removes the focus event listener.
-	 */
-	disconnectedCallback() {
-		this.removeEventListener('focus', this.handleFocus);
-	}
-
-	/**
-	 * Handles the focus event. When the trap end is focused, focus is shifted back to the trap start.
-	 */
-	handleFocus = () => {
-		const trap = this.closest('focus-trap');
-		const trapStart = trap.querySelector('focus-trap-start');
-		trapStart.focus();
-	};
-}
-
-if (!customElements.get('focus-trap')) {
-	customElements.define('focus-trap', FocusTrap);
-}
-if (!customElements.get('focus-trap-start')) {
-	customElements.define('focus-trap-start', FocusTrapStart);
-}
-if (!customElements.get('focus-trap-end')) {
-	customElements.define('focus-trap-end', FocusTrapEnd);
-}
-
-class EventEmitter {
-  #events;
-
-  constructor() {
-    this.#events = new Map();
-  }
-
-  /**
-   * Binds a listener to an event.
-   * @param {string} event - The event to bind the listener to.
-   * @param {Function} listener - The listener function to bind.
-   * @returns {EventEmitter} The current instance for chaining.
-   * @throws {TypeError} If the listener is not a function.
-   */
-  on(event, listener) {
-    if (typeof listener !== "function") {
-      throw new TypeError("Listener must be a function");
-    }
-
-    const listeners = this.#events.get(event) || [];
-    if (!listeners.includes(listener)) {
-      listeners.push(listener);
-    }
-    this.#events.set(event, listeners);
-
-    return this;
-  }
-
-  /**
-   * Unbinds a listener from an event.
-   * @param {string} event - The event to unbind the listener from.
-   * @param {Function} listener - The listener function to unbind.
-   * @returns {EventEmitter} The current instance for chaining.
-   */
-  off(event, listener) {
-    const listeners = this.#events.get(event);
-    if (!listeners) return this;
-
-    const index = listeners.indexOf(listener);
-    if (index !== -1) {
-      listeners.splice(index, 1);
-      if (listeners.length === 0) {
-        this.#events.delete(event);
-      } else {
-        this.#events.set(event, listeners);
-      }
-    }
-
-    return this;
-  }
-
-  /**
-   * Triggers an event and calls all bound listeners.
-   * @param {string} event - The event to trigger.
-   * @param {...*} args - Arguments to pass to the listener functions.
-   * @returns {boolean} True if the event had listeners, false otherwise.
-   */
-  emit(event, ...args) {
-    const listeners = this.#events.get(event);
-    if (!listeners || listeners.length === 0) return false;
-
-    for (let i = 0, n = listeners.length; i < n; ++i) {
-      try {
-        listeners[i].apply(this, args);
-      } catch (error) {
-        console.error(`Error in listener for event '${event}':`, error);
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Removes all listeners for a specific event or all events.
-   * @param {string} [event] - The event to remove listeners from. If not provided, removes all listeners.
-   * @returns {EventEmitter} The current instance for chaining.
-   */
-  removeAllListeners(event) {
-    if (event) {
-      this.#events.delete(event);
-    } else {
-      this.#events.clear();
-    }
-    return this;
-  }
-}
+import { CartItem } from '@magic-spells/cart-item';
+export { CartItem } from '@magic-spells/cart-item';
+import '@magic-spells/focus-trap';
+import EventEmitter from '@magic-spells/event-emitter';
 
 /**
  * Custom element that creates an accessible modal cart dialog with focus management
@@ -625,6 +12,7 @@ class CartDialog extends HTMLElement {
 	#scrollPosition = 0;
 	#currentCart = null;
 	#eventEmitter;
+	#isInitialRender = true;
 
 	/**
 	 * Clean up event listeners when component is removed from DOM
@@ -846,9 +234,9 @@ class CartDialog extends HTMLElement {
 		this.updateCartItem(cartKey, 0)
 			.then((updatedCart) => {
 				if (updatedCart && !updatedCart.error) {
-					// Success - remove with animation
-					element.destroyYourself();
+					// Success - let smart comparison handle the removal animation
 					this.#currentCart = updatedCart;
+					this.#renderCartItems(updatedCart);
 					this.#updateCartItems(updatedCart);
 
 					// Emit cart updated and data changed events
@@ -1004,7 +392,67 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
-	 * Render cart items from Shopify cart data
+	 * Remove items from DOM that are no longer in cart data
+	 * @private
+	 */
+	#removeItemsFromDOM(itemsContainer, newKeysSet) {
+		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+		const itemsToRemove = currentItems.filter((item) => !newKeysSet.has(item.getAttribute('key')));
+
+		console.log(
+			`Removing ${itemsToRemove.length} items:`,
+			itemsToRemove.map((item) => item.getAttribute('key'))
+		);
+
+		itemsToRemove.forEach((item) => {
+			item.destroyYourself();
+		});
+	}
+
+	/**
+	 * Add new items to DOM with animation delay
+	 * @private
+	 */
+	#addItemsToDOM(itemsContainer, itemsToAdd, newKeys) {
+		console.log(
+			`Adding ${itemsToAdd.length} items:`,
+			itemsToAdd.map((item) => item.key || item.id)
+		);
+
+		// Delay adding new items by 300ms to let cart slide open first
+		setTimeout(() => {
+			itemsToAdd.forEach((itemData) => {
+				const cartItem = CartItem.createAnimated(itemData);
+				const targetIndex = newKeys.indexOf(itemData.key || itemData.id);
+
+				// Find the correct position to insert the new item
+				if (targetIndex === 0) {
+					// Insert at the beginning
+					itemsContainer.insertBefore(cartItem, itemsContainer.firstChild);
+				} else {
+					// Find the item that should come before this one
+					let insertAfter = null;
+					for (let i = targetIndex - 1; i >= 0; i--) {
+						const prevKey = newKeys[i];
+						const prevItem = itemsContainer.querySelector(`cart-item[key="${prevKey}"]`);
+						if (prevItem) {
+							insertAfter = prevItem;
+							break;
+						}
+					}
+
+					if (insertAfter) {
+						insertAfter.insertAdjacentElement('afterend', cartItem);
+					} else {
+						itemsContainer.appendChild(cartItem);
+					}
+				}
+			});
+		}, 100);
+	}
+
+	/**
+	 * Render cart items from Shopify cart data with smart comparison
 	 * @private
 	 */
 	#renderCartItems(cartData) {
@@ -1019,18 +467,45 @@ class CartDialog extends HTMLElement {
 			return;
 		}
 
-		console.log('Rendering cart items:', cartData.items.length, 'items');
+		// Handle initial render - load all items without animation
+		if (this.#isInitialRender) {
+			console.log('Initial cart render:', cartData.items.length, 'items');
 
-		// Clear existing items
-		itemsContainer.innerHTML = '';
+			// Clear existing items
+			itemsContainer.innerHTML = '';
 
-		// Create cart-item elements for each item in the cart
-		cartData.items.forEach((itemData) => {
-			const cartItem = new CartItem(itemData);
-			itemsContainer.appendChild(cartItem);
-		});
+			// Create cart-item elements without animation
+			cartData.items.forEach((itemData) => {
+				const cartItem = new CartItem(itemData); // No animation
+				itemsContainer.appendChild(cartItem);
+			});
 
-		console.log('Cart items rendered, container children:', itemsContainer.children.length);
+			this.#isInitialRender = false;
+			console.log('Initial render complete, container children:', itemsContainer.children.length);
+			return;
+		}
+
+		console.log('Smart rendering cart items:', cartData.items.length, 'items');
+
+		// Get current DOM items and their keys
+		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+		const currentKeys = new Set(currentItems.map((item) => item.getAttribute('key')));
+
+		// Get new cart data keys in order
+		const newKeys = cartData.items.map((item) => item.key || item.id);
+		const newKeysSet = new Set(newKeys);
+
+		// Step 1: Remove items that are no longer in cart data
+		this.#removeItemsFromDOM(itemsContainer, newKeysSet);
+
+		// Step 2: Add new items that weren't in DOM (with animation delay)
+		const itemsToAdd = cartData.items.filter(
+			(itemData) => !currentKeys.has(itemData.key || itemData.id)
+		);
+
+		this.#addItemsToDOM(itemsContainer, itemsToAdd, newKeys);
+
+		console.log('Smart rendering complete, container children:', itemsContainer.children.length);
 	}
 
 	/**
@@ -1164,5 +639,5 @@ if (typeof window !== 'undefined') {
 	window.CartItem = CartItem;
 }
 
-export { CartDialog, CartItem, CartOverlay, CartPanel, CartDialog as default };
+export { CartDialog, CartOverlay, CartPanel, CartDialog as default };
 //# sourceMappingURL=cart-panel.esm.js.map

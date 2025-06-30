@@ -13,6 +13,7 @@ class CartDialog extends HTMLElement {
 	#scrollPosition = 0;
 	#currentCart = null;
 	#eventEmitter;
+	#isInitialRender = true;
 
 	/**
 	 * Clean up event listeners when component is removed from DOM
@@ -234,9 +235,9 @@ class CartDialog extends HTMLElement {
 		this.updateCartItem(cartKey, 0)
 			.then((updatedCart) => {
 				if (updatedCart && !updatedCart.error) {
-					// Success - remove with animation
-					element.destroyYourself();
+					// Success - let smart comparison handle the removal animation
 					this.#currentCart = updatedCart;
+					this.#renderCartItems(updatedCart);
 					this.#updateCartItems(updatedCart);
 
 					// Emit cart updated and data changed events
@@ -392,7 +393,67 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
-	 * Render cart items from Shopify cart data
+	 * Remove items from DOM that are no longer in cart data
+	 * @private
+	 */
+	#removeItemsFromDOM(itemsContainer, newKeysSet) {
+		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+		const itemsToRemove = currentItems.filter((item) => !newKeysSet.has(item.getAttribute('key')));
+
+		console.log(
+			`Removing ${itemsToRemove.length} items:`,
+			itemsToRemove.map((item) => item.getAttribute('key'))
+		);
+
+		itemsToRemove.forEach((item) => {
+			item.destroyYourself();
+		});
+	}
+
+	/**
+	 * Add new items to DOM with animation delay
+	 * @private
+	 */
+	#addItemsToDOM(itemsContainer, itemsToAdd, newKeys) {
+		console.log(
+			`Adding ${itemsToAdd.length} items:`,
+			itemsToAdd.map((item) => item.key || item.id)
+		);
+
+		// Delay adding new items by 300ms to let cart slide open first
+		setTimeout(() => {
+			itemsToAdd.forEach((itemData) => {
+				const cartItem = CartItem.createAnimated(itemData);
+				const targetIndex = newKeys.indexOf(itemData.key || itemData.id);
+
+				// Find the correct position to insert the new item
+				if (targetIndex === 0) {
+					// Insert at the beginning
+					itemsContainer.insertBefore(cartItem, itemsContainer.firstChild);
+				} else {
+					// Find the item that should come before this one
+					let insertAfter = null;
+					for (let i = targetIndex - 1; i >= 0; i--) {
+						const prevKey = newKeys[i];
+						const prevItem = itemsContainer.querySelector(`cart-item[key="${prevKey}"]`);
+						if (prevItem) {
+							insertAfter = prevItem;
+							break;
+						}
+					}
+
+					if (insertAfter) {
+						insertAfter.insertAdjacentElement('afterend', cartItem);
+					} else {
+						itemsContainer.appendChild(cartItem);
+					}
+				}
+			});
+		}, 100);
+	}
+
+	/**
+	 * Render cart items from Shopify cart data with smart comparison
 	 * @private
 	 */
 	#renderCartItems(cartData) {
@@ -407,18 +468,45 @@ class CartDialog extends HTMLElement {
 			return;
 		}
 
-		console.log('Rendering cart items:', cartData.items.length, 'items');
+		// Handle initial render - load all items without animation
+		if (this.#isInitialRender) {
+			console.log('Initial cart render:', cartData.items.length, 'items');
 
-		// Clear existing items
-		itemsContainer.innerHTML = '';
+			// Clear existing items
+			itemsContainer.innerHTML = '';
 
-		// Create cart-item elements for each item in the cart
-		cartData.items.forEach((itemData) => {
-			const cartItem = new CartItem(itemData);
-			itemsContainer.appendChild(cartItem);
-		});
+			// Create cart-item elements without animation
+			cartData.items.forEach((itemData) => {
+				const cartItem = new CartItem(itemData); // No animation
+				itemsContainer.appendChild(cartItem);
+			});
 
-		console.log('Cart items rendered, container children:', itemsContainer.children.length);
+			this.#isInitialRender = false;
+			console.log('Initial render complete, container children:', itemsContainer.children.length);
+			return;
+		}
+
+		console.log('Smart rendering cart items:', cartData.items.length, 'items');
+
+		// Get current DOM items and their keys
+		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+		const currentKeys = new Set(currentItems.map((item) => item.getAttribute('key')));
+
+		// Get new cart data keys in order
+		const newKeys = cartData.items.map((item) => item.key || item.id);
+		const newKeysSet = new Set(newKeys);
+
+		// Step 1: Remove items that are no longer in cart data
+		this.#removeItemsFromDOM(itemsContainer, newKeysSet);
+
+		// Step 2: Add new items that weren't in DOM (with animation delay)
+		const itemsToAdd = cartData.items.filter(
+			(itemData) => !currentKeys.has(itemData.key || itemData.id)
+		);
+
+		this.#addItemsToDOM(itemsContainer, itemsToAdd, newKeys);
+
+		console.log('Smart rendering complete, container children:', itemsContainer.children.length);
 	}
 
 	/**

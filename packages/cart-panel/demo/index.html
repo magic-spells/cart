@@ -489,64 +489,139 @@
 
 			let preventCloseOnce = false;
 
-			// Add item functionality (demo only)
-			addItemBtn.addEventListener('click', () => {
-				const randomItem = sampleItems[Math.floor(Math.random() * sampleItems.length)];
-				const newItem = {
-					id: Date.now(),
-					name: randomItem.name,
-					price: randomItem.price,
-					quantity: 1,
-					image: randomItem.image,
+			// Set up cart item templates
+			cartDialog.setCartItemTemplate((item) => {
+				const productImages = {
+					'Wireless Headphones': '🎧',
+					'Smartphone Case': '📱',
+					'USB Cable': '🔌',
+					'Laptop Stand': '💻',
+					'Coffee Mug': '☕',
+					Notebook: '📓',
+					'Pen Set': '✏️',
+					'Desk Lamp': '💡',
 				};
 
-				// Create cart item element and add it to the cart
-				const cartItem = document.createElement('cart-item');
-				cartItem.setAttribute('key', newItem.id);
-				cartItem.setAttribute('state', 'appearing');
+				const emoji = productImages[item.product_title] || '📦';
+				const price = (item.line_price / 100).toFixed(2);
+				const total = ((item.line_price * item.quantity) / 100).toFixed(2);
 
-				cartItem.innerHTML = `
-				<cart-item-content>
+				return `
 					<div class="sample-cart-item">
-						<div class="item-image">${newItem.image}</div>
+						<div class="item-image">${emoji}</div>
 						<div class="item-details">
-							<div class="item-name">${newItem.name}</div>
-							<div class="item-price">$${newItem.price.toFixed(2)}</div>
+							<div class="item-name">${item.product_title}</div>
+							<div class="item-price">$${price}</div>
 						</div>
 						<div class="item-controls">
-							<input type="number" class="quantity-input" value="${newItem.quantity}" min="1" data-cart-quantity>
+							<input type="number" class="quantity-input" value="${item.quantity}" min="1" data-cart-quantity>
 							<button class="remove-button" data-action-remove-item>Remove</button>
 						</div>
 					</div>
-				</cart-item-content>
-				<cart-item-processing>
-					<div class="cart-item-loader"></div>
-				</cart-item-processing>
-			`;
-
-				const cartItemsContainer = document.querySelector('[data-content-cart-items]');
-				const hasItemsSection = document.querySelector('[data-cart-has-items]');
-				const emptySection = document.querySelector('[data-cart-is-empty]');
-
-				cartItemsContainer.appendChild(cartItem);
-				hasItemsSection.style.display = 'block';
-				emptySection.style.display = 'none';
-
-				logEvent('item-added', { item: newItem });
+				`;
 			});
 
-			// Clear cart functionality (demo only)
+			// Simulate cart data for demo
+			let simulatedCartData = {
+				item_count: 3,
+				items: [
+					{
+						key: '1',
+						id: '1',
+						product_title: 'Wireless Headphones',
+						variant_title: 'Black',
+						quantity: 1,
+						line_price: 9999,
+						featured_image: null,
+						url: '/products/headphones',
+					},
+					{
+						key: '2',
+						id: '2',
+						product_title: 'Smartphone Case',
+						variant_title: 'Clear',
+						quantity: 2,
+						line_price: 2499,
+						featured_image: null,
+						url: '/products/case',
+					},
+					{
+						key: '3',
+						id: '3',
+						product_title: 'USB Cable',
+						variant_title: '6ft',
+						quantity: 1,
+						line_price: 1299,
+						featured_image: null,
+						url: '/products/cable',
+					},
+				],
+			};
+
+			// Override cart APIs to use simulated data
+			const originalGetCart = cartDialog.getCart;
+			const originalUpdateCartItem = cartDialog.updateCartItem;
+
+			cartDialog.getCart = function () {
+				return Promise.resolve(simulatedCartData);
+			};
+
+			cartDialog.updateCartItem = function (key, quantity) {
+				const itemIndex = simulatedCartData.items.findIndex(
+					(item) => (item.key || item.id) === key
+				);
+				if (itemIndex !== -1) {
+					if (quantity === 0) {
+						// Remove item
+						simulatedCartData.items.splice(itemIndex, 1);
+					} else {
+						// Update quantity
+						simulatedCartData.items[itemIndex].quantity = quantity;
+					}
+				}
+				simulatedCartData.item_count = simulatedCartData.items.reduce(
+					(sum, item) => sum + item.quantity,
+					0
+				);
+				return Promise.resolve(simulatedCartData);
+			};
+
+			// Add item functionality (demo only) - now simulates cart API
+			addItemBtn.addEventListener('click', () => {
+				const randomItem = sampleItems[Math.floor(Math.random() * sampleItems.length)];
+				const newItemKey = Date.now().toString();
+				const newItem = {
+					key: newItemKey,
+					id: newItemKey,
+					product_title: randomItem.name,
+					variant_title: 'Standard',
+					quantity: 1,
+					line_price: Math.round(randomItem.price * 100), // Convert to cents
+					featured_image: null,
+					url: `/products/${randomItem.name.toLowerCase().replace(/\s+/g, '-')}`,
+				};
+
+				// Add to simulated cart data
+				simulatedCartData.items.push(newItem);
+				simulatedCartData.item_count += newItem.quantity;
+
+				// Trigger cart refresh to use smart comparison
+				cartDialog.refreshCart().then(() => {
+					logEvent('item-added', { item: newItem });
+				});
+			});
+
+			// Clear cart functionality (demo only) - now simulates cart API
 			clearCartBtn.addEventListener('click', () => {
 				if (confirm('Are you sure you want to clear your cart?')) {
-					const cartItemsContainer = document.querySelector('[data-content-cart-items]');
-					const hasItemsSection = document.querySelector('[data-cart-has-items]');
-					const emptySection = document.querySelector('[data-cart-is-empty]');
+					// Clear simulated cart data
+					simulatedCartData.items = [];
+					simulatedCartData.item_count = 0;
 
-					cartItemsContainer.innerHTML = '';
-					hasItemsSection.style.display = 'none';
-					emptySection.style.display = 'block';
-
-					logEvent('cart-cleared');
+					// Trigger cart refresh to use smart comparison
+					cartDialog.refreshCart().then(() => {
+						logEvent('cart-cleared');
+					});
 				}
 			});
 
