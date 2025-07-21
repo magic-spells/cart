@@ -122,40 +122,40 @@
 				font-size: 1.1rem;
 			}
 
-			/* Ensure message text is visible in demos */
-			.progress-demo p[data-content-cart-progress-message] {
-				color: #333 !important;
+			/* Default styles for cart progress bar messages to make demo look good */
+			cart-progress-bar p[data-content-cart-progress-message] {
+				font-size: 0.875rem;
+				margin: 0.5rem 0;
 			}
 
 			/* Custom themed progress bars */
 			.theme-minimal {
 				--cart-progress-bar-height: 8px;
 				--cart-progress-bar-bg: #f1f3f4;
-				--cart-progress-bar-fill-bg: #1a73e8;
-				--cart-progress-message-font-size: 0.8rem;
+				--cart-progress-bar-fill-before: #1a73e8;
+				--cart-progress-bar-fill-after: #0d47a1;
 			}
 
 			.theme-bold {
 				--cart-progress-bar-height: 16px;
 				--cart-progress-bar-border-radius: 8px;
-				--cart-progress-bar-fill-bg: #ff6b6b;
-				--cart-progress-message-font-size: 1rem;
-				--cart-progress-message-color: #2c3e50;
+				--cart-progress-bar-fill-before: #ff6b6b;
+				--cart-progress-bar-fill-after: #e74c3c;
+				--cart-progress-section-color: #2c3e50;
 			}
 
 			.theme-neon {
 				--cart-progress-bar-height: 14px;
 				--cart-progress-bar-bg: #1a1a2e;
-				--cart-progress-bar-fill-bg: #00d4ff;
-				--cart-progress-message-color: #16213e;
+				--cart-progress-bar-fill-before: #00d4ff;
+				--cart-progress-bar-fill-after: #00ff88;
+				--cart-progress-section-color: white;
 				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				padding: 1.5rem;
 				border-radius: 12px;
-				color: white;
 			}
 
-			.theme-neon p[data-content-cart-progress-message] {
-				color: white !important;
+			.theme-neon h3 {
+				color: white;
 			}
 
 			.code-block {
@@ -255,8 +255,8 @@
 						threshold="75.00"
 						current="25.50"
 						message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-						message-below="Add {{ amount }} more to get FREE shipping! 🚚">
-						<p data-content-cart-progress-message>Add {{ amount }} more to get FREE shipping! 🚚</p>
+						message-below="Add { amount } more to get FREE shipping! 🚚">
+						<p data-content-cart-progress-message>Add { amount } more to get FREE shipping! 🚚</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -272,8 +272,8 @@
 						class="theme-minimal"
 						threshold="50.00"
 						current="32.50"
-						message-below="{{ amount }} away from free delivery">
-						<p data-content-cart-progress-message>{{ amount }} away from free delivery</p>
+						message-below="{ amount } away from free delivery">
+						<p data-content-cart-progress-message>{ amount } away from free delivery</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -285,8 +285,8 @@
 						threshold="100.00"
 						current="78.90"
 						message-above="🎉 FREE shipping unlocked!"
-						message-below="🎯 {{ amount }} more for FREE shipping!">
-						<p data-content-cart-progress-message>🎯 {{ amount }} more for FREE shipping!</p>
+						message-below="🎯 { amount } more for FREE shipping!">
+						<p data-content-cart-progress-message>🎯 { amount } more for FREE shipping!</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -298,9 +298,9 @@
 						threshold="150.00"
 						current="120.00"
 						message-above="⚡ TURBO shipping activated!"
-						message-below="⚡ Only {{ amount }} until TURBO shipping!">
-						<p data-content-cart-progress-message>⚡ Only {{ amount }} until TURBO shipping!</p>
+						message-below="⚡ Only { amount } until TURBO shipping!">
 						<progress-bar></progress-bar>
+						<p data-content-cart-progress-message>⚡ Only { amount } until TURBO shipping!</p>
 					</cart-progress-bar>
 				</div>
 			</section>
@@ -313,8 +313,8 @@
   threshold="75.00" 
   current="25.50"
   message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-  message-below="Add {{ amount }} more for FREE shipping!"&gt;
-  &lt;p data-content-cart-progress-message&gt;Add {{ amount }} more for FREE shipping!&lt;/p&gt;
+  message-below="Add { amount } more for FREE shipping!"&gt;
+  &lt;p data-content-cart-progress-message&gt;Add { amount } more for FREE shipping!&lt;/p&gt;
   &lt;progress-bar&gt;&lt;/progress-bar&gt;
 &lt;/cart-progress-bar&gt;</code></pre>
 
@@ -337,10 +337,16 @@ console.log(info.percent, info.isComplete, info.thresholdAmount);</code></pre>
 
 				<h3>Custom Styling</h3>
 				<pre class="code-block"><code>cart-progress-bar {
+  /* Core color customization */
+  --cart-progress-section-bg: #f8f9fa;
+  --cart-progress-section-color: #495057;
+  --cart-progress-bar-bg: #e9ecef;
+  --cart-progress-bar-fill-before: #28a745;
+  --cart-progress-bar-fill-after: #007bff;
+  
+  /* Structure (optional) */
   --cart-progress-bar-height: 16px;
-  --cart-progress-bar-fill-bg: #ff6b6b;
   --cart-progress-bar-border-radius: 8px;
-  --cart-progress-message-font-size: 1rem;
 }</code></pre>
 			</section>
 
@@ -437,7 +443,7 @@ console.log(info.percent, info.isComplete, info.thresholdAmount);</code></pre>
 				console.log('mainDemo.setPercent(75)');
 				console.log('mainDemo.getProgress()');
 				console.log('mainDemo.setThresholdAmount(100)');
-				console.log('mainDemo.setMessages(null, "Only {{ amount }} left to save!")');
+				console.log('mainDemo.setMessages(null, "Only { amount } left to save!")');
 
 				// Make mainDemo globally accessible for console testing
 				window.mainDemo = mainDemo;

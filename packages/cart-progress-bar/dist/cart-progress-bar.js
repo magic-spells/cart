@@ -160,11 +160,11 @@
 
 		#attachListeners() {
 			// Find the nearest cart-panel component
-			const cartPanel = this.closest('cart-panel');
+			const cartDialog = this.closest('cart-dialog');
 
-			if (cartPanel) {
+			if (cartDialog) {
 				// Listen for cart data changes
-				cartPanel.addEventListener('cart-dialog:data-changed', (event) => {
+				cartDialog.addEventListener('cart-dialog:data-changed', (event) => {
 					this.#handleCartDataChange(event);
 				});
 			}
@@ -200,7 +200,7 @@
 				}
 
 				if (messageTemplate) {
-					const message = messageTemplate.replace(/\$\{left\}/g, formattedAmount);
+					const message = messageTemplate.replace('{ amount }', formattedAmount);
 					this.#messageElement.textContent = message;
 					this.#messageElement.style.display = 'block';
 				} else {
@@ -212,27 +212,7 @@
 
 		#updateComponentState() {
 			const isComplete = this.#currentAmount >= this.#minAmount;
-
-			if (isComplete) {
-				this.setAttribute('data-complete', 'true');
-				this.removeAttribute('data-incomplete');
-			} else {
-				this.setAttribute('data-incomplete', 'true');
-				this.removeAttribute('data-complete');
-			}
-
-			// Set progress level classes for styling
-			this.classList.remove('progress-low', 'progress-medium', 'progress-high', 'progress-complete');
-
-			if (isComplete) {
-				this.classList.add('progress-complete');
-			} else if (this.#progressPercent >= 75) {
-				this.classList.add('progress-high');
-			} else if (this.#progressPercent >= 50) {
-				this.classList.add('progress-medium');
-			} else {
-				this.classList.add('progress-low');
-			}
+			this.setAttribute('complete', isComplete.toString());
 		}
 
 		#formatCurrency(amount) {
@@ -242,7 +222,9 @@
 				currency: 'USD',
 				minimumFractionDigits: 2,
 				maximumFractionDigits: 2,
-			}).format(amount);
+			})
+				.format(amount)
+				.replace('.00', '');
 		}
 
 		/**
