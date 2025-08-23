@@ -1,6 +1,7 @@
 import './cart-panel.scss';
-import '@magic-spells/cart-item';
-import { CartItem } from '@magic-spells/cart-item';
+// import '@magic-spells/cart-item';
+// import { CartItem } from '@magic-spells/cart-item';
+import { CartItem } from '../../cart-item';
 import '@magic-spells/focus-trap';
 import EventEmitter from '@magic-spells/event-emitter';
 
@@ -10,7 +11,6 @@ import EventEmitter from '@magic-spells/event-emitter';
  */
 class CartDialog extends HTMLElement {
 	#handleTransitionEnd;
-	#scrollPosition = 0;
 	#currentCart = null;
 	#eventEmitter;
 	#isInitialRender = true;
@@ -33,31 +33,21 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
-	 * Saves current scroll position and locks body scrolling
+	 * Locks body scrolling
 	 * @private
 	 */
 	#lockScroll() {
-		const _ = this;
-		// Save current scroll position
-		_.#scrollPosition = window.pageYOffset;
-
-		// Apply fixed position to body
+		// Apply overflow hidden to body
 		document.body.classList.add('overflow-hidden');
-		document.body.style.top = `-${_.#scrollPosition}px`;
 	}
 
 	/**
-	 * Restores scroll position when cart dialog is closed
+	 * Restores body scrolling when cart dialog is closed
 	 * @private
 	 */
 	#restoreScroll() {
-		const _ = this;
-		// Remove fixed positioning
+		// Remove overflow hidden from body
 		document.body.classList.remove('overflow-hidden');
-		document.body.style.removeProperty('top');
-
-		// Restore scroll position
-		window.scrollTo(0, _.#scrollPosition);
 	}
 
 	/**
@@ -98,7 +88,22 @@ class CartDialog extends HTMLElement {
 			return;
 		}
 
-		_.focusTrap = document.createElement('focus-trap');
+		// Check if focus-trap already exists, if not create one
+		_.focusTrap = _.contentPanel.querySelector('focus-trap');
+		if (!_.focusTrap) {
+			_.focusTrap = document.createElement('focus-trap');
+
+			// Move all existing cart-panel content into the focus trap
+			const existingContent = Array.from(_.contentPanel.childNodes);
+			existingContent.forEach((child) => _.focusTrap.appendChild(child));
+
+			// Insert focus trap inside the cart-panel
+			_.contentPanel.appendChild(_.focusTrap);
+
+			// Setup the trap - this will add focus-trap-start/end elements around the content
+			// We don't need this anymore because we restructured the code
+			// _.focusTrap.setupTrap();
+		}
 
 		// Ensure we have labelledby and describedby references
 		if (!_.getAttribute('aria-labelledby')) {
@@ -111,20 +116,15 @@ class CartDialog extends HTMLElement {
 			}
 		}
 
-		// Insert focus trap before the cart-panel
-		_.contentPanel.parentNode.insertBefore(_.focusTrap, _.contentPanel);
-		// Move cart-panel inside the focus trap
-		_.focusTrap.appendChild(_.contentPanel);
-
-		// Setup the trap - this will add focus-trap-start/end elements around the content
-		_.focusTrap.setupTrap();
-
 		// Add modal overlay if it doesn't already exist
 		if (!_.querySelector('cart-overlay')) {
 			_.prepend(document.createElement('cart-overlay'));
 		}
 		_.#attachListeners();
 		_.#bindKeyboard();
+
+		// Load cart data immediately after component initialization
+		_.refreshCart();
 	}
 
 	/**
@@ -156,7 +156,16 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#emit(eventName, data = null) {
+		// console.log('CartDialog emitting event:', eventName, data);
 		this.#eventEmitter.emit(eventName, data);
+
+		// Also emit as native DOM events for better compatibility
+		this.dispatchEvent(
+			new CustomEvent(eventName, {
+				detail: data,
+				bubbles: true,
+			})
+		);
 	}
 
 	/**
@@ -234,15 +243,17 @@ class CartDialog extends HTMLElement {
 		// Remove item by setting quantity to 0
 		this.updateCartItem(cartKey, 0)
 			.then((updatedCart) => {
+				console.log('updated cart', updatedCart);
 				if (updatedCart && !updatedCart.error) {
 					// Success - let smart comparison handle the removal animation
 					this.#currentCart = updatedCart;
 					this.#renderCartItems(updatedCart);
-					this.#updateCartItems(updatedCart);
+					this.#renderCartPanel(updatedCart);
 
 					// Emit cart updated and data changed events
-					this.#emit('cart-dialog:updated', { cart: updatedCart });
-					this.#emit('cart-dialog:data-changed', updatedCart);
+					const cartWithCalculatedFields = this.#addCalculatedFields(updatedCart);
+					this.#emit('cart-dialog:updated', { cart: cartWithCalculatedFields });
+					this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
 				} else {
 					// Error - reset to ready state
 					element.setState('ready');
@@ -273,12 +284,13 @@ class CartDialog extends HTMLElement {
 					// Success - update cart data and refresh items
 					this.#currentCart = updatedCart;
 					this.#renderCartItems(updatedCart);
-					this.#updateCartItems(updatedCart);
+					this.#renderCartPanel(updatedCart);
 					element.setState('ready');
 
 					// Emit cart updated and data changed events
-					this.#emit('cart-dialog:updated', { cart: updatedCart });
-					this.#emit('cart-dialog:data-changed', updatedCart);
+					const cartWithCalculatedFields = this.#addCalculatedFields(updatedCart);
+					this.#emit('cart-dialog:updated', { cart: cartWithCalculatedFields });
+					this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
 				} else {
 					// Error - reset to ready state
 					element.setState('ready');
@@ -293,10 +305,48 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
+	 * Update cart count elements across the site
+	 * @private
+	 */
+	#renderCartCount(cartData) {
+		if (!cartData) return;
+
+		// Calculate visible item count (excluding _hide_in_cart items)
+		const visibleItems = this.#getVisibleCartItems(cartData);
+		const visibleItemCount = visibleItems.reduce((total, item) => total + item.quantity, 0);
+
+		// Update all cart count elements across the site
+		const cartCountElements = document.querySelectorAll('[data-content-cart-count]');
+		cartCountElements.forEach((element) => {
+			element.textContent = visibleItemCount;
+		});
+	}
+
+	/**
+	 * Update cart subtotal elements across the site
+	 * @private
+	 */
+	#renderCartSubtotal(cartData) {
+		if (!cartData) return;
+
+		// Calculate visible item subtotal (excluding _hide_in_cart items)
+		const visibleItems = this.#getVisibleCartItems(cartData);
+		const visibleSubtotal = visibleItems.reduce((total, item) => total + (item.line_price || 0), 0);
+
+		// Update all cart subtotal elements across the site
+		const cartSubtotalElements = document.querySelectorAll('[data-content-cart-subtotal]');
+		cartSubtotalElements.forEach((element) => {
+			// Format as currency (assuming cents, convert to dollars)
+			const formatted = (visibleSubtotal / 100).toFixed(2);
+			element.textContent = `$${formatted}`;
+		});
+	}
+
+	/**
 	 * Update cart items display based on cart data
 	 * @private
 	 */
-	#updateCartItems(cart = null) {
+	#renderCartPanel(cart = null) {
 		const cartData = cart || this.#currentCart;
 		if (!cartData) return;
 
@@ -312,14 +362,22 @@ class CartDialog extends HTMLElement {
 			return;
 		}
 
-		// Show/hide sections based on item count
-		if (cartData.item_count > 0) {
-			hasItemsSection.style.display = 'block';
+		// Check visible item count for showing/hiding sections
+		const visibleItems = this.#getVisibleCartItems(cartData);
+		const hasVisibleItems = visibleItems.length > 0;
+
+		// Show/hide sections based on visible item count
+		if (hasVisibleItems) {
+			hasItemsSection.style.display = '';
 			emptySection.style.display = 'none';
 		} else {
 			hasItemsSection.style.display = 'none';
-			emptySection.style.display = 'block';
+			emptySection.style.display = '';
 		}
+
+		// Update cart count and subtotal across the site
+		this.#renderCartCount(cartData);
+		this.#renderCartSubtotal(cartData);
 	}
 
 	/**
@@ -371,20 +429,39 @@ class CartDialog extends HTMLElement {
 
 	/**
 	 * Refresh cart data from server and update components
+	 * @param {Object} [cartObj=null] - Optional cart object to use instead of fetching
 	 * @returns {Promise<Object>} Cart data object
 	 */
-	refreshCart() {
-		console.log('Refreshing cart...');
+	refreshCart(cartObj = null) {
+		// console.log('Refreshing cart...');
+
+		// If cart object is provided, use it directly
+		if (cartObj && !cartObj.error) {
+			// console.log('Using provided cart data:', cartObj);
+			this.#currentCart = cartObj;
+			this.#renderCartItems(cartObj);
+			this.#renderCartPanel(cartObj);
+
+			// Emit cart refreshed and data changed events
+			const cartWithCalculatedFields = this.#addCalculatedFields(cartObj);
+			this.#emit('cart-dialog:refreshed', { cart: cartWithCalculatedFields });
+			this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
+
+			return Promise.resolve(cartObj);
+		}
+
+		// Otherwise fetch from server
 		return this.getCart().then((cartData) => {
-			console.log('Cart data received:', cartData);
+			// console.log('Cart data received:', cartData);
 			if (cartData && !cartData.error) {
 				this.#currentCart = cartData;
 				this.#renderCartItems(cartData);
-				this.#updateCartItems(cartData);
+				this.#renderCartPanel(cartData);
 
 				// Emit cart refreshed and data changed events
-				this.#emit('cart-dialog:refreshed', { cart: cartData });
-				this.#emit('cart-dialog:data-changed', cartData);
+				const cartWithCalculatedFields = this.#addCalculatedFields(cartData);
+				this.#emit('cart-dialog:refreshed', { cart: cartWithCalculatedFields });
+				this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
 			} else {
 				console.warn('Cart data has error or is null:', cartData);
 			}
@@ -397,15 +474,13 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#removeItemsFromDOM(itemsContainer, newKeysSet) {
+		console.log('removeItemsFromDOM', newKeysSet);
 		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+		console.log('got all currentItems', currentItems);
 		const itemsToRemove = currentItems.filter((item) => !newKeysSet.has(item.getAttribute('key')));
 
-		console.log(
-			`Removing ${itemsToRemove.length} items:`,
-			itemsToRemove.map((item) => item.getAttribute('key'))
-		);
-
 		itemsToRemove.forEach((item) => {
+			console.log('destroy yourself', item);
 			item.destroyYourself();
 		});
 	}
@@ -415,11 +490,7 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#addItemsToDOM(itemsContainer, itemsToAdd, newKeys) {
-		console.log(
-			`Adding ${itemsToAdd.length} items:`,
-			itemsToAdd.map((item) => item.key || item.id)
-		);
-
+		console.log('itemsToAdd', itemsToAdd);
 		// Delay adding new items by 300ms to let cart slide open first
 		setTimeout(() => {
 			itemsToAdd.forEach((itemData) => {
@@ -453,11 +524,52 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
+	 * Filter cart items to exclude those with _hidden property
+	 * @private
+	 */
+	#getVisibleCartItems(cartData) {
+		if (!cartData || !cartData.items) return [];
+		return cartData.items.filter((item) => {
+			// Check for _hidden in various possible locations
+			const hidden =
+				(item.properties && item.properties._hidden) ||
+				(item.properties && item.properties['_hidden']) ||
+				item._hidden;
+
+			// console.log(`Item ${item.key || item.id}: hidden=${hidden}, properties=`, item.properties);
+			return !hidden;
+		});
+	}
+
+	/**
+	 * Add calculated fields to cart object for events
+	 * @private
+	 */
+	#addCalculatedFields(cartData) {
+		if (!cartData) return cartData;
+
+		const visibleItems = this.#getVisibleCartItems(cartData);
+		const calculated_count = visibleItems.reduce((total, item) => total + item.quantity, 0);
+		const calculated_subtotal = visibleItems.reduce(
+			(total, item) => total + (item.line_price || 0),
+			0
+		);
+
+		return {
+			...cartData,
+			calculated_count,
+			calculated_subtotal,
+		};
+	}
+
+	/**
 	 * Render cart items from Shopify cart data with smart comparison
 	 * @private
 	 */
 	#renderCartItems(cartData) {
 		const itemsContainer = this.querySelector('[data-content-cart-items]');
+
+		console.log('renderCartItems', cartData);
 
 		if (!itemsContainer || !cartData || !cartData.items) {
 			console.warn('Cannot render cart items:', {
@@ -468,53 +580,60 @@ class CartDialog extends HTMLElement {
 			return;
 		}
 
+		// Filter out items with _hide_in_cart property
+		const visibleItems = this.#getVisibleCartItems(cartData);
+
+		console.log('visibleItems', visibleItems);
+
 		// Handle initial render - load all items without animation
 		if (this.#isInitialRender) {
-			console.log('Initial cart render:', cartData.items.length, 'items');
+			// console.log('Initial cart render:', visibleItems.length, 'visible items');
 
 			// Clear existing items
 			itemsContainer.innerHTML = '';
 
 			// Create cart-item elements without animation
-			cartData.items.forEach((itemData) => {
+			visibleItems.forEach((itemData) => {
 				const cartItem = new CartItem(itemData); // No animation
+				// const cartItem = document.createElement('cart-item');
+				// cartItem.setData(itemData);
 				itemsContainer.appendChild(cartItem);
 			});
 
 			this.#isInitialRender = false;
-			console.log('Initial render complete, container children:', itemsContainer.children.length);
+			// console.log('Initial render complete, container children:', itemsContainer.children.length);
 			return;
 		}
 
-		console.log('Smart rendering cart items:', cartData.items.length, 'items');
+		// console.log('Smart rendering cart items:', visibleItems.length, 'visible items');
 
 		// Get current DOM items and their keys
 		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
 		const currentKeys = new Set(currentItems.map((item) => item.getAttribute('key')));
 
-		// Get new cart data keys in order
-		const newKeys = cartData.items.map((item) => item.key || item.id);
+		// Get new cart data keys in order (only visible items)
+		const newKeys = visibleItems.map((item) => item.key || item.id);
 		const newKeysSet = new Set(newKeys);
 
 		// Step 1: Remove items that are no longer in cart data
 		this.#removeItemsFromDOM(itemsContainer, newKeysSet);
 
 		// Step 2: Add new items that weren't in DOM (with animation delay)
-		const itemsToAdd = cartData.items.filter(
+		const itemsToAdd = visibleItems.filter(
 			(itemData) => !currentKeys.has(itemData.key || itemData.id)
 		);
 
 		this.#addItemsToDOM(itemsContainer, itemsToAdd, newKeys);
 
-		console.log('Smart rendering complete, container children:', itemsContainer.children.length);
+		// console.log('Smart rendering complete, container children:', itemsContainer.children.length);
 	}
 
 	/**
 	 * Set the template function for cart items
 	 * @param {Function} templateFn - Function that takes item data and returns HTML string
 	 */
-	setCartItemTemplate(templateFn) {
-		CartItem.setTemplate(templateFn);
+	setCartItemTemplate(templateName, templateFn) {
+		CartItem.setTemplate(templateName, templateFn);
 	}
 
 	/**
@@ -530,9 +649,12 @@ class CartDialog extends HTMLElement {
 	 * @param {HTMLElement} [triggerEl=null] - The element that triggered the cart dialog
 	 * @fires CartDialog#show - Fired when the cart dialog has been shown
 	 */
-	show(triggerEl = null) {
+	show(triggerEl = null, cartObj) {
 		const _ = this;
 		_.triggerEl = triggerEl || false;
+
+		// Lock body scrolling
+		_.#lockScroll();
 
 		// Remove the hidden class first to ensure content is rendered
 		_.contentPanel.classList.remove('hidden');
@@ -541,17 +663,16 @@ class CartDialog extends HTMLElement {
 		requestAnimationFrame(() => {
 			// Update ARIA states
 			_.setAttribute('aria-hidden', 'false');
+			// console.log('trigger', _.triggerEl);
 			if (_.triggerEl) {
 				_.triggerEl.setAttribute('aria-expanded', 'true');
 			}
-
-			// Lock body scrolling and save scroll position
-			_.#lockScroll();
 
 			// Focus management
 			const firstFocusable = _.querySelector(
 				'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
 			);
+
 			if (firstFocusable) {
 				requestAnimationFrame(() => {
 					firstFocusable.focus();
@@ -559,7 +680,7 @@ class CartDialog extends HTMLElement {
 			}
 
 			// Refresh cart data when showing
-			_.refreshCart();
+			_.refreshCart(cartObj);
 
 			// Emit show event - cart dialog is now visible
 			_.#emit('cart-dialog:show', { triggerElement: _.triggerEl });
@@ -574,23 +695,31 @@ class CartDialog extends HTMLElement {
 	hide() {
 		const _ = this;
 
-		// Restore body scroll and scroll position
-		_.#restoreScroll();
-
 		// Update ARIA states
 		if (_.triggerEl) {
 			// remove focus from modal panel first
 			_.triggerEl.focus();
 			// mark trigger as no longer expanded
 			_.triggerEl.setAttribute('aria-expanded', 'false');
+		} else {
+			// If no trigger element, blur any focused element inside the panel
+			const activeElement = document.activeElement;
+			if (activeElement && _.contains(activeElement)) {
+				activeElement.blur();
+			}
 		}
 
-		// Set aria-hidden to start transition
-		// The transitionend event handler will add display:none when complete
-		_.setAttribute('aria-hidden', 'true');
+		requestAnimationFrame(() => {
+			// Set aria-hidden to start transition
+			// The transitionend event handler will add display:none when complete
+			_.setAttribute('aria-hidden', 'true');
 
-		// Emit hide event - cart dialog is now starting to hide
-		_.#emit('cart-dialog:hide', { triggerElement: _.triggerEl });
+			// Emit hide event - cart dialog is now starting to hide
+			_.#emit('cart-dialog:hide', { triggerElement: _.triggerEl });
+
+			// Restore body scroll
+			_.#restoreScroll();
+		});
 	}
 }
 

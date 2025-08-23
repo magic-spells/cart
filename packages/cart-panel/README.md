@@ -98,6 +98,7 @@ The component automatically handles:
 - Fetching cart data from `/cart.json` on show
 - Updating cart items via `/cart/change.json` API calls
 - Managing cart item states and animations through integrated `@magic-spells/cart-item`
+- Filtering out cart items with `_hidden` property from display and calculations
 - Emitting events for cart updates and state changes
 
 ## Configuration
@@ -372,6 +373,35 @@ The component is optimized for:
 - **Accessibility**: Full ARIA support and keyboard navigation
 
 ## Integration Examples
+
+### Cart Item Filtering
+
+Cart items can be hidden from display by setting the `_hidden` property. Hidden items are excluded from:
+
+- Cart item display and rendering
+- Cart count calculations
+- Subtotal calculations
+
+```javascript
+// Example: Hide a cart item from display
+// The _hidden property can be set in multiple locations:
+{
+  "items": [
+    {
+      "key": "item-123",
+      "properties": {
+        "_hidden": true  // Method 1: In properties object
+      }
+    },
+    {
+      "key": "item-456",
+      "_hidden": true  // Method 2: Direct property on item
+    }
+  ]
+}
+```
+
+This is useful for hiding gift-with-purchase items, fees, or other items that should exist in the cart but not be visible to customers.
 
 ### Shopify Integration
 
