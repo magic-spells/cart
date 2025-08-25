@@ -32,7 +32,7 @@ npm install @magic-spells/cart-progress-bar
 ```
 
 ```css
-@import '@magic-spells/cart-progress-bar/css';
+@import '@magic-spells/cart-progress-bar/css/min';
 ```
 
 ## JavaScript API
@@ -59,7 +59,7 @@ progressBar.setMessages('Almost there!', 'Only { amount } more to go!');
 
 ## Cart Integration
 
-The component automatically listens for cart data changes when placed inside a `<cart-dialog>` component:
+The component automatically listens for cart data changes when placed inside a `<cart-dialog>` component from the `@magic-spells/cart-panel` package:
 
 ```html
 <cart-dialog>
@@ -68,7 +68,16 @@ The component automatically listens for cart data changes when placed inside a `
 </cart-dialog>
 ```
 
-When the cart-dialog emits a `cart-dialog:data-changed` event (typically from Shopify cart updates), the progress bar will automatically update with the new cart total.
+When the cart-dialog emits a `cart-dialog:data-changed` event (typically from Shopify cart API updates), the progress bar will automatically update with the calculated cart subtotal.
+
+### Smart Pricing Logic
+
+The progress bar uses intelligent pricing calculation:
+
+- **Preferred**: Uses `calculated_subtotal` from cart-panel (respects `_ignore_price_in_subtotal` property)
+- **Fallback**: Uses `total_price` for backwards compatibility
+- **Includes**: Bundle items that are hidden in cart but should count toward shipping threshold
+- **Excludes**: Gift items or promotions marked with `_ignore_price_in_subtotal` property
 
 ## Attributes
 
@@ -112,10 +121,12 @@ cart-progress-bar {
 
 ### Structure Variables (Optional)
 
-| Property                            | Description                | Default |
-| ----------------------------------- | -------------------------- | ------- |
-| `--cart-progress-bar-height`        | Height of the progress bar | `12px`  |
-| `--cart-progress-bar-border-radius` | Border radius              | `6px`   |
+| Property                                | Description                       | Default |
+| --------------------------------------- | --------------------------------- | ------- |
+| `--cart-progress-bar-height`            | Height of the progress bar        | `12px`  |
+| `--cart-progress-bar-border-radius`     | Border radius                     | `6px`   |
+| `--cart-progress-bar-shadow`            | Box shadow for progress bar       | `inset 0 1px 2px rgba(0, 0, 0, 0.1)` |
+| `--cart-progress-bar-transition-duration` | Animation transition duration   | `0.3s`  |
 
 ## Message Templates
 
@@ -131,10 +142,11 @@ Use `{ amount }` in your message templates for automatic currency formatting:
 
 The component automatically:
 
-- Shows `message-below` when incomplete (with `{ amount }` replaced)
+- Shows `message-below` when incomplete (with `{ amount }` replaced with remaining amount needed)
 - Shows `message-above` when threshold is reached (success message)
-- Formats the amount as currency (USD by default)
+- Formats the amount as USD currency using Intl.NumberFormat (removes .00 for whole dollar amounts)
 - Updates messages when amounts change
+- Switches between before/after progress bar colors based on completion status
 
 ## States and Attributes
 

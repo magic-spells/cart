@@ -167,9 +167,19 @@ class CartProgressBar extends HTMLElement {
 	#handleCartDataChange(event) {
 		const updatedCart = event.detail;
 
-		if (updatedCart && typeof updatedCart.total_price !== 'undefined') {
-			// Convert from cents to dollars if needed (Shopify typically returns cents)
-			const currentAmount = updatedCart.total_price / 100;
+		if (updatedCart) {
+			// Use calculated_subtotal if available (handles _ignore_price_in_subtotal logic)
+			// Otherwise fall back to total_price for backwards compatibility
+			let currentAmount = 0;
+
+			if (typeof updatedCart.calculated_subtotal !== 'undefined') {
+				// calculated_subtotal is already in dollars, no conversion needed
+				currentAmount = updatedCart.calculated_subtotal / 100;
+			} else if (typeof updatedCart.total_price !== 'undefined') {
+				// Convert from cents to dollars if needed (Shopify typically returns cents)
+				currentAmount = updatedCart.total_price / 100;
+			}
+
 			this.setCurrentAmount(currentAmount);
 		}
 	}
