@@ -321,15 +321,18 @@ class CartDialog extends HTMLElement {
 	#renderCartSubtotal(cartData) {
 		if (!cartData) return;
 
-		// Calculate visible item subtotal (excluding _hide_in_cart items)
-		const visibleItems = this.#getVisibleCartItems(cartData);
-		const visibleSubtotal = visibleItems.reduce((total, item) => total + (item.line_price || 0), 0);
+		// Calculate subtotal from all items except those marked to ignore pricing
+		const pricedItems = cartData.items.filter(item => {
+			const ignorePrice = item.properties?._ignore_price_in_subtotal;
+			return !ignorePrice;
+		});
+		const subtotal = pricedItems.reduce((total, item) => total + (item.line_price || 0), 0);
 
 		// Update all cart subtotal elements across the site
 		const cartSubtotalElements = document.querySelectorAll('[data-content-cart-subtotal]');
 		cartSubtotalElements.forEach((element) => {
 			// Format as currency (assuming cents, convert to dollars)
-			const formatted = (visibleSubtotal / 100).toFixed(2);
+			const formatted = (subtotal / 100).toFixed(2);
 			element.textContent = `$${formatted}`;
 		});
 	}

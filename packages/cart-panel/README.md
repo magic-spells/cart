@@ -42,44 +42,44 @@ Or include directly in your HTML:
 ```html
 <!-- Trigger button -->
 <button aria-haspopup="dialog" aria-controls="my-cart" aria-expanded="false">
-	Open Cart (3 items)
+  Open Cart (3 items)
 </button>
 
 <!-- Cart modal dialog -->
 <cart-dialog id="my-cart" aria-labelledby="cart-title">
-	<cart-panel>
-		<div class="cart-header">
-			<h2 id="cart-title">Shopping Cart</h2>
-			<button data-action="hide-cart" aria-label="Close cart">&times;</button>
-		</div>
+  <cart-panel>
+    <div class="cart-header">
+      <h2 id="cart-title">Shopping Cart</h2>
+      <button data-action="hide-cart" aria-label="Close cart">&times;</button>
+    </div>
 
-		<div class="cart-body">
-			<!-- Cart items using @magic-spells/cart-item -->
-			<cart-item data-key="shopify-line-item-123">
-				<cart-item-content>
-					<div class="product-info">
-						<img src="product.jpg" alt="Product" />
-						<div>
-							<h4>Awesome T-Shirt</h4>
-							<div class="price">$29.99</div>
-						</div>
-					</div>
-					<div class="quantity-controls">
-						<input type="number" data-cart-quantity value="1" min="1" />
-						<button data-action="remove">Remove</button>
-					</div>
-				</cart-item-content>
-				<cart-item-processing>
-					<div>Processing...</div>
-				</cart-item-processing>
-			</cart-item>
-		</div>
+    <div class="cart-body">
+      <!-- Cart items using @magic-spells/cart-item -->
+      <cart-item data-key="shopify-line-item-123">
+        <cart-item-content>
+          <div class="product-info">
+            <img src="product.jpg" alt="Product" />
+            <div>
+              <h4>Awesome T-Shirt</h4>
+              <div class="price">$29.99</div>
+            </div>
+          </div>
+          <div class="quantity-controls">
+            <input type="number" data-cart-quantity value="1" min="1" />
+            <button data-action="remove">Remove</button>
+          </div>
+        </cart-item-content>
+        <cart-item-processing>
+          <div>Processing...</div>
+        </cart-item-processing>
+      </cart-item>
+    </div>
 
-		<div class="cart-footer">
-			<div class="cart-total">Total: $29.99</div>
-			<button class="checkout-btn">Checkout</button>
-		</div>
-	</cart-panel>
+    <div class="cart-footer">
+      <div class="cart-total">Total: $29.99</div>
+      <button class="checkout-btn">Checkout</button>
+    </div>
+  </cart-panel>
 </cart-dialog>
 ```
 
@@ -133,28 +133,28 @@ Example:
 ```html
 <!-- Minimal cart modal -->
 <cart-dialog id="simple-cart">
-	<cart-panel>
-		<h2>Cart</h2>
-		<button data-action="hide-cart">Close</button>
-		<!-- Cart content here -->
-	</cart-panel>
+  <cart-panel>
+    <h2>Cart</h2>
+    <button data-action="hide-cart">Close</button>
+    <!-- Cart content here -->
+  </cart-panel>
 </cart-dialog>
 
 <!-- Complete cart with all features -->
 <cart-dialog id="full-cart" aria-modal="true" aria-labelledby="cart-heading">
-	<cart-overlay></cart-overlay>
-	<cart-panel>
-		<header class="cart-header">
-			<h2 id="cart-heading">Shopping Cart</h2>
-			<button data-action="hide-cart" aria-label="Close cart">×</button>
-		</header>
-		<div class="cart-content">
-			<!-- Cart items will be rendered here -->
-		</div>
-		<footer class="cart-footer">
-			<button class="checkout-btn">Checkout</button>
-		</footer>
-	</cart-panel>
+  <cart-overlay></cart-overlay>
+  <cart-panel>
+    <header class="cart-header">
+      <h2 id="cart-heading">Shopping Cart</h2>
+      <button data-action="hide-cart" aria-label="Close cart">×</button>
+    </header>
+    <div class="cart-content">
+      <!-- Cart items will be rendered here -->
+    </div>
+    <footer class="cart-footer">
+      <button class="checkout-btn">Checkout</button>
+    </footer>
+  </cart-panel>
 </cart-dialog>
 ```
 
@@ -167,52 +167,52 @@ The component provides complete styling control through CSS custom properties an
 ```css
 /* Customize modal positioning and sizing */
 cart-dialog {
-	--cart-panel-width: min(500px, 95vw);
-	--cart-panel-z-index: 9999;
-	--cart-overlay-z-index: 9998;
+  --cart-panel-width: min(500px, 95vw);
+  --cart-panel-z-index: 9999;
+  --cart-overlay-z-index: 9998;
 }
 
 /* Customize overlay appearance */
 cart-overlay {
-	--cart-overlay-background: rgba(0, 0, 0, 0.3);
-	--cart-overlay-backdrop-filter: blur(8px);
+  --cart-overlay-background: rgba(0, 0, 0, 0.3);
+  --cart-overlay-backdrop-filter: blur(8px);
 }
 
 /* Customize panel styling */
 cart-panel {
-	--cart-panel-background: #ffffff;
-	--cart-panel-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
-	--cart-panel-border-radius: 12px 0 0 12px;
+  --cart-panel-background: #ffffff;
+  --cart-panel-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
+  --cart-panel-border-radius: 12px 0 0 12px;
 }
 
 /* Customize animations */
 cart-dialog {
-	--cart-transition-duration: 400ms;
-	--cart-transition-timing: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --cart-transition-duration: 400ms;
+  --cart-transition-timing: cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 /* Style your cart content layout */
 cart-panel {
-	display: flex;
-	flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .cart-header {
-	padding: 1.5rem;
-	border-bottom: 1px solid #eee;
-	background: #f8f9fa;
+  padding: 1.5rem;
+  border-bottom: 1px solid #eee;
+  background: #f8f9fa;
 }
 
 .cart-content {
-	flex: 1;
-	overflow-y: auto;
-	padding: 1rem;
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
 }
 
 .cart-footer {
-	padding: 1.5rem;
-	border-top: 1px solid #eee;
-	background: #f8f9fa;
+  padding: 1.5rem;
+  border-top: 1px solid #eee;
+  background: #f8f9fa;
 }
 ```
 
@@ -239,26 +239,26 @@ The component supports both CSS custom properties and SCSS variables for maximum
 ```css
 /* Dramatic slide-in effect */
 .dramatic-cart {
-	--cart-transition-duration: 600ms;
-	--cart-transition-timing: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-	--cart-overlay-background: rgba(0, 0, 0, 0.4);
-	--cart-overlay-backdrop-filter: blur(10px);
+  --cart-transition-duration: 600ms;
+  --cart-transition-timing: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --cart-overlay-background: rgba(0, 0, 0, 0.4);
+  --cart-overlay-backdrop-filter: blur(10px);
 }
 
 /* Subtle minimal styling */
 .minimal-cart {
-	--cart-panel-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-	--cart-panel-border-radius: 8px;
-	--cart-transition-duration: 200ms;
-	--cart-overlay-background: rgba(0, 0, 0, 0.05);
+  --cart-panel-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --cart-panel-border-radius: 8px;
+  --cart-transition-duration: 200ms;
+  --cart-overlay-background: rgba(0, 0, 0, 0.05);
 }
 
 /* Mobile-optimized full-width */
 @media (max-width: 768px) {
-	.mobile-cart {
-		--cart-panel-width: 100vw;
-		--cart-panel-border-radius: 0;
-	}
+  .mobile-cart {
+    --cart-panel-width: 100vw;
+    --cart-panel-border-radius: 0;
+  }
 }
 ```
 
@@ -277,8 +277,8 @@ $cart-overlay-background: rgba(0, 0, 0, 0.25);
 @import '@magic-spells/cart-panel/css';
 
 .my-store cart-dialog {
-	--cart-transition-duration: 400ms;
-	--cart-panel-background: #f8f9fa;
+  --cart-transition-duration: 400ms;
+  --cart-panel-background: #f8f9fa;
 }
 ```
 
@@ -453,12 +453,114 @@ CartItem.setTemplate('bundle', (itemData, cartData) => {
 });
 ```
 
+#### Item Grouping (`_group_id` and `_group_role`)
+
+Items can be grouped together using `_group_id` and `_group_role` properties. This is commonly used for bundle products where multiple items should be displayed as a single unit.
+
+**Use Cases:**
+- Bundle products (main product + accessories)
+- Gift with purchase promotions
+- Subscription boxes with multiple items
+- Product kits and sets
+
+**How it works:**
+1. All items in a group share the same `_group_id` (a unique identifier like a UUID)
+2. One item has `_group_role: "parent"` (typically with `_cart_template: "bundle"`)
+3. Other items have `_group_role: "child"` (typically with `_hide_in_cart: true`)
+4. The bundle template renders all grouped items together in one display
+
+**Example usage:**
+```javascript
+// Bundle: T-shirt + Hat + Sticker (shown as one item in cart)
+{
+  "items": [
+    {
+      "key": "bundle-parent",
+      "properties": {
+        "_group_id": "Q6RT1B48",
+        "_group_role": "parent",
+        "_cart_template": "bundle"
+      }
+    },
+    {
+      "key": "bundle-child-1",
+      "properties": {
+        "_group_id": "Q6RT1B48", 
+        "_group_role": "child",
+        "_hide_in_cart": "true"
+      }
+    },
+    {
+      "key": "bundle-child-2", 
+      "properties": {
+        "_group_id": "Q6RT1B48",
+        "_group_role": "child", 
+        "_hide_in_cart": "true"
+      }
+    }
+  ]
+}
+```
+
+**Bundle template example:**
+```javascript
+CartItem.setTemplate('bundle', (itemData, cartData) => {
+  // Find all items in this group
+  const groupId = itemData.properties._group_id;
+  const groupItems = cartData.items.filter(item => 
+    item.properties?._group_id === groupId
+  );
+  
+  return `
+    <div class="bundle-item">
+      <div class="bundle-badge">📦 Bundle Deal</div>
+      <h4>${itemData.product_title}</h4>
+      <div class="bundle-contents">
+        ${groupItems.map(item => `
+          <div class="bundle-item-detail">
+            • ${item.product_title} (${item.quantity})
+          </div>
+        `).join('')}
+      </div>
+      <div class="bundle-price">$${(groupItems.reduce((sum, item) => sum + item.line_price, 0) / 100).toFixed(2)}</div>
+    </div>
+  `;
+});
+```
+
+#### Subtotal Exclusion (`_ignore_price_in_subtotal`)
+
+Items can be excluded from subtotal calculations using the `_ignore_price_in_subtotal` property. This is useful for promotional items that receive automatic discounts at checkout.
+
+**Use Cases:**
+- Gift with purchase items (free items that show $0 at checkout)
+- Promotional items with automatic discounts applied later
+- Service fees handled by other systems
+- Items with complex pricing logic
+
+**Usage:**
+```javascript
+// Gift with purchase item - shows in cart but excluded from subtotal
+{
+  "key": "gift-item",
+  "properties": {
+    "_ignore_price_in_subtotal": "true"
+  }
+}
+```
+
+**Implementation:**
+The cart panel automatically excludes these items when calculating visible subtotals, but they remain in the cart for Shopify's checkout process where discounts are applied.
+
 #### Supported Properties
 
-| Property         | Purpose                                       | Example Values                         |
-| ---------------- | --------------------------------------------- | -------------------------------------- |
-| `_hide_in_cart`  | Hide items from cart display and calculations | `"true"`, `true`                       |
-| `_cart_template` | Specify custom template for rendering         | `"subscription"`, `"bundle"`, `"gift"` |
+| Property                   | Purpose                                       | Example Values                         |
+| -------------------------- | --------------------------------------------- | -------------------------------------- |
+| `_hide_in_cart`            | Hide items from cart display                 | `"true"`, `true`                       |
+| `_cart_template`           | Specify custom template for rendering        | `"subscription"`, `"bundle"`, `"gift"` |
+| `_group_id`                | Group items together with shared UUID        | `"Q6RT1B48"`, `"ABC123XYZ"`            |
+| `_group_role`              | Role within a group                          | `"parent"`, `"child"`                  |
+| `_ignore_price_in_subtotal` | Exclude from subtotal calculations          | `"true"`, `true`                       |
 
 These properties follow Shopify's line item properties pattern and are commonly used for gift-with-purchase items, subscription products, bundles, and other special cart items.
 

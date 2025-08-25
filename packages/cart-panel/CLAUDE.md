@@ -74,7 +74,7 @@ The cart-panel component leverages Shopify's line item properties system to prov
 
 #### `_hide_in_cart`
 
-Hides items from the cart display and excludes them from cart calculations (subtotal, item count, etc.). Hidden items remain in the actual Shopify cart but are not visible to customers.
+Hides items from the cart display. Hidden items remain in the actual Shopify cart but are not visible to customers. Commonly used for child items in grouped bundles.
 
 **Use Cases:**
 
@@ -150,25 +150,94 @@ CartItem.setTemplate('subscription', (itemData, cartData) => {
 // Items with _cart_template: 'subscription' will use this template
 ```
 
+#### `_group_id` and `_group_role`
+
+Groups items together for bundle products where multiple items should be displayed as a single unit.
+
+**Group Roles:**
+- `"parent"` - Main item that renders (typically with `_cart_template: "bundle"`)
+- `"child"` - Items that are part of the group (typically with `_hide_in_cart: true`)
+
+**Usage in Shopify:**
+```liquid
+<!-- Bundle parent item -->
+<input type="hidden" name="properties[_group_id]" value="Q6RT1B48">
+<input type="hidden" name="properties[_group_role]" value="parent">
+<input type="hidden" name="properties[_cart_template]" value="bundle">
+
+<!-- Bundle child items -->  
+<input type="hidden" name="properties[_group_id]" value="Q6RT1B48">
+<input type="hidden" name="properties[_group_role]" value="child">
+<input type="hidden" name="properties[_hide_in_cart]" value="true">
+```
+
+**Bundle template example:**
+```javascript
+CartItem.setTemplate('bundle', (itemData, cartData) => {
+  // Find all items in this group
+  const groupId = itemData.properties._group_id;
+  const groupItems = cartData.items.filter(item => 
+    item.properties?._group_id === groupId
+  );
+  
+  return `
+    <div class="bundle-item">
+      <div class="bundle-badge">📦 Bundle</div>
+      <h4>${itemData.product_title}</h4>
+      <div class="bundle-contents">
+        ${groupItems.map(item => `
+          <div class="bundle-item">• ${item.product_title}</div>
+        `).join('')}
+      </div>
+      <div class="price">$${(groupItems.reduce((sum, item) => sum + item.line_price, 0) / 100).toFixed(2)}</div>
+    </div>
+  `;
+});
+```
+
+#### `_ignore_price_in_subtotal`
+
+Excludes items from subtotal calculations while keeping them in the cart. Useful for promotional items with automatic discounts applied at checkout.
+
+**Usage in Shopify:**
+```liquid
+<!-- Gift with purchase item -->
+<input type="hidden" name="properties[_ignore_price_in_subtotal]" value="true">
+```
+
 ### Implementation Details
 
-The cart-panel processes these properties automatically:
+The cart-panel processes these properties automatically with separate logic for display and pricing:
 
-1. **Filtering**: Items with `_hide_in_cart` are excluded from display and totals
-2. **Template Selection**: The `_cart_template` property is passed to cart-item components for custom rendering
-3. **Calculations**: Hidden items are excluded from visible cart calculations while remaining in the actual cart
+1. **Display Filtering**: Items with `_hide_in_cart` are excluded from rendering
+2. **Pricing Calculations**: Items with `_ignore_price_in_subtotal` are excluded from subtotal calculations  
+3. **Template Selection**: The `_cart_template` property is passed to cart-item components for custom rendering
+4. **Group Processing**: Items with matching `_group_id` are processed together by bundle templates
 
 **Example cart processing:**
 
 ```javascript
-// Cart-panel automatically filters items
-const visibleItems = cart.items.filter((item) => {
-	const hidden = item.properties?._hide_in_cart;
-	return !hidden; // Only show items that aren't hidden
+// For rendering - exclude hidden items
+const visibleItems = cart.items.filter(item => {
+  const hidden = item.properties?._hide_in_cart;
+  return !hidden;
+});
+
+// For pricing - exclude items that shouldn't count toward subtotal
+const pricedItems = cart.items.filter(item => {
+  const ignorePrice = item.properties?._ignore_price_in_subtotal;
+  return !ignorePrice;
 });
 
 // Template name is passed to cart-item for rendering
 const templateName = item.properties?._cart_template || 'default';
+
+// Group processing for bundles
+const groupId = item.properties?._group_id;
+if (groupId) {
+  const groupItems = cart.items.filter(i => i.properties?._group_id === groupId);
+  // Bundle template handles rendering all group items together
+}
 ```
 
-This system provides powerful cart customization while maintaining compatibility with Shopify's standard cart functionality.
+This system provides powerful cart customization while maintaining compatibility with Shopify's standard cart functionality. The separation of display logic from pricing logic allows for complex scenarios like bundles where child items are hidden but still contribute to pricing.
