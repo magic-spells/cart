@@ -1,26 +1,234 @@
+class QuantityModifier extends HTMLElement {
+  // Static flag to track if styles have been injected
+  static #stylesInjected = false;
+
+  constructor() {
+    super();
+    this.handleDecrement = this.handleDecrement.bind(this);
+    this.handleIncrement = this.handleIncrement.bind(this);
+    this.handleInputChange = this.handleInputChange.bind(this);
+
+    // Inject styles once when first component is created
+    QuantityModifier.#injectStyles();
+  }
+
+  /**
+   * Inject global styles for hiding number input spin buttons
+   * Only runs once regardless of how many components exist
+   */
+  static #injectStyles() {
+    if (QuantityModifier.#stylesInjected) return;
+
+    // this will hide the arrow buttons in the number input field
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Hide number input spin buttons for quantity-modifier */
+      quantity-modifier input::-webkit-outer-spin-button,
+      quantity-modifier input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      
+      quantity-modifier input[type="number"] {
+        -moz-appearance: textfield;
+      }
+    `;
+
+    document.head.appendChild(style);
+    QuantityModifier.#stylesInjected = true;
+  }
+
+  // Define which attributes trigger attributeChangedCallback when modified
+  static get observedAttributes() {
+    return ['min', 'max', 'value'];
+  }
+
+  // Called when element is added to the DOM
+  connectedCallback() {
+    this.render();
+    this.attachEventListeners();
+  }
+
+  // Called when element is removed from the DOM
+  disconnectedCallback() {
+    this.removeEventListeners();
+  }
+
+  // Called when observed attributes change
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue !== newValue) {
+      this.updateInput();
+    }
+  }
+
+  // Get minimum value allowed, defaults to 1
+  get min() {
+    return parseInt(this.getAttribute('min')) || 1;
+  }
+
+  // Get maximum value allowed, defaults to 99
+  get max() {
+    return parseInt(this.getAttribute('max')) || 99;
+  }
+
+  // Get current value, defaults to 1
+  get value() {
+    return parseInt(this.getAttribute('value')) || 1;
+  }
+
+  // Set current value by updating the attribute
+  set value(val) {
+    this.setAttribute('value', val);
+  }
+
+  // Render the quantity modifier HTML structure
+  render() {
+    const min = this.min;
+    const max = this.max;
+    const value = this.value;
+
+    // check to see if these fields already exist
+    const existingDecrement = this.querySelector('[data-action-decrement]');
+    const existingIncrement = this.querySelector('[data-action-increment]');
+    const existingInput = this.querySelector('[data-quantity-modifier-field]');
+
+    // if they already exist, just set the values
+    if (existingDecrement && existingIncrement && existingInput) {
+      existingInput.value = value;
+      existingInput.min = min;
+      existingInput.max = max;
+      existingInput.type = 'number';
+    } else {
+      // if they don't exist, inject the template
+      this.innerHTML = `
+        <button data-action-decrement type="button">
+          <svg class="svg-decrement" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512">
+            <title>decrement</title>
+            <path fill="currentColor" d="M368 224H16c-8.84 0-16 7.16-16 16v32c0 8.84 7.16 16 16 16h352c8.84 0 16-7.16 16-16v-32c0-8.84-7.16-16-16-16z"></path>
+          </svg>
+        </button>
+        <input 
+          type="number" 
+          inputmode="numeric" 
+          pattern="[0-9]*" 
+          data-quantity-modifier-field 
+          value="${value}" min="${min}" max="${max}">
+        <button data-action-increment type="button">
+          <svg class="svg-increment" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512">
+            <title>increment</title>
+            <path fill="currentColor" d="M368 224H224V80c0-8.84-7.16-16-16-16h-32c-8.84 0-16 7.16-16 16v144H16c-8.84 0-16 7.16-16 16v32c0 8.84 7.16 16 16 16h144v144c0 8.84 7.16 16 16 16h32c8.84 0 16-7.16 16-16V288h144c8.84 0 16-7.16 16-16v-32c0-8.84-7.16-16-16-16z"></path>
+          </svg>
+        </button>
+      `;
+    }
+  }
+
+  // Attach click and input event listeners to buttons and input field
+  attachEventListeners() {
+    const decrementBtn = this.querySelector('[data-action-decrement]');
+    const incrementBtn = this.querySelector('[data-action-increment]');
+    const input = this.querySelector('[data-quantity-modifier-field]');
+
+    if (decrementBtn) decrementBtn.addEventListener('click', this.handleDecrement);
+    if (incrementBtn) incrementBtn.addEventListener('click', this.handleIncrement);
+    if (input) input.addEventListener('input', this.handleInputChange);
+  }
+
+  // Remove event listeners to prevent memory leaks
+  removeEventListeners() {
+    const decrementBtn = this.querySelector('[data-action-decrement]');
+    const incrementBtn = this.querySelector('[data-action-increment]');
+    const input = this.querySelector('[data-quantity-modifier-field]');
+
+    if (decrementBtn) decrementBtn.removeEventListener('click', this.handleDecrement);
+    if (incrementBtn) incrementBtn.removeEventListener('click', this.handleIncrement);
+    if (input) input.removeEventListener('input', this.handleInputChange);
+  }
+
+  // Handle decrement button click, respects minimum value
+  handleDecrement() {
+    const currentValue = this.value;
+    const newValue = Math.max(currentValue - 1, this.min);
+    this.updateValue(newValue);
+  }
+
+  // Handle increment button click, respects maximum value
+  handleIncrement() {
+    const currentValue = this.value;
+    const newValue = Math.min(currentValue + 1, this.max);
+    this.updateValue(newValue);
+  }
+
+  // Handle direct input changes, clamps value between min and max
+  handleInputChange(event) {
+    const inputValue = parseInt(event.target.value);
+    if (!isNaN(inputValue)) {
+      const clampedValue = Math.max(this.min, Math.min(inputValue, this.max));
+      this.updateValue(clampedValue);
+    }
+  }
+
+  // Update the component value and dispatch change event if value changed
+  updateValue(newValue) {
+    if (newValue !== this.value) {
+      this.value = newValue;
+      this.updateInput();
+      this.dispatchChangeEvent(newValue);
+    }
+  }
+
+  // Sync the input field with current component state
+  updateInput() {
+    const input = this.querySelector('[data-quantity-modifier-field]');
+    if (input) {
+      input.value = this.value;
+      input.min = this.min;
+      input.max = this.max;
+    }
+  }
+
+  // Dispatch custom event when value changes for external listeners
+  dispatchChangeEvent(value) {
+    this.dispatchEvent(
+      new CustomEvent('quantity-modifier:change', {
+        detail: { value },
+        bubbles: true,
+      })
+    );
+  }
+}
+
+customElements.define('quantity-modifier', QuantityModifier);
+
 /**
  * CartItem class that handles the functionality of a cart item component
  */
 class CartItem extends HTMLElement {
 	// Static template functions shared across all instances
-	static #template = null;
+	static #templates = new Map();
 	static #processingTemplate = null;
 
 	// Private fields
 	#currentState = 'ready';
 	#isDestroying = false;
+	#isAppearing = false;
 	#handlers = {};
 	#itemData = null;
+	#cartData = null;
 
 	/**
 	 * Set the template function for rendering cart items
-	 * @param {Function} templateFn - Function that takes item data and returns HTML string
+	 * @param {string} name - Template name ('default' for default template)
+	 * @param {Function} templateFn - Function that takes (itemData, cartData) and returns HTML string
 	 */
-	static setTemplate(templateFn) {
+	static setTemplate(name, templateFn) {
+		if (typeof name !== 'string') {
+			throw new Error('Template name must be a string');
+		}
 		if (typeof templateFn !== 'function') {
 			throw new Error('Template must be a function');
 		}
-		CartItem.#template = templateFn;
+		CartItem.#templates.set(name, templateFn);
 	}
 
 	/**
@@ -37,10 +245,11 @@ class CartItem extends HTMLElement {
 	/**
 	 * Create a cart item with appearing animation
 	 * @param {Object} itemData - Shopify cart item data
+	 * @param {Object} cartData - Full Shopify cart object
 	 * @returns {CartItem} Cart item instance that will animate in
 	 */
-	static createAnimated(itemData) {
-		return new CartItem(itemData, { animate: true });
+	static createAnimated(itemData, cartData) {
+		return new CartItem(itemData, cartData, { animate: true });
 	}
 
 	/**
@@ -61,11 +270,12 @@ class CartItem extends HTMLElement {
 		}
 	}
 
-	constructor(itemData = null, options = {}) {
+	constructor(itemData = null, cartData = null, options = {}) {
 		super();
 
-		// Store item data if provided
+		// Store item and cart data if provided
 		this.#itemData = itemData;
+		this.#cartData = cartData;
 
 		// Set initial state - start with 'appearing' only if explicitly requested
 		const shouldAnimate = options.animate || this.hasAttribute('animate-in');
@@ -83,12 +293,15 @@ class CartItem extends HTMLElement {
 	connectedCallback() {
 		// If we have item data, render it first
 		if (this.#itemData) {
-			this.#renderFromData();
+			this.#render();
 		}
 
 		// Find child elements
 		this.content = this.querySelector('cart-item-content');
 		this.processing = this.querySelector('cart-item-processing');
+
+		// Update line price elements in case of pre-rendered content
+		this.#updateLinePriceElements();
 
 		// Attach event listeners
 		this.#attachListeners();
@@ -97,6 +310,7 @@ class CartItem extends HTMLElement {
 		if (this.#currentState === 'appearing') {
 			// Set the state attribute
 			this.setAttribute('state', 'appearing');
+			this.#isAppearing = true;
 
 			// Get the natural height after rendering
 			requestAnimationFrame(() => {
@@ -124,6 +338,7 @@ class CartItem extends HTMLElement {
 	#attachListeners() {
 		this.addEventListener('click', this.#handlers.click);
 		this.addEventListener('change', this.#handlers.change);
+		this.addEventListener('quantity-modifier:change', this.#handlers.change);
 		this.addEventListener('transitionend', this.#handlers.transitionEnd);
 	}
 
@@ -133,6 +348,7 @@ class CartItem extends HTMLElement {
 	#detachListeners() {
 		this.removeEventListener('click', this.#handlers.click);
 		this.removeEventListener('change', this.#handlers.change);
+		this.removeEventListener('quantity-modifier:change', this.#handlers.change);
 		this.removeEventListener('transitionend', this.#handlers.transitionEnd);
 	}
 
@@ -163,9 +379,15 @@ class CartItem extends HTMLElement {
 	}
 
 	/**
-	 * Handle change events (for quantity inputs)
+	 * Handle change events (for quantity inputs and quantity-modifier)
 	 */
 	#handleChange(e) {
+		// Check if event is from quantity-modifier component
+		if (e.type === 'quantity-modifier:change') {
+			this.#emitQuantityChangeEvent(e.detail.value);
+			return;
+		}
+
 		// Check if changed element is a quantity input
 		const quantityInput = e.target.closest('[data-cart-quantity]');
 		if (quantityInput) {
@@ -180,9 +402,10 @@ class CartItem extends HTMLElement {
 		if (e.propertyName === 'height' && this.#isDestroying) {
 			// Remove from DOM after height animation completes
 			this.remove();
-		} else if (e.propertyName === 'height' && this.#currentState === 'ready') {
+		} else if (e.propertyName === 'height' && this.#isAppearing) {
 			// Remove explicit height after appearing animation completes
 			this.style.height = '';
+			this.#isAppearing = false;
 		}
 	}
 
@@ -218,10 +441,11 @@ class CartItem extends HTMLElement {
 	}
 
 	/**
-	 * Render cart item from data using the static template
+	 * Render cart item from data using the appropriate template
 	 */
-	#renderFromData() {
-		if (!this.#itemData || !CartItem.#template) {
+	#render() {
+		if (!this.#itemData || CartItem.#templates.size === 0) {
+			console.log('no item data or no template', this.#itemData, CartItem.#templates);
 			return;
 		}
 
@@ -231,8 +455,17 @@ class CartItem extends HTMLElement {
 			this.setAttribute('key', key);
 		}
 
-		// Generate HTML from template
-		const templateHTML = CartItem.#template(this.#itemData);
+		// Determine which template to use
+		const templateName = this.#itemData.properties?._cart_template || 'default';
+		const templateFn = CartItem.#templates.get(templateName) || CartItem.#templates.get('default');
+
+		if (!templateFn) {
+			console.warn(`Cart item template '${templateName}' not found and no default template set`);
+			return;
+		}
+
+		// Generate HTML from template with both item and cart data
+		const templateHTML = templateFn(this.#itemData, this.#cartData);
 
 		// Generate processing HTML from template or use default
 		const processingHTML = CartItem.#processingTemplate
@@ -253,14 +486,47 @@ class CartItem extends HTMLElement {
 	/**
 	 * Update the cart item with new data
 	 * @param {Object} itemData - Shopify cart item data
+	 * @param {Object} cartData - Full Shopify cart object
 	 */
-	setData(itemData) {
+	setData(itemData, cartData = null) {
 		this.#itemData = itemData;
-		this.#renderFromData();
+		if (cartData) {
+			this.#cartData = cartData;
+		}
+		this.#render();
 
 		// Re-find child elements after re-rendering
 		this.content = this.querySelector('cart-item-content');
 		this.processing = this.querySelector('cart-item-processing');
+
+		// Update line price elements
+		this.#updateLinePriceElements();
+	}
+
+	/**
+	 * Update elements with data-content-line-price attribute
+	 * @private
+	 */
+	#updateLinePriceElements() {
+		if (!this.#itemData) return;
+
+		const linePriceElements = this.querySelectorAll('[data-content-line-price]');
+		const formattedLinePrice = this.#formatCurrency(this.#itemData.line_price || 0);
+
+		linePriceElements.forEach((element) => {
+			element.textContent = formattedLinePrice;
+		});
+	}
+
+	/**
+	 * Format currency value from cents to dollar string
+	 * @param {number} cents - Price in cents
+	 * @returns {string} Formatted currency string (e.g., "$29.99")
+	 * @private
+	 */
+	#formatCurrency(cents) {
+		if (typeof cents !== 'number') return '$0.00';
+		return `$${(cents / 100).toFixed(2)}`;
 	}
 
 	/**
@@ -300,7 +566,7 @@ class CartItem extends HTMLElement {
 		// lock the measured height on the next animation frame to ensure layout is fully flushed
 		requestAnimationFrame(() => {
 			this.style.height = `${initialHeight}px`;
-			this.offsetHeight; // force a reflow so the browser registers the fixed height
+			// this.offsetHeight; // force a reflow so the browser registers the fixed height
 
 			// read the css custom property for timing, defaulting to 400ms
 			const elementStyle = getComputedStyle(this);
@@ -310,6 +576,15 @@ class CartItem extends HTMLElement {
 			// animate only the height to zero; other properties stay under stylesheet control
 			this.style.transition = `height ${destroyDuration} ease`;
 			this.style.height = '0px';
+
+			// setTimeout(() => {
+			// 	this.style.height = '0px';
+			// }, 1);
+
+			setTimeout(() => {
+				// make sure item is removed
+				this.remove();
+			}, 600);
 		});
 	}
 }
@@ -490,7 +765,8 @@ class FocusTrapStart extends HTMLElement {
 		if (focusableElements.length === 0) return;
 
 		const firstElement = focusableElements[0];
-		const lastElement = focusableElements[focusableElements.length - 1];
+		const lastElement =
+			focusableElements[focusableElements.length - 1];
 
 		if (e.relatedTarget === firstElement) {
 			lastElement.focus();
@@ -539,90 +815,90 @@ if (!customElements.get('focus-trap-end')) {
 }
 
 class EventEmitter {
-	#events;
+  #events;
 
-	constructor() {
-		this.#events = new Map();
-	}
+  constructor() {
+    this.#events = new Map();
+  }
 
-	/**
-	 * Binds a listener to an event.
-	 * @param {string} event - The event to bind the listener to.
-	 * @param {Function} listener - The listener function to bind.
-	 * @returns {EventEmitter} The current instance for chaining.
-	 * @throws {TypeError} If the listener is not a function.
-	 */
-	on(event, listener) {
-		if (typeof listener !== 'function') {
-			throw new TypeError('Listener must be a function');
-		}
+  /**
+   * Binds a listener to an event.
+   * @param {string} event - The event to bind the listener to.
+   * @param {Function} listener - The listener function to bind.
+   * @returns {EventEmitter} The current instance for chaining.
+   * @throws {TypeError} If the listener is not a function.
+   */
+  on(event, listener) {
+    if (typeof listener !== "function") {
+      throw new TypeError("Listener must be a function");
+    }
 
-		const listeners = this.#events.get(event) || [];
-		if (!listeners.includes(listener)) {
-			listeners.push(listener);
-		}
-		this.#events.set(event, listeners);
+    const listeners = this.#events.get(event) || [];
+    if (!listeners.includes(listener)) {
+      listeners.push(listener);
+    }
+    this.#events.set(event, listeners);
 
-		return this;
-	}
+    return this;
+  }
 
-	/**
-	 * Unbinds a listener from an event.
-	 * @param {string} event - The event to unbind the listener from.
-	 * @param {Function} listener - The listener function to unbind.
-	 * @returns {EventEmitter} The current instance for chaining.
-	 */
-	off(event, listener) {
-		const listeners = this.#events.get(event);
-		if (!listeners) return this;
+  /**
+   * Unbinds a listener from an event.
+   * @param {string} event - The event to unbind the listener from.
+   * @param {Function} listener - The listener function to unbind.
+   * @returns {EventEmitter} The current instance for chaining.
+   */
+  off(event, listener) {
+    const listeners = this.#events.get(event);
+    if (!listeners) return this;
 
-		const index = listeners.indexOf(listener);
-		if (index !== -1) {
-			listeners.splice(index, 1);
-			if (listeners.length === 0) {
-				this.#events.delete(event);
-			} else {
-				this.#events.set(event, listeners);
-			}
-		}
+    const index = listeners.indexOf(listener);
+    if (index !== -1) {
+      listeners.splice(index, 1);
+      if (listeners.length === 0) {
+        this.#events.delete(event);
+      } else {
+        this.#events.set(event, listeners);
+      }
+    }
 
-		return this;
-	}
+    return this;
+  }
 
-	/**
-	 * Triggers an event and calls all bound listeners.
-	 * @param {string} event - The event to trigger.
-	 * @param {...*} args - Arguments to pass to the listener functions.
-	 * @returns {boolean} True if the event had listeners, false otherwise.
-	 */
-	emit(event, ...args) {
-		const listeners = this.#events.get(event);
-		if (!listeners || listeners.length === 0) return false;
+  /**
+   * Triggers an event and calls all bound listeners.
+   * @param {string} event - The event to trigger.
+   * @param {...*} args - Arguments to pass to the listener functions.
+   * @returns {boolean} True if the event had listeners, false otherwise.
+   */
+  emit(event, ...args) {
+    const listeners = this.#events.get(event);
+    if (!listeners || listeners.length === 0) return false;
 
-		for (let i = 0, n = listeners.length; i < n; ++i) {
-			try {
-				listeners[i].apply(this, args);
-			} catch (error) {
-				console.error(`Error in listener for event '${event}':`, error);
-			}
-		}
+    for (let i = 0, n = listeners.length; i < n; ++i) {
+      try {
+        listeners[i].apply(this, args);
+      } catch (error) {
+        console.error(`Error in listener for event '${event}':`, error);
+      }
+    }
 
-		return true;
-	}
+    return true;
+  }
 
-	/**
-	 * Removes all listeners for a specific event or all events.
-	 * @param {string} [event] - The event to remove listeners from. If not provided, removes all listeners.
-	 * @returns {EventEmitter} The current instance for chaining.
-	 */
-	removeAllListeners(event) {
-		if (event) {
-			this.#events.delete(event);
-		} else {
-			this.#events.clear();
-		}
-		return this;
-	}
+  /**
+   * Removes all listeners for a specific event or all events.
+   * @param {string} [event] - The event to remove listeners from. If not provided, removes all listeners.
+   * @returns {EventEmitter} The current instance for chaining.
+   */
+  removeAllListeners(event) {
+    if (event) {
+      this.#events.delete(event);
+    } else {
+      this.#events.clear();
+    }
+    return this;
+  }
 }
 
 /**
@@ -631,7 +907,6 @@ class EventEmitter {
  */
 class CartDialog extends HTMLElement {
 	#handleTransitionEnd;
-	#scrollPosition = 0;
 	#currentCart = null;
 	#eventEmitter;
 	#isInitialRender = true;
@@ -654,31 +929,21 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
-	 * Saves current scroll position and locks body scrolling
+	 * Locks body scrolling
 	 * @private
 	 */
 	#lockScroll() {
-		const _ = this;
-		// Save current scroll position
-		_.#scrollPosition = window.pageYOffset;
-
-		// Apply fixed position to body
+		// Apply overflow hidden to body
 		document.body.classList.add('overflow-hidden');
-		document.body.style.top = `-${_.#scrollPosition}px`;
 	}
 
 	/**
-	 * Restores scroll position when cart dialog is closed
+	 * Restores body scrolling when cart dialog is closed
 	 * @private
 	 */
 	#restoreScroll() {
-		const _ = this;
-		// Remove fixed positioning
+		// Remove overflow hidden from body
 		document.body.classList.remove('overflow-hidden');
-		document.body.style.removeProperty('top');
-
-		// Restore scroll position
-		window.scrollTo(0, _.#scrollPosition);
 	}
 
 	/**
@@ -719,7 +984,18 @@ class CartDialog extends HTMLElement {
 			return;
 		}
 
-		_.focusTrap = document.createElement('focus-trap');
+		// Check if focus-trap already exists, if not create one
+		_.focusTrap = _.contentPanel.querySelector('focus-trap');
+		if (!_.focusTrap) {
+			_.focusTrap = document.createElement('focus-trap');
+
+			// Move all existing cart-panel content into the focus trap
+			const existingContent = Array.from(_.contentPanel.childNodes);
+			existingContent.forEach((child) => _.focusTrap.appendChild(child));
+
+			// Insert focus trap inside the cart-panel
+			_.contentPanel.appendChild(_.focusTrap);
+		}
 
 		// Ensure we have labelledby and describedby references
 		if (!_.getAttribute('aria-labelledby')) {
@@ -732,20 +1008,15 @@ class CartDialog extends HTMLElement {
 			}
 		}
 
-		// Insert focus trap before the cart-panel
-		_.contentPanel.parentNode.insertBefore(_.focusTrap, _.contentPanel);
-		// Move cart-panel inside the focus trap
-		_.focusTrap.appendChild(_.contentPanel);
-
-		// Setup the trap - this will add focus-trap-start/end elements around the content
-		_.focusTrap.setupTrap();
-
 		// Add modal overlay if it doesn't already exist
 		if (!_.querySelector('cart-overlay')) {
 			_.prepend(document.createElement('cart-overlay'));
 		}
 		_.#attachListeners();
 		_.#bindKeyboard();
+
+		// Load cart data immediately after component initialization
+		_.refreshCart();
 	}
 
 	/**
@@ -778,6 +1049,14 @@ class CartDialog extends HTMLElement {
 	 */
 	#emit(eventName, data = null) {
 		this.#eventEmitter.emit(eventName, data);
+
+		// Also emit as native DOM events for better compatibility
+		this.dispatchEvent(
+			new CustomEvent(eventName, {
+				detail: data,
+				bubbles: true,
+			})
+		);
 	}
 
 	/**
@@ -859,11 +1138,12 @@ class CartDialog extends HTMLElement {
 					// Success - let smart comparison handle the removal animation
 					this.#currentCart = updatedCart;
 					this.#renderCartItems(updatedCart);
-					this.#updateCartItems(updatedCart);
+					this.#renderCartPanel(updatedCart);
 
 					// Emit cart updated and data changed events
-					this.#emit('cart-dialog:updated', { cart: updatedCart });
-					this.#emit('cart-dialog:data-changed', updatedCart);
+					const cartWithCalculatedFields = this.#addCalculatedFields(updatedCart);
+					this.#emit('cart-dialog:updated', { cart: cartWithCalculatedFields });
+					this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
 				} else {
 					// Error - reset to ready state
 					element.setState('ready');
@@ -894,12 +1174,13 @@ class CartDialog extends HTMLElement {
 					// Success - update cart data and refresh items
 					this.#currentCart = updatedCart;
 					this.#renderCartItems(updatedCart);
-					this.#updateCartItems(updatedCart);
+					this.#renderCartPanel(updatedCart);
 					element.setState('ready');
 
 					// Emit cart updated and data changed events
-					this.#emit('cart-dialog:updated', { cart: updatedCart });
-					this.#emit('cart-dialog:data-changed', updatedCart);
+					const cartWithCalculatedFields = this.#addCalculatedFields(updatedCart);
+					this.#emit('cart-dialog:updated', { cart: cartWithCalculatedFields });
+					this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
 				} else {
 					// Error - reset to ready state
 					element.setState('ready');
@@ -914,10 +1195,48 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
+	 * Update cart count elements across the site
+	 * @private
+	 */
+	#renderCartCount(cartData) {
+		if (!cartData) return;
+
+		// Calculate visible item count (excluding _hide_in_cart items)
+		const visibleItems = this.#getVisibleCartItems(cartData);
+		const visibleItemCount = visibleItems.reduce((total, item) => total + item.quantity, 0);
+
+		// Update all cart count elements across the site
+		const cartCountElements = document.querySelectorAll('[data-content-cart-count]');
+		cartCountElements.forEach((element) => {
+			element.textContent = visibleItemCount;
+		});
+	}
+
+	/**
+	 * Update cart subtotal elements across the site
+	 * @private
+	 */
+	#renderCartSubtotal(cartData) {
+		if (!cartData) return;
+
+		// Calculate visible item subtotal (excluding _hide_in_cart items)
+		const visibleItems = this.#getVisibleCartItems(cartData);
+		const visibleSubtotal = visibleItems.reduce((total, item) => total + (item.line_price || 0), 0);
+
+		// Update all cart subtotal elements across the site
+		const cartSubtotalElements = document.querySelectorAll('[data-content-cart-subtotal]');
+		cartSubtotalElements.forEach((element) => {
+			// Format as currency (assuming cents, convert to dollars)
+			const formatted = (visibleSubtotal / 100).toFixed(2);
+			element.textContent = `$${formatted}`;
+		});
+	}
+
+	/**
 	 * Update cart items display based on cart data
 	 * @private
 	 */
-	#updateCartItems(cart = null) {
+	#renderCartPanel(cart = null) {
 		const cartData = cart || this.#currentCart;
 		if (!cartData) return;
 
@@ -933,14 +1252,22 @@ class CartDialog extends HTMLElement {
 			return;
 		}
 
-		// Show/hide sections based on item count
-		if (cartData.item_count > 0) {
-			hasItemsSection.style.display = 'block';
+		// Check visible item count for showing/hiding sections
+		const visibleItems = this.#getVisibleCartItems(cartData);
+		const hasVisibleItems = visibleItems.length > 0;
+
+		// Show/hide sections based on visible item count
+		if (hasVisibleItems) {
+			hasItemsSection.style.display = '';
 			emptySection.style.display = 'none';
 		} else {
 			hasItemsSection.style.display = 'none';
-			emptySection.style.display = 'block';
+			emptySection.style.display = '';
 		}
+
+		// Update cart count and subtotal across the site
+		this.#renderCartCount(cartData);
+		this.#renderCartSubtotal(cartData);
 	}
 
 	/**
@@ -992,25 +1319,129 @@ class CartDialog extends HTMLElement {
 
 	/**
 	 * Refresh cart data from server and update components
+	 * @param {Object} [cartObj=null] - Optional cart object to use instead of fetching
 	 * @returns {Promise<Object>} Cart data object
 	 */
-	refreshCart() {
-		console.log('Refreshing cart...');
+	refreshCart(cartObj = null) {
+		// If cart object is provided, use it directly
+		if (cartObj && !cartObj.error) {
+			// console.log('Using provided cart data:', cartObj);
+			this.#currentCart = cartObj;
+			this.#renderCartItems(cartObj);
+			this.#renderCartPanel(cartObj);
+
+			// Emit cart refreshed and data changed events
+			const cartWithCalculatedFields = this.#addCalculatedFields(cartObj);
+			this.#emit('cart-dialog:refreshed', { cart: cartWithCalculatedFields });
+			this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
+
+			return Promise.resolve(cartObj);
+		}
+
+		// Otherwise fetch from server
 		return this.getCart().then((cartData) => {
-			console.log('Cart data received:', cartData);
+			// console.log('Cart data received:', cartData);
 			if (cartData && !cartData.error) {
 				this.#currentCart = cartData;
 				this.#renderCartItems(cartData);
-				this.#updateCartItems(cartData);
+				this.#renderCartPanel(cartData);
 
 				// Emit cart refreshed and data changed events
-				this.#emit('cart-dialog:refreshed', { cart: cartData });
-				this.#emit('cart-dialog:data-changed', cartData);
+				const cartWithCalculatedFields = this.#addCalculatedFields(cartData);
+				this.#emit('cart-dialog:refreshed', { cart: cartWithCalculatedFields });
+				this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
 			} else {
 				console.warn('Cart data has error or is null:', cartData);
 			}
 			return cartData;
 		});
+	}
+
+	/**
+	 * Remove items from DOM that are no longer in cart data
+	 * @private
+	 */
+	#removeItemsFromDOM(itemsContainer, newKeysSet) {
+		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+
+		const itemsToRemove = currentItems.filter((item) => !newKeysSet.has(item.getAttribute('key')));
+
+		itemsToRemove.forEach((item) => {
+			console.log('destroy yourself', item);
+			item.destroyYourself();
+		});
+	}
+
+	/**
+	 * Add new items to DOM with animation delay
+	 * @private
+	 */
+	#addItemsToDOM(itemsContainer, itemsToAdd, newKeys) {
+		// Delay adding new items by 300ms to let cart slide open first
+		setTimeout(() => {
+			itemsToAdd.forEach((itemData) => {
+				const cartItem = CartItem.createAnimated(itemData);
+				const targetIndex = newKeys.indexOf(itemData.key || itemData.id);
+
+				// Find the correct position to insert the new item
+				if (targetIndex === 0) {
+					// Insert at the beginning
+					itemsContainer.insertBefore(cartItem, itemsContainer.firstChild);
+				} else {
+					// Find the item that should come before this one
+					let insertAfter = null;
+					for (let i = targetIndex - 1; i >= 0; i--) {
+						const prevKey = newKeys[i];
+						const prevItem = itemsContainer.querySelector(`cart-item[key="${prevKey}"]`);
+						if (prevItem) {
+							insertAfter = prevItem;
+							break;
+						}
+					}
+
+					if (insertAfter) {
+						insertAfter.insertAdjacentElement('afterend', cartItem);
+					} else {
+						itemsContainer.appendChild(cartItem);
+					}
+				}
+			});
+		}, 100);
+	}
+
+	/**
+	 * Filter cart items to exclude those with _hide_in_cart property
+	 * @private
+	 */
+	#getVisibleCartItems(cartData) {
+		if (!cartData || !cartData.items) return [];
+		return cartData.items.filter((item) => {
+			// Check for _hide_in_cart in various possible locations
+			const hidden = item.properties?._hide_in_cart;
+
+			return !hidden;
+		});
+	}
+
+	/**
+	 * Add calculated fields to cart object for events
+	 * @private
+	 */
+	#addCalculatedFields(cartData) {
+		if (!cartData) return cartData;
+
+		const visibleItems = this.#getVisibleCartItems(cartData);
+		const calculated_count = visibleItems.reduce((total, item) => total + item.quantity, 0);
+		const calculated_subtotal = visibleItems.reduce(
+			(total, item) => total + (item.line_price || 0),
+			0
+		);
+
+		return {
+			...cartData,
+			calculated_count,
+			calculated_subtotal,
+		};
 	}
 
 	/**
@@ -1029,92 +1460,53 @@ class CartDialog extends HTMLElement {
 			return;
 		}
 
+		// Filter out items with _hide_in_cart property
+		const visibleItems = this.#getVisibleCartItems(cartData);
+
 		// Handle initial render - load all items without animation
 		if (this.#isInitialRender) {
-			console.log('Initial cart render:', cartData.items.length, 'items');
+			// console.log('Initial cart render:', visibleItems.length, 'visible items');
 
 			// Clear existing items
 			itemsContainer.innerHTML = '';
 
 			// Create cart-item elements without animation
-			cartData.items.forEach((itemData) => {
+			visibleItems.forEach((itemData) => {
 				const cartItem = new CartItem(itemData); // No animation
+				// const cartItem = document.createElement('cart-item');
+				// cartItem.setData(itemData);
 				itemsContainer.appendChild(cartItem);
 			});
 
 			this.#isInitialRender = false;
-			console.log('Initial render complete, container children:', itemsContainer.children.length);
+
 			return;
 		}
-
-		console.log('Smart rendering cart items:', cartData.items.length, 'items');
 
 		// Get current DOM items and their keys
 		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
 		const currentKeys = new Set(currentItems.map((item) => item.getAttribute('key')));
 
-		// Get new cart data keys in order
-		const newKeys = cartData.items.map((item) => item.key || item.id);
+		// Get new cart data keys in order (only visible items)
+		const newKeys = visibleItems.map((item) => item.key || item.id);
 		const newKeysSet = new Set(newKeys);
 
 		// Step 1: Remove items that are no longer in cart data
-		const itemsToRemove = currentItems.filter((item) => !newKeysSet.has(item.getAttribute('key')));
-		console.log(
-			`Removing ${itemsToRemove.length} items:`,
-			itemsToRemove.map((item) => item.getAttribute('key'))
-		);
+		this.#removeItemsFromDOM(itemsContainer, newKeysSet);
 
-		itemsToRemove.forEach((item) => {
-			item.destroyYourself();
-		});
-
-		// Step 2: Add new items that weren't in DOM (with animation)
-		const itemsToAdd = cartData.items.filter(
+		// Step 2: Add new items that weren't in DOM (with animation delay)
+		const itemsToAdd = visibleItems.filter(
 			(itemData) => !currentKeys.has(itemData.key || itemData.id)
 		);
-		console.log(
-			`Adding ${itemsToAdd.length} items:`,
-			itemsToAdd.map((item) => item.key || item.id)
-		);
-
-		// Add new items in correct positions
-		itemsToAdd.forEach((itemData) => {
-			const cartItem = CartItem.createAnimated(itemData);
-			const targetIndex = newKeys.indexOf(itemData.key || itemData.id);
-
-			// Find the correct position to insert the new item
-			if (targetIndex === 0) {
-				// Insert at the beginning
-				itemsContainer.insertBefore(cartItem, itemsContainer.firstChild);
-			} else {
-				// Find the item that should come before this one
-				let insertAfter = null;
-				for (let i = targetIndex - 1; i >= 0; i--) {
-					const prevKey = newKeys[i];
-					const prevItem = itemsContainer.querySelector(`cart-item[key="${prevKey}"]`);
-					if (prevItem) {
-						insertAfter = prevItem;
-						break;
-					}
-				}
-
-				if (insertAfter) {
-					insertAfter.insertAdjacentElement('afterend', cartItem);
-				} else {
-					itemsContainer.appendChild(cartItem);
-				}
-			}
-		});
-
-		console.log('Smart rendering complete, container children:', itemsContainer.children.length);
+		this.#addItemsToDOM(itemsContainer, itemsToAdd, newKeys);
 	}
 
 	/**
 	 * Set the template function for cart items
 	 * @param {Function} templateFn - Function that takes item data and returns HTML string
 	 */
-	setCartItemTemplate(templateFn) {
-		CartItem.setTemplate(templateFn);
+	setCartItemTemplate(templateName, templateFn) {
+		CartItem.setTemplate(templateName, templateFn);
 	}
 
 	/**
@@ -1130,9 +1522,12 @@ class CartDialog extends HTMLElement {
 	 * @param {HTMLElement} [triggerEl=null] - The element that triggered the cart dialog
 	 * @fires CartDialog#show - Fired when the cart dialog has been shown
 	 */
-	show(triggerEl = null) {
+	show(triggerEl = null, cartObj) {
 		const _ = this;
 		_.triggerEl = triggerEl || false;
+
+		// Lock body scrolling
+		_.#lockScroll();
 
 		// Remove the hidden class first to ensure content is rendered
 		_.contentPanel.classList.remove('hidden');
@@ -1141,17 +1536,16 @@ class CartDialog extends HTMLElement {
 		requestAnimationFrame(() => {
 			// Update ARIA states
 			_.setAttribute('aria-hidden', 'false');
+
 			if (_.triggerEl) {
 				_.triggerEl.setAttribute('aria-expanded', 'true');
 			}
-
-			// Lock body scrolling and save scroll position
-			_.#lockScroll();
 
 			// Focus management
 			const firstFocusable = _.querySelector(
 				'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
 			);
+
 			if (firstFocusable) {
 				requestAnimationFrame(() => {
 					firstFocusable.focus();
@@ -1159,7 +1553,7 @@ class CartDialog extends HTMLElement {
 			}
 
 			// Refresh cart data when showing
-			_.refreshCart();
+			_.refreshCart(cartObj);
 
 			// Emit show event - cart dialog is now visible
 			_.#emit('cart-dialog:show', { triggerElement: _.triggerEl });
@@ -1174,23 +1568,31 @@ class CartDialog extends HTMLElement {
 	hide() {
 		const _ = this;
 
-		// Restore body scroll and scroll position
-		_.#restoreScroll();
-
 		// Update ARIA states
 		if (_.triggerEl) {
 			// remove focus from modal panel first
 			_.triggerEl.focus();
 			// mark trigger as no longer expanded
 			_.triggerEl.setAttribute('aria-expanded', 'false');
+		} else {
+			// If no trigger element, blur any focused element inside the panel
+			const activeElement = document.activeElement;
+			if (activeElement && _.contains(activeElement)) {
+				activeElement.blur();
+			}
 		}
 
-		// Set aria-hidden to start transition
-		// The transitionend event handler will add display:none when complete
-		_.setAttribute('aria-hidden', 'true');
+		requestAnimationFrame(() => {
+			// Set aria-hidden to start transition
+			// The transitionend event handler will add display:none when complete
+			_.setAttribute('aria-hidden', 'true');
 
-		// Emit hide event - cart dialog is now starting to hide
-		_.#emit('cart-dialog:hide', { triggerElement: _.triggerEl });
+			// Emit hide event - cart dialog is now starting to hide
+			_.#emit('cart-dialog:hide', { triggerElement: _.triggerEl });
+
+			// Restore body scroll
+			_.#restoreScroll();
+		});
 	}
 }
 

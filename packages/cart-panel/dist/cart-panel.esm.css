@@ -1,262 +1,208 @@
 cart-item {
-	--cart-item-processing-duration: 250ms;
-	--cart-item-destroying-duration: 600ms;
-	--cart-item-appearing-duration: 400ms;
-	--cart-item-shadow-color: rgba(0, 0, 0, 0.15);
-	--cart-item-shadow-color-strong: rgba(0, 0, 0, 0.5);
-	--cart-item-destroying-bg: rgba(0, 0, 0, 0.1);
-	--cart-item-processing-scale: 0.98;
-	--cart-item-destroying-scale: 0.85;
-	--cart-item-appearing-scale: 0.9;
-	--cart-item-processing-blur: 1px;
-	--cart-item-destroying-blur: 10px;
-	--cart-item-appearing-blur: 2px;
-	--cart-item-destroying-opacity: 0.2;
-	--cart-item-appearing-opacity: 0.5;
-	--cart-item-destroying-brightness: 0.6;
-	--cart-item-destroying-saturate: 0.3;
-	display: block;
-	position: relative;
-	overflow: hidden;
-	padding: 0px;
-	box-shadow: inset 0px 0px 0px rgba(0, 0, 0, 0);
-	transition:
-		filter var(--cart-item-processing-duration) ease-out,
-		background-color var(--cart-item-processing-duration) ease-out,
-		box-shadow var(--cart-item-processing-duration) ease-out;
+  --cart-item-processing-duration: 250ms;
+  --cart-item-destroying-duration: 600ms;
+  --cart-item-appearing-duration: 400ms;
+  --cart-item-shadow-color: rgba(0, 0, 0, 0.15);
+  --cart-item-shadow-color-strong: rgba(0, 0, 0, 0.5);
+  --cart-item-destroying-bg: rgba(0, 0, 0, 0.1);
+  --cart-item-processing-scale: 0.98;
+  --cart-item-destroying-scale: 0.85;
+  --cart-item-appearing-scale: 0.9;
+  --cart-item-processing-blur: 1px;
+  --cart-item-destroying-blur: 10px;
+  --cart-item-appearing-blur: 2px;
+  --cart-item-destroying-opacity: 0.2;
+  --cart-item-appearing-opacity: 0.5;
+  --cart-item-destroying-brightness: 0.6;
+  --cart-item-destroying-saturate: 0.3;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  padding: 0px;
+  box-shadow: inset 0px 0px 0px rgba(0, 0, 0, 0);
+  transition: filter var(--cart-item-processing-duration) ease-out, background-color var(--cart-item-processing-duration) ease-out, box-shadow var(--cart-item-processing-duration) ease-out;
 }
 cart-item::after {
-	content: '';
-	display: block;
-	position: absolute;
-	background: rgba(0, 0, 0, 0);
-	width: 100%;
-	pointer-events: none;
-	height: 100%;
-	top: 0px;
-	left: 0px;
-	transition: background-color var(--cart-item-processing-duration) ease;
+  content: "";
+  display: block;
+  position: absolute;
+  background: rgba(0, 0, 0, 0);
+  width: 100%;
+  pointer-events: none;
+  height: 100%;
+  top: 0px;
+  left: 0px;
+  transition: background-color var(--cart-item-processing-duration) ease;
 }
-cart-item[state='ready'] {
-	transition:
-		filter var(--cart-item-processing-duration) ease-out,
-		background-color var(--cart-item-processing-duration) ease-out,
-		box-shadow var(--cart-item-processing-duration) ease-out,
-		height var(--cart-item-appearing-duration) ease-out;
+cart-item[state=ready] {
+  transition: filter var(--cart-item-processing-duration) ease-out, background-color var(--cart-item-processing-duration) ease-out, box-shadow var(--cart-item-processing-duration) ease-out, height var(--cart-item-appearing-duration) ease-out;
 }
-cart-item[state='ready'] cart-item-content {
-	transform: scale(1);
-	filter: blur(0px);
-	opacity: 1;
-	transition:
-		transform var(--cart-item-appearing-duration) ease-out,
-		filter var(--cart-item-appearing-duration) ease-out,
-		opacity var(--cart-item-appearing-duration) ease-out;
+cart-item[state=ready] cart-item-content {
+  transform: scale(1);
+  filter: blur(0px);
+  opacity: 1;
+  transition: transform var(--cart-item-appearing-duration) ease-out, filter var(--cart-item-appearing-duration) ease-out, opacity var(--cart-item-appearing-duration) ease-out;
 }
-cart-item[state='ready'] cart-item-processing {
-	opacity: 0;
-	visibility: hidden;
+cart-item[state=ready] cart-item-processing {
+  opacity: 0;
+  visibility: hidden;
 }
-cart-item[state='processing'] {
-	box-shadow: inset 0px 2px 10px var(--cart-item-shadow-color);
+cart-item[state=processing] {
+  box-shadow: inset 0px 2px 10px var(--cart-item-shadow-color);
 }
-cart-item[state='processing']::after {
-	background: rgba(0, 0, 0, 0.15);
+cart-item[state=processing]::after {
+  background: rgba(0, 0, 0, 0.15);
 }
-cart-item[state='processing'] cart-item-content {
-	transform: scale(var(--cart-item-processing-scale));
-	filter: blur(var(--cart-item-processing-blur));
-	opacity: 0.9;
-	pointer-events: none;
-	transition:
-		transform var(--cart-item-processing-duration) ease-out,
-		filter var(--cart-item-processing-duration) ease-out,
-		opacity var(--cart-item-processing-duration) ease-out;
+cart-item[state=processing] cart-item-content {
+  transform: scale(var(--cart-item-processing-scale));
+  filter: blur(var(--cart-item-processing-blur));
+  opacity: 0.9;
+  pointer-events: none;
+  transition: transform var(--cart-item-processing-duration) ease-out, filter var(--cart-item-processing-duration) ease-out, opacity var(--cart-item-processing-duration) ease-out;
 }
-cart-item[state='processing'] cart-item-processing {
-	opacity: 1;
-	visibility: visible;
+cart-item[state=processing] cart-item-processing {
+  opacity: 1;
+  visibility: visible;
 }
-cart-item[state='destroying'] {
-	background-color: var(--cart-item-destroying-bg);
-	box-shadow: inset 0px 2px 20px var(--cart-item-shadow-color-strong);
-	margin-top: 0px;
-	margin-bottom: 0px;
-	transition:
-		filter var(--cart-item-destroying-duration) ease,
-		background-color var(--cart-item-destroying-duration) ease,
-		box-shadow var(--cart-item-destroying-duration) ease,
-		margin var(--cart-item-destroying-duration) ease;
+cart-item[state=destroying] {
+  background-color: var(--cart-item-destroying-bg);
+  box-shadow: inset 0px 2px 20px var(--cart-item-shadow-color-strong);
+  margin-top: 0px;
+  margin-bottom: 0px;
+  transition: filter var(--cart-item-destroying-duration) ease, background-color var(--cart-item-destroying-duration) ease, box-shadow var(--cart-item-destroying-duration) ease, margin var(--cart-item-destroying-duration) ease;
 }
-cart-item[state='destroying']::after {
-	background: rgba(0, 0, 0, 0.9);
-	transition: background-color var(--cart-item-destroying-duration) ease;
+cart-item[state=destroying]::after {
+  background: rgba(0, 0, 0, 0.9);
+  transition: background-color var(--cart-item-destroying-duration) ease;
 }
-cart-item[state='destroying'] cart-item-content {
-	transition:
-		transform var(--cart-item-destroying-duration) ease,
-		filter var(--cart-item-destroying-duration) ease,
-		opacity var(--cart-item-destroying-duration) ease;
-	transform: scale(var(--cart-item-destroying-scale));
-	filter: blur(var(--cart-item-destroying-blur)) saturate(var(--cart-item-destroying-saturate));
-	opacity: var(--cart-item-destroying-opacity);
-	pointer-events: none;
+cart-item[state=destroying] cart-item-content {
+  transition: transform var(--cart-item-destroying-duration) ease, filter var(--cart-item-destroying-duration) ease, opacity var(--cart-item-destroying-duration) ease;
+  transform: scale(var(--cart-item-destroying-scale));
+  filter: blur(var(--cart-item-destroying-blur)) saturate(var(--cart-item-destroying-saturate));
+  opacity: var(--cart-item-destroying-opacity);
+  pointer-events: none;
 }
-cart-item[state='destroying'] cart-item-processing {
-	opacity: 0;
-	transition: opacity var(--cart-item-processing-duration) ease;
+cart-item[state=destroying] cart-item-processing {
+  opacity: 0;
+  transition: opacity var(--cart-item-processing-duration) ease;
 }
-cart-item[state='appearing'] {
-	height: 0px;
-	overflow: hidden;
-	transition:
-		height var(--cart-item-appearing-duration) ease-out,
-		filter var(--cart-item-appearing-duration) ease-out,
-		opacity var(--cart-item-appearing-duration) ease-out;
+cart-item[state=appearing] {
+  height: 0px;
+  overflow: hidden;
+  transition: height var(--cart-item-appearing-duration) ease-out, filter var(--cart-item-appearing-duration) ease-out, opacity var(--cart-item-appearing-duration) ease-out;
 }
-cart-item[state='appearing'] cart-item-content {
-	transform: scale(var(--cart-item-appearing-scale));
-	filter: blur(var(--cart-item-appearing-blur));
-	opacity: var(--cart-item-appearing-opacity);
-	transition:
-		transform var(--cart-item-appearing-duration) ease-out,
-		filter var(--cart-item-appearing-duration) ease-out,
-		opacity var(--cart-item-appearing-duration) ease-out;
+cart-item[state=appearing] cart-item-content {
+  transform: scale(var(--cart-item-appearing-scale));
+  filter: blur(var(--cart-item-appearing-blur));
+  opacity: var(--cart-item-appearing-opacity);
+  transition: transform var(--cart-item-appearing-duration) ease-out, filter var(--cart-item-appearing-duration) ease-out, opacity var(--cart-item-appearing-duration) ease-out;
 }
-cart-item[state='appearing'] cart-item-processing {
-	opacity: 0;
-	visibility: hidden;
+cart-item[state=appearing] cart-item-processing {
+  opacity: 0;
+  visibility: hidden;
 }
 
 cart-item-content {
-	display: block;
+  display: block;
 }
 
 cart-item-processing {
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: transparent;
-	opacity: 0;
-	visibility: hidden;
-	transition:
-		opacity var(--cart-item-processing-duration) ease-out,
-		visibility var(--cart-item-processing-duration) ease-out;
-	z-index: 10;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--cart-item-processing-duration) ease-out, visibility var(--cart-item-processing-duration) ease-out;
+  z-index: 10;
 }
 cart-item-processing .cart-item-loader {
-	width: 60px;
-	aspect-ratio: 2;
-	--_g: no-repeat radial-gradient(circle closest-side, #000 90%, #0000);
-	background:
-		var(--_g) 0% 50%,
-		var(--_g) 50% 50%,
-		var(--_g) 100% 50%;
-	background-size: 33.3333333333% 50%;
-	animation: cart-item-loader 1s infinite linear;
+  width: 60px;
+  aspect-ratio: 2;
+  --_g: no-repeat radial-gradient(circle closest-side, #000 90%, #0000);
+  background: var(--_g) 0% 50%, var(--_g) 50% 50%, var(--_g) 100% 50%;
+  background-size: 33.3333333333% 50%;
+  animation: cart-item-loader 1s infinite linear;
 }
 
 @keyframes cart-item-loader {
-	20% {
-		background-position:
-			0% 0%,
-			50% 50%,
-			100% 50%;
-	}
-	40% {
-		background-position:
-			0% 100%,
-			50% 0%,
-			100% 50%;
-	}
-	60% {
-		background-position:
-			0% 50%,
-			50% 100%,
-			100% 0%;
-	}
-	80% {
-		background-position:
-			0% 50%,
-			50% 50%,
-			100% 100%;
-	}
+  20% {
+    background-position: 0% 0%, 50% 50%, 100% 50%;
+  }
+  40% {
+    background-position: 0% 100%, 50% 0%, 100% 50%;
+  }
+  60% {
+    background-position: 0% 50%, 50% 100%, 100% 0%;
+  }
+  80% {
+    background-position: 0% 50%, 50% 50%, 100% 100%;
+  }
 }
 :root {
-	--cart-dialog-z-index: 1000;
-	--cart-overlay-z-index: 1000;
-	--cart-panel-z-index: 1001;
-	--cart-panel-width: min(400px, 90vw);
-	--cart-overlay-background: rgba(0, 0, 0, 0.15);
-	--cart-overlay-backdrop-filter: blur(4px);
-	--cart-panel-background: #ffffff;
-	--cart-panel-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
-	--cart-panel-border-radius: 0;
-	--cart-transition-duration: 350ms;
-	--cart-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+  --cart-dialog-z-index: 1000;
+  --cart-overlay-z-index: 1000;
+  --cart-panel-z-index: 1001;
+  --cart-panel-width: min(400px, 90vw);
+  --cart-overlay-background: rgba(0, 0, 0, 0.15);
+  --cart-overlay-backdrop-filter: blur(4px);
+  --cart-panel-background: #ffffff;
+  --cart-panel-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+  --cart-panel-border-radius: 0;
+  --cart-transition-duration: 350ms;
+  --cart-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 cart-dialog {
-	display: contents;
+  display: contents;
 }
-cart-dialog[aria-hidden='false'] cart-overlay,
-cart-dialog[aria-hidden='false'] cart-panel {
-	pointer-events: auto;
-	opacity: 1;
+cart-dialog[aria-hidden=false] cart-overlay,
+cart-dialog[aria-hidden=false] cart-panel {
+  pointer-events: auto;
+  opacity: 1;
 }
-cart-dialog[aria-hidden='false'] cart-panel {
-	transform: translateX(0);
+cart-dialog[aria-hidden=false] cart-panel {
+  transform: translateX(0);
 }
 
 cart-overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100vw;
-	height: 100vh;
-	opacity: 0;
-	pointer-events: none;
-	z-index: var(--cart-overlay-z-index);
-	background-color: var(--cart-overlay-background);
-	backdrop-filter: var(--cart-overlay-backdrop-filter);
-	transition:
-		opacity var(--cart-transition-duration) var(--cart-transition-timing),
-		backdrop-filter var(--cart-transition-duration) var(--cart-transition-timing);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  opacity: 0;
+  pointer-events: none;
+  z-index: var(--cart-overlay-z-index);
+  background-color: var(--cart-overlay-background);
+  backdrop-filter: var(--cart-overlay-backdrop-filter);
+  transition: opacity var(--cart-transition-duration) var(--cart-transition-timing), backdrop-filter var(--cart-transition-duration) var(--cart-transition-timing);
 }
 
 cart-panel {
-	position: fixed;
-	top: 0;
-	right: 0;
-	width: var(--cart-panel-width);
-	height: 100vh;
-	opacity: 0;
-	transform: translateX(100%);
-	pointer-events: none;
-	z-index: var(--cart-panel-z-index);
-	background: var(--cart-panel-background);
-	box-shadow: var(--cart-panel-shadow);
-	border-radius: var(--cart-panel-border-radius);
-	overflow: hidden;
-	transition:
-		opacity var(--cart-transition-duration) var(--cart-transition-timing),
-		transform var(--cart-transition-duration) var(--cart-transition-timing);
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--cart-panel-width);
+  height: 100dvh;
+  transform: translateX(100%);
+  pointer-events: none;
+  z-index: var(--cart-panel-z-index);
+  background: var(--cart-panel-background);
+  box-shadow: var(--cart-panel-shadow);
+  border-radius: var(--cart-panel-border-radius);
+  overflow: hidden;
+  transition: transform var(--cart-transition-duration) var(--cart-transition-timing);
 }
 cart-panel.hidden {
-	display: none;
+  display: none;
 }
 
 body.overflow-hidden {
-	overflow: hidden;
-	position: fixed;
-	width: 100%;
-	height: 100%;
-	left: 0;
-	right: 0;
-	margin: 0;
+  overflow: hidden;
 }

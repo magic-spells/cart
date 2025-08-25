@@ -490,7 +490,7 @@
 			let preventCloseOnce = false;
 
 			// Set up cart item templates
-			cartDialog.setCartItemTemplate((item) => {
+			cartDialog.setCartItemTemplate('default', (itemData, cartData) => {
 				const productImages = {
 					'Wireless Headphones': '🎧',
 					'Smartphone Case': '📱',
@@ -502,19 +502,19 @@
 					'Desk Lamp': '💡',
 				};
 
-				const emoji = productImages[item.product_title] || '📦';
-				const price = (item.line_price / 100).toFixed(2);
-				const total = ((item.line_price * item.quantity) / 100).toFixed(2);
+				const emoji = productImages[itemData.product_title] || '📦';
+				const price = (itemData.line_price / 100).toFixed(2);
+				const total = ((itemData.line_price * itemData.quantity) / 100).toFixed(2);
 
 				return `
 					<div class="sample-cart-item">
 						<div class="item-image">${emoji}</div>
 						<div class="item-details">
-							<div class="item-name">${item.product_title}</div>
+							<div class="item-name">${itemData.product_title}</div>
 							<div class="item-price">$${price}</div>
 						</div>
 						<div class="item-controls">
-							<input type="number" class="quantity-input" value="${item.quantity}" min="1" data-cart-quantity>
+							<input type="number" class="quantity-input" value="${itemData.quantity}" min="1" data-cart-quantity>
 							<button class="remove-button" data-action-remove-item>Remove</button>
 						</div>
 					</div>
