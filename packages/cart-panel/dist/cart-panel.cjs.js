@@ -5,7 +5,207 @@ Object.defineProperty(exports, '__esModule', { value: true });
 require('@magic-spells/focus-trap');
 var EventEmitter = require('@magic-spells/event-emitter');
 
-// import QuantityModifier from '@magic-spells/quantity-modifier';
+class QuantityModifier extends HTMLElement {
+  // Static flag to track if styles have been injected
+  static #stylesInjected = false;
+
+  constructor() {
+    super();
+    this.handleDecrement = this.handleDecrement.bind(this);
+    this.handleIncrement = this.handleIncrement.bind(this);
+    this.handleInputChange = this.handleInputChange.bind(this);
+
+    // Inject styles once when first component is created
+    QuantityModifier.#injectStyles();
+  }
+
+  /**
+   * Inject global styles for hiding number input spin buttons
+   * Only runs once regardless of how many components exist
+   */
+  static #injectStyles() {
+    if (QuantityModifier.#stylesInjected) return;
+
+    // this will hide the arrow buttons in the number input field
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Hide number input spin buttons for quantity-modifier */
+      quantity-modifier input::-webkit-outer-spin-button,
+      quantity-modifier input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      
+      quantity-modifier input[type="number"] {
+        -moz-appearance: textfield;
+      }
+    `;
+
+    document.head.appendChild(style);
+    QuantityModifier.#stylesInjected = true;
+  }
+
+  // Define which attributes trigger attributeChangedCallback when modified
+  static get observedAttributes() {
+    return ['min', 'max', 'value'];
+  }
+
+  // Called when element is added to the DOM
+  connectedCallback() {
+    this.render();
+    this.attachEventListeners();
+  }
+
+  // Called when element is removed from the DOM
+  disconnectedCallback() {
+    this.removeEventListeners();
+  }
+
+  // Called when observed attributes change
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue !== newValue) {
+      this.updateInput();
+    }
+  }
+
+  // Get minimum value allowed, defaults to 1
+  get min() {
+    return parseInt(this.getAttribute('min')) || 1;
+  }
+
+  // Get maximum value allowed, defaults to 99
+  get max() {
+    return parseInt(this.getAttribute('max')) || 99;
+  }
+
+  // Get current value, defaults to 1
+  get value() {
+    return parseInt(this.getAttribute('value')) || 1;
+  }
+
+  // Set current value by updating the attribute
+  set value(val) {
+    this.setAttribute('value', val);
+  }
+
+  // Render the quantity modifier HTML structure
+  render() {
+    const min = this.min;
+    const max = this.max;
+    const value = this.value;
+
+    // check to see if these fields already exist
+    const existingDecrement = this.querySelector('[data-action-decrement]');
+    const existingIncrement = this.querySelector('[data-action-increment]');
+    const existingInput = this.querySelector('[data-quantity-modifier-field]');
+
+    // if they already exist, just set the values
+    if (existingDecrement && existingIncrement && existingInput) {
+      existingInput.value = value;
+      existingInput.min = min;
+      existingInput.max = max;
+      existingInput.type = 'number';
+    } else {
+      // if they don't exist, inject the template
+      this.innerHTML = `
+        <button data-action-decrement type="button">
+          <svg class="svg-decrement" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512">
+            <title>decrement</title>
+            <path fill="currentColor" d="M368 224H16c-8.84 0-16 7.16-16 16v32c0 8.84 7.16 16 16 16h352c8.84 0 16-7.16 16-16v-32c0-8.84-7.16-16-16-16z"></path>
+          </svg>
+        </button>
+        <input 
+          type="number" 
+          inputmode="numeric" 
+          pattern="[0-9]*" 
+          data-quantity-modifier-field 
+          value="${value}" min="${min}" max="${max}">
+        <button data-action-increment type="button">
+          <svg class="svg-increment" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512">
+            <title>increment</title>
+            <path fill="currentColor" d="M368 224H224V80c0-8.84-7.16-16-16-16h-32c-8.84 0-16 7.16-16 16v144H16c-8.84 0-16 7.16-16 16v32c0 8.84 7.16 16 16 16h144v144c0 8.84 7.16 16 16 16h32c8.84 0 16-7.16 16-16V288h144c8.84 0 16-7.16 16-16v-32c0-8.84-7.16-16-16-16z"></path>
+          </svg>
+        </button>
+      `;
+    }
+  }
+
+  // Attach click and input event listeners to buttons and input field
+  attachEventListeners() {
+    const decrementBtn = this.querySelector('[data-action-decrement]');
+    const incrementBtn = this.querySelector('[data-action-increment]');
+    const input = this.querySelector('[data-quantity-modifier-field]');
+
+    if (decrementBtn) decrementBtn.addEventListener('click', this.handleDecrement);
+    if (incrementBtn) incrementBtn.addEventListener('click', this.handleIncrement);
+    if (input) input.addEventListener('input', this.handleInputChange);
+  }
+
+  // Remove event listeners to prevent memory leaks
+  removeEventListeners() {
+    const decrementBtn = this.querySelector('[data-action-decrement]');
+    const incrementBtn = this.querySelector('[data-action-increment]');
+    const input = this.querySelector('[data-quantity-modifier-field]');
+
+    if (decrementBtn) decrementBtn.removeEventListener('click', this.handleDecrement);
+    if (incrementBtn) incrementBtn.removeEventListener('click', this.handleIncrement);
+    if (input) input.removeEventListener('input', this.handleInputChange);
+  }
+
+  // Handle decrement button click, respects minimum value
+  handleDecrement() {
+    const currentValue = this.value;
+    const newValue = Math.max(currentValue - 1, this.min);
+    this.updateValue(newValue);
+  }
+
+  // Handle increment button click, respects maximum value
+  handleIncrement() {
+    const currentValue = this.value;
+    const newValue = Math.min(currentValue + 1, this.max);
+    this.updateValue(newValue);
+  }
+
+  // Handle direct input changes, clamps value between min and max
+  handleInputChange(event) {
+    const inputValue = parseInt(event.target.value);
+    if (!isNaN(inputValue)) {
+      const clampedValue = Math.max(this.min, Math.min(inputValue, this.max));
+      this.updateValue(clampedValue);
+    }
+  }
+
+  // Update the component value and dispatch change event if value changed
+  updateValue(newValue) {
+    if (newValue !== this.value) {
+      this.value = newValue;
+      this.updateInput();
+      this.dispatchChangeEvent(newValue);
+    }
+  }
+
+  // Sync the input field with current component state
+  updateInput() {
+    const input = this.querySelector('[data-quantity-modifier-field]');
+    if (input) {
+      input.value = this.value;
+      input.min = this.min;
+      input.max = this.max;
+    }
+  }
+
+  // Dispatch custom event when value changes for external listeners
+  dispatchChangeEvent(value) {
+    this.dispatchEvent(
+      new CustomEvent('quantity-modifier:change', {
+        detail: { value },
+        bubbles: true,
+      })
+    );
+  }
+}
+
+customElements.define('quantity-modifier', QuantityModifier);
 
 /**
  * CartItem class that handles the functionality of a cart item component
@@ -207,7 +407,6 @@ class CartItem extends HTMLElement {
 	 */
 	#handleTransitionEnd(e) {
 		if (e.propertyName === 'height' && this.#isDestroying) {
-			console.log('handle transition End - remove()');
 			// Remove from DOM after height animation completes
 			this.remove();
 		} else if (e.propertyName === 'height' && this.#isAppearing) {
@@ -252,7 +451,6 @@ class CartItem extends HTMLElement {
 	 * Render cart item from data using the appropriate template
 	 */
 	#render() {
-		console.log('cart-item - render ', this.#itemData);
 		if (!this.#itemData || CartItem.#templates.size === 0) {
 			console.log('no item data or no template', this.#itemData, CartItem.#templates);
 			return;
@@ -298,7 +496,6 @@ class CartItem extends HTMLElement {
 	 * @param {Object} cartData - Full Shopify cart object
 	 */
 	setData(itemData, cartData = null) {
-		console.log('cart-item - setData', itemData);
 		this.#itemData = itemData;
 		if (cartData) {
 			this.#cartData = cartData;
@@ -365,14 +562,10 @@ class CartItem extends HTMLElement {
 		// bail if already in the middle of a destroy cycle
 		if (this.#isDestroying) return;
 
-		console.log('cart-item: destroy Yourself');
-
 		this.#isDestroying = true;
 
 		// snapshot the current rendered height before applying any "destroying" styles
 		const initialHeight = this.offsetHeight;
-
-		console.log('initialHeight', initialHeight);
 
 		// switch to 'destroying' state so css can fade / slide visuals
 		this.setState('destroying');
@@ -389,11 +582,11 @@ class CartItem extends HTMLElement {
 
 			// animate only the height to zero; other properties stay under stylesheet control
 			this.style.transition = `height ${destroyDuration} ease`;
-			// this.style.height = '0px';
+			this.style.height = '0px';
 
-			setTimeout(() => {
-				this.style.height = '0px';
-			}, 1);
+			// setTimeout(() => {
+			// 	this.style.height = '0px';
+			// }, 1);
 
 			setTimeout(() => {
 				// make sure item is removed
@@ -580,7 +773,6 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#emit(eventName, data = null) {
-		// console.log('CartDialog emitting event:', eventName, data);
 		this.#eventEmitter.emit(eventName, data);
 
 		// Also emit as native DOM events for better compatibility
@@ -667,7 +859,6 @@ class CartDialog extends HTMLElement {
 		// Remove item by setting quantity to 0
 		this.updateCartItem(cartKey, 0)
 			.then((updatedCart) => {
-				console.log('updated cart', updatedCart);
 				if (updatedCart && !updatedCart.error) {
 					// Success - let smart comparison handle the removal animation
 					this.#currentCart = updatedCart;
@@ -857,8 +1048,6 @@ class CartDialog extends HTMLElement {
 	 * @returns {Promise<Object>} Cart data object
 	 */
 	refreshCart(cartObj = null) {
-		// console.log('Refreshing cart...');
-
 		// If cart object is provided, use it directly
 		if (cartObj && !cartObj.error) {
 			// console.log('Using provided cart data:', cartObj);
@@ -898,9 +1087,8 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#removeItemsFromDOM(itemsContainer, newKeysSet) {
-		console.log('removeItemsFromDOM', newKeysSet);
 		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
-		console.log('got all currentItems', currentItems);
+
 		const itemsToRemove = currentItems.filter((item) => !newKeysSet.has(item.getAttribute('key')));
 
 		itemsToRemove.forEach((item) => {
@@ -914,7 +1102,6 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#addItemsToDOM(itemsContainer, itemsToAdd, newKeys) {
-		console.log('itemsToAdd', itemsToAdd);
 		// Delay adding new items by 300ms to let cart slide open first
 		setTimeout(() => {
 			itemsToAdd.forEach((itemData) => {
@@ -960,7 +1147,6 @@ class CartDialog extends HTMLElement {
 				(item.properties && item.properties['_hidden']) ||
 				item._hidden;
 
-			// console.log(`Item ${item.key || item.id}: hidden=${hidden}, properties=`, item.properties);
 			return !hidden;
 		});
 	}
@@ -993,8 +1179,6 @@ class CartDialog extends HTMLElement {
 	#renderCartItems(cartData) {
 		const itemsContainer = this.querySelector('[data-content-cart-items]');
 
-		console.log('renderCartItems', cartData);
-
 		if (!itemsContainer || !cartData || !cartData.items) {
 			console.warn('Cannot render cart items:', {
 				itemsContainer: !!itemsContainer,
@@ -1006,8 +1190,6 @@ class CartDialog extends HTMLElement {
 
 		// Filter out items with _hide_in_cart property
 		const visibleItems = this.#getVisibleCartItems(cartData);
-
-		console.log('visibleItems', visibleItems);
 
 		// Handle initial render - load all items without animation
 		if (this.#isInitialRender) {
@@ -1025,11 +1207,9 @@ class CartDialog extends HTMLElement {
 			});
 
 			this.#isInitialRender = false;
-			// console.log('Initial render complete, container children:', itemsContainer.children.length);
+
 			return;
 		}
-
-		// console.log('Smart rendering cart items:', visibleItems.length, 'visible items');
 
 		// Get current DOM items and their keys
 		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
@@ -1046,10 +1226,7 @@ class CartDialog extends HTMLElement {
 		const itemsToAdd = visibleItems.filter(
 			(itemData) => !currentKeys.has(itemData.key || itemData.id)
 		);
-
 		this.#addItemsToDOM(itemsContainer, itemsToAdd, newKeys);
-
-		// console.log('Smart rendering complete, container children:', itemsContainer.children.length);
 	}
 
 	/**
@@ -1087,7 +1264,7 @@ class CartDialog extends HTMLElement {
 		requestAnimationFrame(() => {
 			// Update ARIA states
 			_.setAttribute('aria-hidden', 'false');
-			// console.log('trigger', _.triggerEl);
+
 			if (_.triggerEl) {
 				_.triggerEl.setAttribute('aria-expanded', 'true');
 			}

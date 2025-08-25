@@ -374,9 +374,13 @@ The component is optimized for:
 
 ## Integration Examples
 
-### Cart Item Filtering
+### Line Item Properties
 
-Cart items can be hidden from display by setting the `_hidden` property. Hidden items are excluded from:
+The cart panel supports several Shopify line item properties for enhanced functionality:
+
+#### Cart Item Filtering (`_hide_in_cart`)
+
+Cart items can be hidden from display by setting the `_hide_in_cart` property. Hidden items are excluded from:
 
 - Cart item display and rendering
 - Cart count calculations
@@ -384,24 +388,79 @@ Cart items can be hidden from display by setting the `_hidden` property. Hidden 
 
 ```javascript
 // Example: Hide a cart item from display
-// The _hidden property can be set in multiple locations:
 {
   "items": [
     {
       "key": "item-123",
       "properties": {
-        "_hidden": true  // Method 1: In properties object
+        "_hide_in_cart": "true"  // Hide from cart display
       }
-    },
-    {
-      "key": "item-456",
-      "_hidden": true  // Method 2: Direct property on item
     }
   ]
 }
 ```
 
-This is useful for hiding gift-with-purchase items, fees, or other items that should exist in the cart but not be visible to customers.
+#### Custom Templates (`_cart_template`)
+
+Different cart item templates can be specified using the `_cart_template` property:
+
+```javascript
+// Example: Use different templates for different item types
+{
+  "items": [
+    {
+      "key": "subscription-item",
+      "properties": {
+        "_cart_template": "subscription"  // Use subscription template
+      }
+    },
+    {
+      "key": "bundle-item", 
+      "properties": {
+        "_cart_template": "bundle"  // Use bundle template
+      }
+    }
+  ]
+}
+```
+
+Then set up custom templates in JavaScript:
+
+```javascript
+import { CartItem } from '@magic-spells/cart-panel';
+
+// Set up different templates
+CartItem.setTemplate('subscription', (itemData, cartData) => {
+  return `
+    <div class="subscription-item">
+      <div class="recurring-badge">🔄 Subscription</div>
+      <h4>${itemData.product_title}</h4>
+      <div class="price">$${(itemData.price / 100).toFixed(2)} every month</div>
+      <quantity-modifier value="${itemData.quantity}"></quantity-modifier>
+    </div>
+  `;
+});
+
+CartItem.setTemplate('bundle', (itemData, cartData) => {
+  return `
+    <div class="bundle-item">
+      <div class="bundle-badge">📦 Bundle Deal</div>
+      <h4>${itemData.product_title}</h4>
+      <div class="savings">Save 20%!</div>
+      <div class="price">$${(itemData.price / 100).toFixed(2)}</div>
+    </div>
+  `;
+});
+```
+
+#### Supported Properties
+
+| Property | Purpose | Example Values |
+|----------|---------|----------------|
+| `_hide_in_cart` | Hide items from cart display and calculations | `"true"`, `true` |
+| `_cart_template` | Specify custom template for rendering | `"subscription"`, `"bundle"`, `"gift"` |
+
+These properties follow Shopify's line item properties pattern and are commonly used for gift-with-purchase items, subscription products, bundles, and other special cart items.
 
 ### Shopify Integration
 

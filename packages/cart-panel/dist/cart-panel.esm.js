@@ -1,7 +1,204 @@
-import '@magic-spells/focus-trap';
-import EventEmitter from '@magic-spells/event-emitter';
+class QuantityModifier extends HTMLElement {
+  // Static flag to track if styles have been injected
+  static #stylesInjected = false;
 
-// import QuantityModifier from '@magic-spells/quantity-modifier';
+  constructor() {
+    super();
+    this.handleDecrement = this.handleDecrement.bind(this);
+    this.handleIncrement = this.handleIncrement.bind(this);
+    this.handleInputChange = this.handleInputChange.bind(this);
+
+    // Inject styles once when first component is created
+    QuantityModifier.#injectStyles();
+  }
+
+  /**
+   * Inject global styles for hiding number input spin buttons
+   * Only runs once regardless of how many components exist
+   */
+  static #injectStyles() {
+    if (QuantityModifier.#stylesInjected) return;
+
+    // this will hide the arrow buttons in the number input field
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Hide number input spin buttons for quantity-modifier */
+      quantity-modifier input::-webkit-outer-spin-button,
+      quantity-modifier input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      
+      quantity-modifier input[type="number"] {
+        -moz-appearance: textfield;
+      }
+    `;
+
+    document.head.appendChild(style);
+    QuantityModifier.#stylesInjected = true;
+  }
+
+  // Define which attributes trigger attributeChangedCallback when modified
+  static get observedAttributes() {
+    return ['min', 'max', 'value'];
+  }
+
+  // Called when element is added to the DOM
+  connectedCallback() {
+    this.render();
+    this.attachEventListeners();
+  }
+
+  // Called when element is removed from the DOM
+  disconnectedCallback() {
+    this.removeEventListeners();
+  }
+
+  // Called when observed attributes change
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue !== newValue) {
+      this.updateInput();
+    }
+  }
+
+  // Get minimum value allowed, defaults to 1
+  get min() {
+    return parseInt(this.getAttribute('min')) || 1;
+  }
+
+  // Get maximum value allowed, defaults to 99
+  get max() {
+    return parseInt(this.getAttribute('max')) || 99;
+  }
+
+  // Get current value, defaults to 1
+  get value() {
+    return parseInt(this.getAttribute('value')) || 1;
+  }
+
+  // Set current value by updating the attribute
+  set value(val) {
+    this.setAttribute('value', val);
+  }
+
+  // Render the quantity modifier HTML structure
+  render() {
+    const min = this.min;
+    const max = this.max;
+    const value = this.value;
+
+    // check to see if these fields already exist
+    const existingDecrement = this.querySelector('[data-action-decrement]');
+    const existingIncrement = this.querySelector('[data-action-increment]');
+    const existingInput = this.querySelector('[data-quantity-modifier-field]');
+
+    // if they already exist, just set the values
+    if (existingDecrement && existingIncrement && existingInput) {
+      existingInput.value = value;
+      existingInput.min = min;
+      existingInput.max = max;
+      existingInput.type = 'number';
+    } else {
+      // if they don't exist, inject the template
+      this.innerHTML = `
+        <button data-action-decrement type="button">
+          <svg class="svg-decrement" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512">
+            <title>decrement</title>
+            <path fill="currentColor" d="M368 224H16c-8.84 0-16 7.16-16 16v32c0 8.84 7.16 16 16 16h352c8.84 0 16-7.16 16-16v-32c0-8.84-7.16-16-16-16z"></path>
+          </svg>
+        </button>
+        <input 
+          type="number" 
+          inputmode="numeric" 
+          pattern="[0-9]*" 
+          data-quantity-modifier-field 
+          value="${value}" min="${min}" max="${max}">
+        <button data-action-increment type="button">
+          <svg class="svg-increment" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512">
+            <title>increment</title>
+            <path fill="currentColor" d="M368 224H224V80c0-8.84-7.16-16-16-16h-32c-8.84 0-16 7.16-16 16v144H16c-8.84 0-16 7.16-16 16v32c0 8.84 7.16 16 16 16h144v144c0 8.84 7.16 16 16 16h32c8.84 0 16-7.16 16-16V288h144c8.84 0 16-7.16 16-16v-32c0-8.84-7.16-16-16-16z"></path>
+          </svg>
+        </button>
+      `;
+    }
+  }
+
+  // Attach click and input event listeners to buttons and input field
+  attachEventListeners() {
+    const decrementBtn = this.querySelector('[data-action-decrement]');
+    const incrementBtn = this.querySelector('[data-action-increment]');
+    const input = this.querySelector('[data-quantity-modifier-field]');
+
+    if (decrementBtn) decrementBtn.addEventListener('click', this.handleDecrement);
+    if (incrementBtn) incrementBtn.addEventListener('click', this.handleIncrement);
+    if (input) input.addEventListener('input', this.handleInputChange);
+  }
+
+  // Remove event listeners to prevent memory leaks
+  removeEventListeners() {
+    const decrementBtn = this.querySelector('[data-action-decrement]');
+    const incrementBtn = this.querySelector('[data-action-increment]');
+    const input = this.querySelector('[data-quantity-modifier-field]');
+
+    if (decrementBtn) decrementBtn.removeEventListener('click', this.handleDecrement);
+    if (incrementBtn) incrementBtn.removeEventListener('click', this.handleIncrement);
+    if (input) input.removeEventListener('input', this.handleInputChange);
+  }
+
+  // Handle decrement button click, respects minimum value
+  handleDecrement() {
+    const currentValue = this.value;
+    const newValue = Math.max(currentValue - 1, this.min);
+    this.updateValue(newValue);
+  }
+
+  // Handle increment button click, respects maximum value
+  handleIncrement() {
+    const currentValue = this.value;
+    const newValue = Math.min(currentValue + 1, this.max);
+    this.updateValue(newValue);
+  }
+
+  // Handle direct input changes, clamps value between min and max
+  handleInputChange(event) {
+    const inputValue = parseInt(event.target.value);
+    if (!isNaN(inputValue)) {
+      const clampedValue = Math.max(this.min, Math.min(inputValue, this.max));
+      this.updateValue(clampedValue);
+    }
+  }
+
+  // Update the component value and dispatch change event if value changed
+  updateValue(newValue) {
+    if (newValue !== this.value) {
+      this.value = newValue;
+      this.updateInput();
+      this.dispatchChangeEvent(newValue);
+    }
+  }
+
+  // Sync the input field with current component state
+  updateInput() {
+    const input = this.querySelector('[data-quantity-modifier-field]');
+    if (input) {
+      input.value = this.value;
+      input.min = this.min;
+      input.max = this.max;
+    }
+  }
+
+  // Dispatch custom event when value changes for external listeners
+  dispatchChangeEvent(value) {
+    this.dispatchEvent(
+      new CustomEvent('quantity-modifier:change', {
+        detail: { value },
+        bubbles: true,
+      })
+    );
+  }
+}
+
+customElements.define('quantity-modifier', QuantityModifier);
 
 /**
  * CartItem class that handles the functionality of a cart item component
@@ -203,7 +400,6 @@ class CartItem extends HTMLElement {
 	 */
 	#handleTransitionEnd(e) {
 		if (e.propertyName === 'height' && this.#isDestroying) {
-			console.log('handle transition End - remove()');
 			// Remove from DOM after height animation completes
 			this.remove();
 		} else if (e.propertyName === 'height' && this.#isAppearing) {
@@ -248,7 +444,6 @@ class CartItem extends HTMLElement {
 	 * Render cart item from data using the appropriate template
 	 */
 	#render() {
-		console.log('cart-item - render ', this.#itemData);
 		if (!this.#itemData || CartItem.#templates.size === 0) {
 			console.log('no item data or no template', this.#itemData, CartItem.#templates);
 			return;
@@ -294,7 +489,6 @@ class CartItem extends HTMLElement {
 	 * @param {Object} cartData - Full Shopify cart object
 	 */
 	setData(itemData, cartData = null) {
-		console.log('cart-item - setData', itemData);
 		this.#itemData = itemData;
 		if (cartData) {
 			this.#cartData = cartData;
@@ -361,14 +555,10 @@ class CartItem extends HTMLElement {
 		// bail if already in the middle of a destroy cycle
 		if (this.#isDestroying) return;
 
-		console.log('cart-item: destroy Yourself');
-
 		this.#isDestroying = true;
 
 		// snapshot the current rendered height before applying any "destroying" styles
 		const initialHeight = this.offsetHeight;
-
-		console.log('initialHeight', initialHeight);
 
 		// switch to 'destroying' state so css can fade / slide visuals
 		this.setState('destroying');
@@ -385,11 +575,11 @@ class CartItem extends HTMLElement {
 
 			// animate only the height to zero; other properties stay under stylesheet control
 			this.style.transition = `height ${destroyDuration} ease`;
-			// this.style.height = '0px';
+			this.style.height = '0px';
 
-			setTimeout(() => {
-				this.style.height = '0px';
-			}, 1);
+			// setTimeout(() => {
+			// 	this.style.height = '0px';
+			// }, 1);
 
 			setTimeout(() => {
 				// make sure item is removed
@@ -423,6 +613,292 @@ if (!customElements.get('cart-item-content')) {
 }
 if (!customElements.get('cart-item-processing')) {
 	customElements.define('cart-item-processing', CartItemProcessing);
+}
+
+/**
+ * Retrieves all focusable elements within a given container.
+ *
+ * @param {HTMLElement} container - The container element to search for focusable elements.
+ * @returns {HTMLElement[]} An array of focusable elements found within the container.
+ */
+const getFocusableElements = (container) => {
+	const focusableSelectors =
+		'summary, a[href], button:not(:disabled), [tabindex]:not([tabindex^="-"]):not(focus-trap-start):not(focus-trap-end), [draggable], area, input:not([type=hidden]):not(:disabled), select:not(:disabled), textarea:not(:disabled), object, iframe';
+	return Array.from(container.querySelectorAll(focusableSelectors));
+};
+
+class FocusTrap extends HTMLElement {
+	/** @type {boolean} Indicates whether the styles have been injected into the DOM. */
+	static styleInjected = false;
+
+	constructor() {
+		super();
+		this.trapStart = null;
+		this.trapEnd = null;
+
+		// Inject styles only once, when the first FocusTrap instance is created.
+		if (!FocusTrap.styleInjected) {
+			this.injectStyles();
+			FocusTrap.styleInjected = true;
+		}
+	}
+
+	/**
+	 * Injects necessary styles for the focus trap into the document's head.
+	 * This ensures that focus-trap-start and focus-trap-end elements are hidden.
+	 */
+	injectStyles() {
+		const style = document.createElement('style');
+		style.textContent = `
+      focus-trap-start,
+      focus-trap-end {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        border: 0;
+        clip: rect(0, 0, 0, 0);
+        overflow: hidden;
+        white-space: nowrap;
+      }
+    `;
+		document.head.appendChild(style);
+	}
+
+	/**
+	 * Called when the element is connected to the DOM.
+	 * Sets up the focus trap and adds the keydown event listener.
+	 */
+	connectedCallback() {
+		this.setupTrap();
+		this.addEventListener('keydown', this.handleKeyDown);
+	}
+
+	/**
+	 * Called when the element is disconnected from the DOM.
+	 * Removes the keydown event listener.
+	 */
+	disconnectedCallback() {
+		this.removeEventListener('keydown', this.handleKeyDown);
+	}
+
+	/**
+	 * Sets up the focus trap by adding trap start and trap end elements.
+	 * Focuses the trap start element to initiate the focus trap.
+	 */
+	setupTrap() {
+		// check to see it there are any focusable children
+		const focusableElements = getFocusableElements(this);
+		// exit if there aren't any
+		if (focusableElements.length === 0) return;
+
+		// create trap start and end elements
+		this.trapStart = document.createElement('focus-trap-start');
+		this.trapEnd = document.createElement('focus-trap-end');
+
+		// add to DOM
+		this.prepend(this.trapStart);
+		this.append(this.trapEnd);
+	}
+
+	/**
+	 * Handles the keydown event. If the Escape key is pressed, the focus trap is exited.
+	 *
+	 * @param {KeyboardEvent} e - The keyboard event object.
+	 */
+	handleKeyDown = (e) => {
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			this.exitTrap();
+		}
+	};
+
+	/**
+	 * Exits the focus trap by hiding the current container and shifting focus
+	 * back to the trigger element that opened the trap.
+	 */
+	exitTrap() {
+		const container = this.closest('[aria-hidden="false"]');
+		if (!container) return;
+
+		container.setAttribute('aria-hidden', 'true');
+
+		const trigger = document.querySelector(
+			`[aria-expanded="true"][aria-controls="${container.id}"]`
+		);
+		if (trigger) {
+			trigger.setAttribute('aria-expanded', 'false');
+			trigger.focus();
+		}
+	}
+}
+
+class FocusTrapStart extends HTMLElement {
+	/**
+	 * Called when the element is connected to the DOM.
+	 * Sets the tabindex and adds the focus event listener.
+	 */
+	connectedCallback() {
+		this.setAttribute('tabindex', '0');
+		this.addEventListener('focus', this.handleFocus);
+	}
+
+	/**
+	 * Called when the element is disconnected from the DOM.
+	 * Removes the focus event listener.
+	 */
+	disconnectedCallback() {
+		this.removeEventListener('focus', this.handleFocus);
+	}
+
+	/**
+	 * Handles the focus event. If focus moves backwards from the first focusable element,
+	 * it is cycled to the last focusable element, and vice versa.
+	 *
+	 * @param {FocusEvent} e - The focus event object.
+	 */
+	handleFocus = (e) => {
+		const trap = this.closest('focus-trap');
+		const focusableElements = getFocusableElements(trap);
+
+		if (focusableElements.length === 0) return;
+
+		const firstElement = focusableElements[0];
+		const lastElement =
+			focusableElements[focusableElements.length - 1];
+
+		if (e.relatedTarget === firstElement) {
+			lastElement.focus();
+		} else {
+			firstElement.focus();
+		}
+	};
+}
+
+class FocusTrapEnd extends HTMLElement {
+	/**
+	 * Called when the element is connected to the DOM.
+	 * Sets the tabindex and adds the focus event listener.
+	 */
+	connectedCallback() {
+		this.setAttribute('tabindex', '0');
+		this.addEventListener('focus', this.handleFocus);
+	}
+
+	/**
+	 * Called when the element is disconnected from the DOM.
+	 * Removes the focus event listener.
+	 */
+	disconnectedCallback() {
+		this.removeEventListener('focus', this.handleFocus);
+	}
+
+	/**
+	 * Handles the focus event. When the trap end is focused, focus is shifted back to the trap start.
+	 */
+	handleFocus = () => {
+		const trap = this.closest('focus-trap');
+		const trapStart = trap.querySelector('focus-trap-start');
+		trapStart.focus();
+	};
+}
+
+if (!customElements.get('focus-trap')) {
+	customElements.define('focus-trap', FocusTrap);
+}
+if (!customElements.get('focus-trap-start')) {
+	customElements.define('focus-trap-start', FocusTrapStart);
+}
+if (!customElements.get('focus-trap-end')) {
+	customElements.define('focus-trap-end', FocusTrapEnd);
+}
+
+class EventEmitter {
+  #events;
+
+  constructor() {
+    this.#events = new Map();
+  }
+
+  /**
+   * Binds a listener to an event.
+   * @param {string} event - The event to bind the listener to.
+   * @param {Function} listener - The listener function to bind.
+   * @returns {EventEmitter} The current instance for chaining.
+   * @throws {TypeError} If the listener is not a function.
+   */
+  on(event, listener) {
+    if (typeof listener !== "function") {
+      throw new TypeError("Listener must be a function");
+    }
+
+    const listeners = this.#events.get(event) || [];
+    if (!listeners.includes(listener)) {
+      listeners.push(listener);
+    }
+    this.#events.set(event, listeners);
+
+    return this;
+  }
+
+  /**
+   * Unbinds a listener from an event.
+   * @param {string} event - The event to unbind the listener from.
+   * @param {Function} listener - The listener function to unbind.
+   * @returns {EventEmitter} The current instance for chaining.
+   */
+  off(event, listener) {
+    const listeners = this.#events.get(event);
+    if (!listeners) return this;
+
+    const index = listeners.indexOf(listener);
+    if (index !== -1) {
+      listeners.splice(index, 1);
+      if (listeners.length === 0) {
+        this.#events.delete(event);
+      } else {
+        this.#events.set(event, listeners);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Triggers an event and calls all bound listeners.
+   * @param {string} event - The event to trigger.
+   * @param {...*} args - Arguments to pass to the listener functions.
+   * @returns {boolean} True if the event had listeners, false otherwise.
+   */
+  emit(event, ...args) {
+    const listeners = this.#events.get(event);
+    if (!listeners || listeners.length === 0) return false;
+
+    for (let i = 0, n = listeners.length; i < n; ++i) {
+      try {
+        listeners[i].apply(this, args);
+      } catch (error) {
+        console.error(`Error in listener for event '${event}':`, error);
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Removes all listeners for a specific event or all events.
+   * @param {string} [event] - The event to remove listeners from. If not provided, removes all listeners.
+   * @returns {EventEmitter} The current instance for chaining.
+   */
+  removeAllListeners(event) {
+    if (event) {
+      this.#events.delete(event);
+    } else {
+      this.#events.clear();
+    }
+    return this;
+  }
 }
 
 /**
@@ -576,7 +1052,6 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#emit(eventName, data = null) {
-		// console.log('CartDialog emitting event:', eventName, data);
 		this.#eventEmitter.emit(eventName, data);
 
 		// Also emit as native DOM events for better compatibility
@@ -663,7 +1138,6 @@ class CartDialog extends HTMLElement {
 		// Remove item by setting quantity to 0
 		this.updateCartItem(cartKey, 0)
 			.then((updatedCart) => {
-				console.log('updated cart', updatedCart);
 				if (updatedCart && !updatedCart.error) {
 					// Success - let smart comparison handle the removal animation
 					this.#currentCart = updatedCart;
@@ -853,8 +1327,6 @@ class CartDialog extends HTMLElement {
 	 * @returns {Promise<Object>} Cart data object
 	 */
 	refreshCart(cartObj = null) {
-		// console.log('Refreshing cart...');
-
 		// If cart object is provided, use it directly
 		if (cartObj && !cartObj.error) {
 			// console.log('Using provided cart data:', cartObj);
@@ -894,9 +1366,8 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#removeItemsFromDOM(itemsContainer, newKeysSet) {
-		console.log('removeItemsFromDOM', newKeysSet);
 		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
-		console.log('got all currentItems', currentItems);
+
 		const itemsToRemove = currentItems.filter((item) => !newKeysSet.has(item.getAttribute('key')));
 
 		itemsToRemove.forEach((item) => {
@@ -910,7 +1381,6 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#addItemsToDOM(itemsContainer, itemsToAdd, newKeys) {
-		console.log('itemsToAdd', itemsToAdd);
 		// Delay adding new items by 300ms to let cart slide open first
 		setTimeout(() => {
 			itemsToAdd.forEach((itemData) => {
@@ -956,7 +1426,6 @@ class CartDialog extends HTMLElement {
 				(item.properties && item.properties['_hidden']) ||
 				item._hidden;
 
-			// console.log(`Item ${item.key || item.id}: hidden=${hidden}, properties=`, item.properties);
 			return !hidden;
 		});
 	}
@@ -989,8 +1458,6 @@ class CartDialog extends HTMLElement {
 	#renderCartItems(cartData) {
 		const itemsContainer = this.querySelector('[data-content-cart-items]');
 
-		console.log('renderCartItems', cartData);
-
 		if (!itemsContainer || !cartData || !cartData.items) {
 			console.warn('Cannot render cart items:', {
 				itemsContainer: !!itemsContainer,
@@ -1002,8 +1469,6 @@ class CartDialog extends HTMLElement {
 
 		// Filter out items with _hide_in_cart property
 		const visibleItems = this.#getVisibleCartItems(cartData);
-
-		console.log('visibleItems', visibleItems);
 
 		// Handle initial render - load all items without animation
 		if (this.#isInitialRender) {
@@ -1021,11 +1486,9 @@ class CartDialog extends HTMLElement {
 			});
 
 			this.#isInitialRender = false;
-			// console.log('Initial render complete, container children:', itemsContainer.children.length);
+
 			return;
 		}
-
-		// console.log('Smart rendering cart items:', visibleItems.length, 'visible items');
 
 		// Get current DOM items and their keys
 		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
@@ -1042,10 +1505,7 @@ class CartDialog extends HTMLElement {
 		const itemsToAdd = visibleItems.filter(
 			(itemData) => !currentKeys.has(itemData.key || itemData.id)
 		);
-
 		this.#addItemsToDOM(itemsContainer, itemsToAdd, newKeys);
-
-		// console.log('Smart rendering complete, container children:', itemsContainer.children.length);
 	}
 
 	/**
@@ -1083,7 +1543,7 @@ class CartDialog extends HTMLElement {
 		requestAnimationFrame(() => {
 			// Update ARIA states
 			_.setAttribute('aria-hidden', 'false');
-			// console.log('trigger', _.triggerEl);
+
 			if (_.triggerEl) {
 				_.triggerEl.setAttribute('aria-expanded', 'true');
 			}

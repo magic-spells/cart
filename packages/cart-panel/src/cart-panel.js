@@ -1,7 +1,5 @@
 import './cart-panel.scss';
-// import '@magic-spells/cart-item';
-// import { CartItem } from '@magic-spells/cart-item';
-import { CartItem } from '../../cart-item';
+import '@magic-spells/cart-item';
 import '@magic-spells/focus-trap';
 import EventEmitter from '@magic-spells/event-emitter';
 
@@ -99,10 +97,6 @@ class CartDialog extends HTMLElement {
 
 			// Insert focus trap inside the cart-panel
 			_.contentPanel.appendChild(_.focusTrap);
-
-			// Setup the trap - this will add focus-trap-start/end elements around the content
-			// We don't need this anymore because we restructured the code
-			// _.focusTrap.setupTrap();
 		}
 
 		// Ensure we have labelledby and describedby references
@@ -156,7 +150,6 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#emit(eventName, data = null) {
-		// console.log('CartDialog emitting event:', eventName, data);
 		this.#eventEmitter.emit(eventName, data);
 
 		// Also emit as native DOM events for better compatibility
@@ -243,7 +236,6 @@ class CartDialog extends HTMLElement {
 		// Remove item by setting quantity to 0
 		this.updateCartItem(cartKey, 0)
 			.then((updatedCart) => {
-				console.log('updated cart', updatedCart);
 				if (updatedCart && !updatedCart.error) {
 					// Success - let smart comparison handle the removal animation
 					this.#currentCart = updatedCart;
@@ -433,8 +425,6 @@ class CartDialog extends HTMLElement {
 	 * @returns {Promise<Object>} Cart data object
 	 */
 	refreshCart(cartObj = null) {
-		// console.log('Refreshing cart...');
-
 		// If cart object is provided, use it directly
 		if (cartObj && !cartObj.error) {
 			// console.log('Using provided cart data:', cartObj);
@@ -474,9 +464,8 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#removeItemsFromDOM(itemsContainer, newKeysSet) {
-		console.log('removeItemsFromDOM', newKeysSet);
 		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
-		console.log('got all currentItems', currentItems);
+
 		const itemsToRemove = currentItems.filter((item) => !newKeysSet.has(item.getAttribute('key')));
 
 		itemsToRemove.forEach((item) => {
@@ -490,7 +479,6 @@ class CartDialog extends HTMLElement {
 	 * @private
 	 */
 	#addItemsToDOM(itemsContainer, itemsToAdd, newKeys) {
-		console.log('itemsToAdd', itemsToAdd);
 		// Delay adding new items by 300ms to let cart slide open first
 		setTimeout(() => {
 			itemsToAdd.forEach((itemData) => {
@@ -524,19 +512,15 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
-	 * Filter cart items to exclude those with _hidden property
+	 * Filter cart items to exclude those with _hide_in_cart property
 	 * @private
 	 */
 	#getVisibleCartItems(cartData) {
 		if (!cartData || !cartData.items) return [];
 		return cartData.items.filter((item) => {
-			// Check for _hidden in various possible locations
-			const hidden =
-				(item.properties && item.properties._hidden) ||
-				(item.properties && item.properties['_hidden']) ||
-				item._hidden;
+			// Check for _hide_in_cart in various possible locations
+			const hidden = item.properties?._hide_in_cart;
 
-			// console.log(`Item ${item.key || item.id}: hidden=${hidden}, properties=`, item.properties);
 			return !hidden;
 		});
 	}
@@ -569,8 +553,6 @@ class CartDialog extends HTMLElement {
 	#renderCartItems(cartData) {
 		const itemsContainer = this.querySelector('[data-content-cart-items]');
 
-		console.log('renderCartItems', cartData);
-
 		if (!itemsContainer || !cartData || !cartData.items) {
 			console.warn('Cannot render cart items:', {
 				itemsContainer: !!itemsContainer,
@@ -582,8 +564,6 @@ class CartDialog extends HTMLElement {
 
 		// Filter out items with _hide_in_cart property
 		const visibleItems = this.#getVisibleCartItems(cartData);
-
-		console.log('visibleItems', visibleItems);
 
 		// Handle initial render - load all items without animation
 		if (this.#isInitialRender) {
@@ -601,11 +581,9 @@ class CartDialog extends HTMLElement {
 			});
 
 			this.#isInitialRender = false;
-			// console.log('Initial render complete, container children:', itemsContainer.children.length);
+
 			return;
 		}
-
-		// console.log('Smart rendering cart items:', visibleItems.length, 'visible items');
 
 		// Get current DOM items and their keys
 		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
@@ -622,10 +600,7 @@ class CartDialog extends HTMLElement {
 		const itemsToAdd = visibleItems.filter(
 			(itemData) => !currentKeys.has(itemData.key || itemData.id)
 		);
-
 		this.#addItemsToDOM(itemsContainer, itemsToAdd, newKeys);
-
-		// console.log('Smart rendering complete, container children:', itemsContainer.children.length);
 	}
 
 	/**
@@ -663,7 +638,7 @@ class CartDialog extends HTMLElement {
 		requestAnimationFrame(() => {
 			// Update ARIA states
 			_.setAttribute('aria-hidden', 'false');
-			// console.log('trigger', _.triggerEl);
+
 			if (_.triggerEl) {
 				_.triggerEl.setAttribute('aria-expanded', 'true');
 			}
