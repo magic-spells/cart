@@ -462,7 +462,7 @@
   		}
 
   		// Determine which template to use
-  		const templateName = this.#itemData.properties?._cartTemplate || 'default';
+  		const templateName = this.#itemData.properties?._cart_template || 'default';
   		const templateFn = CartItem.#templates.get(templateName) || CartItem.#templates.get('default');
 
   		if (!templateFn) {
@@ -1001,10 +1001,6 @@
 
   			// Insert focus trap inside the cart-panel
   			_.contentPanel.appendChild(_.focusTrap);
-
-  			// Setup the trap - this will add focus-trap-start/end elements around the content
-  			// We don't need this anymore because we restructured the code
-  			// _.focusTrap.setupTrap();
   		}
 
   		// Ensure we have labelledby and describedby references
@@ -1420,17 +1416,14 @@
   	}
 
   	/**
-  	 * Filter cart items to exclude those with _hidden property
+  	 * Filter cart items to exclude those with _hide_in_cart property
   	 * @private
   	 */
   	#getVisibleCartItems(cartData) {
   		if (!cartData || !cartData.items) return [];
   		return cartData.items.filter((item) => {
-  			// Check for _hidden in various possible locations
-  			const hidden =
-  				(item.properties && item.properties._hidden) ||
-  				(item.properties && item.properties['_hidden']) ||
-  				item._hidden;
+  			// Check for _hide_in_cart in various possible locations
+  			const hidden = item.properties?._hide_in_cart;
 
   			return !hidden;
   		});

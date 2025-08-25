@@ -33,6 +33,7 @@ This is a web component library that creates an accessible shopping cart modal d
 ### Build System
 
 Rollup configuration creates multiple builds:
+
 - **ESM**: `dist/cart-panel.esm.js` (primary export)
 - **CommonJS**: `dist/cart-panel.cjs.js`
 - **UMD**: `dist/cart-panel.js` (unminified), `dist/cart-panel.min.js` (minified)
@@ -47,10 +48,12 @@ The demo at `demo/index.html` provides a complete working example. Use `npm run 
 ### Event System Architecture
 
 The CartDialog uses a dual event system:
+
 1. **Event Emitter**: Custom event emitter for cart-specific events with method chaining (`.on()`, `.off()`)
 2. **DOM Events**: Standard DOM events for broader compatibility
 
 Key events:
+
 - `cart-dialog:show/hide/afterHide` - Modal state changes
 - `cart-dialog:updated/refreshed/data-changed` - Cart data changes
 - `cart-item:remove/quantity-change` - Item interactions (bubbled from cart-item components)
@@ -74,12 +77,14 @@ The cart-panel component leverages Shopify's line item properties system to prov
 Hides items from the cart display and excludes them from cart calculations (subtotal, item count, etc.). Hidden items remain in the actual Shopify cart but are not visible to customers.
 
 **Use Cases:**
+
 - Gift wrapping fees that should be invisible to customers
 - Internal tracking items
 - Conditional promotional items
 - Hidden service charges
 
 **Usage in Shopify:**
+
 ```liquid
 <!-- Add to cart form with hidden item -->
 <form action="/cart/add" method="post">
@@ -90,17 +95,18 @@ Hides items from the cart display and excludes them from cart calculations (subt
 ```
 
 **JavaScript cart addition:**
+
 ```javascript
 fetch('/cart/add.json', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    id: 12345,
-    quantity: 1,
-    properties: {
-      _hide_in_cart: 'true'
-    }
-  })
+	method: 'POST',
+	headers: { 'Content-Type': 'application/json' },
+	body: JSON.stringify({
+		id: 12345,
+		quantity: 1,
+		properties: {
+			_hide_in_cart: 'true',
+		},
+	}),
 });
 ```
 
@@ -109,10 +115,12 @@ fetch('/cart/add.json', {
 Specifies which template to use when rendering cart items dynamically. The cart-item component supports multiple templates for different item types or display styles.
 
 **Default templates:**
+
 - `default` - Standard cart item template
 - Custom templates can be registered via `CartItem.setTemplate(name, templateFunction)`
 
 **Usage in Shopify:**
+
 ```liquid
 <!-- Specify template for special items -->
 <form action="/cart/add" method="post">
@@ -122,12 +130,13 @@ Specifies which template to use when rendering cart items dynamically. The cart-
 ```
 
 **JavaScript template setup:**
+
 ```javascript
 import { CartItem } from '@magic-spells/cart-item';
 
 // Register a custom template
 CartItem.setTemplate('subscription', (itemData, cartData) => {
-  return `
+	return `
     <div class="subscription-item">
       <h4>${itemData.product_title}</h4>
       <div class="subscription-frequency">
@@ -150,11 +159,12 @@ The cart-panel processes these properties automatically:
 3. **Calculations**: Hidden items are excluded from visible cart calculations while remaining in the actual cart
 
 **Example cart processing:**
+
 ```javascript
 // Cart-panel automatically filters items
-const visibleItems = cart.items.filter(item => {
-  const hidden = item.properties?._hide_in_cart;
-  return !hidden; // Only show items that aren't hidden
+const visibleItems = cart.items.filter((item) => {
+	const hidden = item.properties?._hide_in_cart;
+	return !hidden; // Only show items that aren't hidden
 });
 
 // Template name is passed to cart-item for rendering

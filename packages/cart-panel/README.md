@@ -331,32 +331,32 @@ await cartDialog.refreshCart();
 
 // Event emitter pattern (recommended)
 cartDialog
-	.on('cart-dialog:show', (e) => {
-		console.log('Cart opened by:', e.detail.triggerElement);
-	})
-	.on('cart-dialog:data-changed', (cartData) => {
-		console.log('Cart updated:', cartData);
-		// Update header cart count, etc.
-	});
+  .on('cart-dialog:show', (e) => {
+    console.log('Cart opened by:', e.detail.triggerElement);
+  })
+  .on('cart-dialog:data-changed', (cartData) => {
+    console.log('Cart updated:', cartData);
+    // Update header cart count, etc.
+  });
 
 // Traditional event listeners (also supported)
 cartDialog.addEventListener('cart-item:remove', (e) => {
-	console.log('Remove requested:', e.detail.cartKey);
+  console.log('Remove requested:', e.detail.cartKey);
 
-	// The component handles the API calls automatically
-	// Just listen for the data changes
+  // The component handles the API calls automatically
+  // Just listen for the data changes
 });
 
 cartDialog.addEventListener('cart-item:quantity-change', (e) => {
-	console.log('Quantity changed:', e.detail.quantity);
-	// Component automatically syncs with Shopify
+  console.log('Quantity changed:', e.detail.quantity);
+  // Component automatically syncs with Shopify
 });
 
 // Listen for all cart changes
 cartDialog.on('cart-dialog:data-changed', (cartData) => {
-	// Update your UI when cart changes
-	updateCartBadge(cartData.item_count);
-	updateCartTotal(cartData.total_price);
+  // Update your UI when cart changes
+  updateCartBadge(cartData.item_count);
+  updateCartTotal(cartData.total_price);
 });
 ```
 
@@ -415,7 +415,7 @@ Different cart item templates can be specified using the `_cart_template` proper
       }
     },
     {
-      "key": "bundle-item", 
+      "key": "bundle-item",
       "properties": {
         "_cart_template": "bundle"  // Use bundle template
       }
@@ -455,10 +455,10 @@ CartItem.setTemplate('bundle', (itemData, cartData) => {
 
 #### Supported Properties
 
-| Property | Purpose | Example Values |
-|----------|---------|----------------|
-| `_hide_in_cart` | Hide items from cart display and calculations | `"true"`, `true` |
-| `_cart_template` | Specify custom template for rendering | `"subscription"`, `"bundle"`, `"gift"` |
+| Property         | Purpose                                       | Example Values                         |
+| ---------------- | --------------------------------------------- | -------------------------------------- |
+| `_hide_in_cart`  | Hide items from cart display and calculations | `"true"`, `true`                       |
+| `_cart_template` | Specify custom template for rendering         | `"subscription"`, `"bundle"`, `"gift"` |
 
 These properties follow Shopify's line item properties pattern and are commonly used for gift-with-purchase items, subscription products, bundles, and other special cart items.
 
@@ -469,43 +469,43 @@ The cart panel automatically integrates with Shopify's AJAX Cart API. Simply add
 ```html
 <!-- In your Shopify theme layout -->
 <button
-	aria-haspopup="dialog"
-	aria-controls="shopify-cart"
-	aria-expanded="false"
-	class="cart-trigger">
-	Cart ({{ cart.item_count }})
+  aria-haspopup="dialog"
+  aria-controls="shopify-cart"
+  aria-expanded="false"
+  class="cart-trigger">
+  Cart ({{ cart.item_count }})
 </button>
 
 <cart-dialog id="shopify-cart" aria-labelledby="cart-heading">
-	<cart-panel>
-		<header class="cart-header">
-			<h2 id="cart-heading">Your Cart</h2>
-			<button data-action="hide-cart" aria-label="hide cart">X</button>
-		</header>
+  <cart-panel>
+    <header class="cart-header">
+      <h2 id="cart-heading">Your Cart</h2>
+      <button data-action="hide-cart" aria-label="hide cart">X</button>
+    </header>
 
-		<div class="cart-content">
-			<!-- Cart items will be populated automatically in javascript -->
-		</div>
+    <div class="cart-content">
+      <!-- Cart items will be populated automatically in javascript -->
+    </div>
 
-		<footer class="cart-footer">
-			<div class="cart-total"></div>
-			<a href="/checkout" class="button"> Checkout </a>
-		</footer>
-	</cart-panel>
+    <footer class="cart-footer">
+      <div class="cart-total"></div>
+      <a href="/checkout" class="button"> Checkout </a>
+    </footer>
+  </cart-panel>
 </cart-dialog>
 
 <script>
-	// Optional: Listen for cart updates to sync with other UI elements
-	document.querySelector('cart-dialog').on('cart-dialog:data-changed', (cartData) => {
-		// Update cart count in header
-		document.querySelector('.cart-trigger').textContent = `Cart (${cartData.item_count})`;
+  // Optional: Listen for cart updates to sync with other UI elements
+  document.querySelector('cart-dialog').on('cart-dialog:data-changed', (cartData) => {
+    // Update cart count in header
+    document.querySelector('.cart-trigger').textContent = `Cart (${cartData.item_count})`;
 
-		// Update cart total
-		document.querySelector('[data-cart-total]').textContent = new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-		}).format(cartData.total_price / 100);
-	});
+    // Update cart total
+    document.querySelector('[data-cart-total]').textContent = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(cartData.total_price / 100);
+  });
 </script>
 ```
 
@@ -514,63 +514,63 @@ The cart panel automatically integrates with Shopify's AJAX Cart API. Simply add
 ```javascript
 // Example for non-Shopify platforms
 class CustomCartManager {
-	constructor() {
-		this.cartDialog = document.querySelector('cart-dialog');
-		this.setupEventListeners();
-	}
+  constructor() {
+    this.cartDialog = document.querySelector('cart-dialog');
+    this.setupEventListeners();
+  }
 
-	setupEventListeners() {
-		// Listen for cart data changes
-		this.cartDialog.on('cart-dialog:data-changed', (cartData) => {
-			this.updateCartUI(cartData);
-		});
+  setupEventListeners() {
+    // Listen for cart data changes
+    this.cartDialog.on('cart-dialog:data-changed', (cartData) => {
+      this.updateCartUI(cartData);
+    });
 
-		// Override default cart operations for custom API
-		this.cartDialog.getCart = this.customGetCart.bind(this);
-		this.cartDialog.updateCartItem = this.customUpdateCartItem.bind(this);
-	}
+    // Override default cart operations for custom API
+    this.cartDialog.getCart = this.customGetCart.bind(this);
+    this.cartDialog.updateCartItem = this.customUpdateCartItem.bind(this);
+  }
 
-	async customGetCart() {
-		try {
-			const response = await fetch('/api/cart');
-			return await response.json();
-		} catch (error) {
-			console.error('Failed to fetch cart:', error);
-			return { error: true, message: error.message };
-		}
-	}
+  async customGetCart() {
+    try {
+      const response = await fetch('/api/cart');
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch cart:', error);
+      return { error: true, message: error.message };
+    }
+  }
 
-	async customUpdateCartItem(itemId, quantity) {
-		try {
-			const response = await fetch('/api/cart/update', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ itemId, quantity }),
-			});
+  async customUpdateCartItem(itemId, quantity) {
+    try {
+      const response = await fetch('/api/cart/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId, quantity }),
+      });
 
-			if (!response.ok) throw new Error(response.statusText);
+      if (!response.ok) throw new Error(response.statusText);
 
-			// Return updated cart data
-			return this.customGetCart();
-		} catch (error) {
-			console.error('Failed to update cart:', error);
-			return { error: true, message: error.message };
-		}
-	}
+      // Return updated cart data
+      return this.customGetCart();
+    } catch (error) {
+      console.error('Failed to update cart:', error);
+      return { error: true, message: error.message };
+    }
+  }
 
-	updateCartUI(cartData) {
-		// Update cart count in navigation
-		const cartCount = document.querySelector('.cart-count');
-		if (cartCount) {
-			cartCount.textContent = cartData.items?.length || 0;
-		}
+  updateCartUI(cartData) {
+    // Update cart count in navigation
+    const cartCount = document.querySelector('.cart-count');
+    if (cartCount) {
+      cartCount.textContent = cartData.items?.length || 0;
+    }
 
-		// Update cart total display
-		const cartTotal = document.querySelector('.cart-total-display');
-		if (cartTotal && cartData.total) {
-			cartTotal.textContent = cartData.total;
-		}
-	}
+    // Update cart total display
+    const cartTotal = document.querySelector('.cart-total-display');
+    if (cartTotal && cartData.total) {
+      cartTotal.textContent = cartData.total;
+    }
+  }
 }
 
 // Initialize

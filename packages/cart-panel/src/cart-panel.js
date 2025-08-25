@@ -1,5 +1,5 @@
 import './cart-panel.scss';
-import CartItem from '@magic-spells/cart-item';
+import { CartItem } from '@magic-spells/cart-item';
 import '@magic-spells/focus-trap';
 import EventEmitter from '@magic-spells/event-emitter';
 
