@@ -1,428 +1,391 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gift with Purchase Demo - @magic-spells/gift-with-purchase</title>
-    <link rel="stylesheet" href="gift-with-purchase.min.css" />
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Gift with Purchase Demo - @magic-spells/gift-with-purchase</title>
+		<link rel="stylesheet" href="gift-with-purchase.min.css" />
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
 
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        line-height: 1.6;
-        color: #333;
-        background: #f8f9fa;
-        padding: 2rem 1rem;
-      }
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+				line-height: 1.6;
+				color: #333;
+				background: #f8f9fa;
+				padding: 2rem 1rem;
+			}
 
-      .container {
-        max-width: 1000px;
-        margin: 0 auto;
-      }
+			.container {
+				max-width: 1000px;
+				margin: 0 auto;
+			}
 
-      h1 {
-        text-align: center;
-        margin-bottom: 2rem;
-        color: #2c3e50;
-        font-size: 2.5rem;
-        font-weight: 300;
-      }
+			h1 {
+				text-align: center;
+				margin-bottom: 2rem;
+				color: #2c3e50;
+				font-size: 2.5rem;
+				font-weight: 300;
+			}
 
-      .demo-section {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
+			.demo-section {
+				background: white;
+				border-radius: 12px;
+				padding: 2rem;
+				margin-bottom: 2rem;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			}
 
-      .demo-section h2 {
-        margin-bottom: 1rem;
-        color: #34495e;
-        font-size: 1.5rem;
-        font-weight: 400;
-      }
+			.demo-section h2 {
+				margin-bottom: 1rem;
+				color: #34495e;
+				font-size: 1.5rem;
+				font-weight: 400;
+			}
 
-      .demo-section p {
-        margin-bottom: 1.5rem;
-      }
+			.demo-section p {
+				margin-bottom: 1.5rem;
+			}
 
-      .controls {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin: 1.5rem 0;
-        padding: 1rem;
-        background: #f8f9fa;
-        border-radius: 8px;
-      }
+			.controls {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 1rem;
+				margin: 1.5rem 0;
+				padding: 1rem;
+				background: #f8f9fa;
+				border-radius: 8px;
+			}
 
-      .control-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
+			.control-group {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+			}
 
-      .control-group label {
-        font-weight: 600;
-        color: #495057;
-        font-size: 0.9rem;
-      }
+			.control-group label {
+				font-weight: 600;
+				color: #495057;
+				font-size: 0.9rem;
+			}
 
-      .control-group input,
-      .control-group select,
-      .control-group button {
-        padding: 0.5rem;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        font-size: 0.9rem;
-      }
+			.control-group input,
+			.control-group select,
+			.control-group button {
+				padding: 0.5rem;
+				border: 1px solid #ced4da;
+				border-radius: 4px;
+				font-size: 0.9rem;
+			}
 
-      .control-group button {
-        background: #007bff;
-        color: white;
-        border-color: #007bff;
-        cursor: pointer;
-        font-weight: 600;
-      }
+			.control-group button {
+				background: #007bff;
+				color: white;
+				border-color: #007bff;
+				cursor: pointer;
+				font-weight: 600;
+			}
 
-      .control-group button:hover {
-        background: #0056b3;
-        border-color: #0056b3;
-      }
+			.control-group button:hover {
+				background: #0056b3;
+				border-color: #0056b3;
+			}
 
-      .control-group button.secondary {
-        background: #6c757d;
-        border-color: #6c757d;
-      }
+			.control-group button.secondary {
+				background: #6c757d;
+				border-color: #6c757d;
+			}
 
-      .control-group button.secondary:hover {
-        background: #545b62;
-        border-color: #545b62;
-      }
+			.control-group button.secondary:hover {
+				background: #545b62;
+				border-color: #545b62;
+			}
 
-      .control-group button.danger {
-        background: #dc3545;
-        border-color: #dc3545;
-      }
+			.control-group button.danger {
+				background: #dc3545;
+				border-color: #dc3545;
+			}
 
-      .control-group button.danger:hover {
-        background: #c82333;
-        border-color: #c82333;
-      }
+			.control-group button.danger:hover {
+				background: #c82333;
+				border-color: #c82333;
+			}
 
-      /* Demo containers */
-      .gwp-demo {
-        margin: 2rem 0;
-        padding: 1.5rem;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        background: #ffffff;
-      }
+			/* Demo containers */
+			.gwp-demo {
+				margin: 2rem 0;
+				padding: 1.5rem;
+				border: 1px solid #dee2e6;
+				border-radius: 8px;
+				background: #ffffff;
+			}
 
-      .gwp-demo h3 {
-        margin-bottom: 1rem;
-        color: #495057;
-        font-size: 1.1rem;
-      }
+			.gwp-demo h3 {
+				margin-bottom: 1rem;
+				color: #495057;
+				font-size: 1.1rem;
+			}
 
-      .code-block {
-        background: #2d3748;
-        color: #e2e8f0;
-        padding: 1rem;
-        border-radius: 6px;
-        margin: 1rem 0;
-        overflow-x: auto;
-        font-family:
-          "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas,
-          "Courier New", monospace;
-        font-size: 0.9rem;
-      }
+			.code-block {
+				background: #2d3748;
+				color: #e2e8f0;
+				padding: 1rem;
+				border-radius: 6px;
+				margin: 1rem 0;
+				overflow-x: auto;
+				font-family:
+					'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+				font-size: 0.9rem;
+			}
 
-      .features-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1rem;
-        margin: 2rem 0;
-      }
+			.features-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+				gap: 1rem;
+				margin: 2rem 0;
+			}
 
-      .feature {
-        background: #f8f9fa;
-        padding: 1.5rem;
-        border-radius: 8px;
-        border-left: 4px solid #007bff;
-      }
+			.feature {
+				background: #f8f9fa;
+				padding: 1.5rem;
+				border-radius: 8px;
+				border-left: 4px solid #007bff;
+			}
 
-      .feature h3 {
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-        font-size: 1.1rem;
-      }
+			.feature h3 {
+				color: #2c3e50;
+				margin-bottom: 0.5rem;
+				font-size: 1.1rem;
+			}
 
-      .feature p {
-        color: #666;
-        margin: 0;
-        font-size: 0.9rem;
-      }
+			.feature p {
+				color: #666;
+				margin: 0;
+				font-size: 0.9rem;
+			}
 
-      .status-info {
-        background: #e9ecef;
-        padding: 1rem;
-        border-radius: 6px;
-        margin: 1rem 0;
-        font-family: monospace;
-        font-size: 0.9rem;
-      }
+			.status-info {
+				background: #e9ecef;
+				padding: 1rem;
+				border-radius: 6px;
+				margin: 1rem 0;
+				font-family: monospace;
+				font-size: 0.9rem;
+			}
 
-      /* Demo-specific styling for gift with purchase */
-      .sample-product-image {
-        width: 80px;
-        height: 80px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 0.8rem;
-        object-fit: cover;
-        border: 2px solid #dee2e6;
-        transition: border-color 0.3s ease;
-      }
+			/* Demo-specific styling for gift with purchase */
+			.sample-product-image {
+				width: 80px;
+				height: 80px;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				border-radius: 8px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				color: white;
+				font-weight: bold;
+				font-size: 0.8rem;
+				object-fit: cover;
+				border: 2px solid #dee2e6;
+				transition: border-color 0.3s ease;
+			}
 
-      /* Demo typography */
-      gift-with-purchase h4[data-gwp-title] {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.1rem;
-        font-weight: 600;
-        line-height: 1.3;
-      }
+			/* Demo typography */
+			gift-with-purchase .gwp-title {
+				margin: 0 0 0.5rem 0;
+				font-size: 1.1rem;
+				font-weight: 600;
+				line-height: 1.3;
+			}
 
-      gift-with-purchase p[data-gwp-variant] {
-        margin: 0 0 0.75rem 0;
-        font-size: 0.9rem;
-        opacity: 0.8;
-      }
+			gift-with-purchase .gwp-variant {
+				margin: 0 0 0.75rem 0;
+				font-size: 0.9rem;
+				opacity: 0.8;
+			}
 
-      gift-with-purchase .gwp-message {
-        font-size: 0.9rem;
-        margin: 0.75rem 0 0 0;
-        padding: 0.5rem;
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: 4px;
-        font-weight: 500;
-      }
+			gift-with-purchase [data-content-gwp-message] {
+				font-size: 0.9rem;
+				margin: 0.75rem 0 0 0;
+				padding: 0.5rem;
+				background: rgba(0, 0, 0, 0.05);
+				border-radius: 4px;
+				font-weight: 500;
+			}
 
-      /* State-specific message styling */
-      gift-with-purchase.gwp-active .gwp-message {
-        background: rgba(40, 167, 69, 0.1);
-        color: #155724;
-      }
+			/* State-specific message styling */
+			gift-with-purchase[state='active'] [data-content-gwp-message] {
+				background: rgba(40, 167, 69, 0.1);
+				color: #155724;
+			}
 
-      gift-with-purchase.gwp-inactive .gwp-message {
-        background: rgba(108, 117, 125, 0.1);
-        color: #495057;
-      }
+			/* State-based styling for demo images */
+			gift-with-purchase[state='active'] .sample-product-image {
+				border-color: var(--gwp-border-active);
+				transform: scale(1.05);
+			}
 
-      /* State-based styling for demo images */
-      gift-with-purchase.gwp-active .sample-product-image {
-        border-color: var(--gwp-border-active);
-        transform: scale(1.05);
-      }
+			gift-with-purchase[state='added'] .sample-product-image {
+				border-color: var(--gwp-border-added);
+			}
 
-      gift-with-purchase.gwp-added .sample-product-image {
-        border-color: var(--gwp-border-added);
-      }
+			@media (max-width: 768px) {
+				body {
+					padding: 1rem 0.5rem;
+				}
 
-      @media (max-width: 768px) {
-        body {
-          padding: 1rem 0.5rem;
-        }
+				h1 {
+					font-size: 2rem;
+				}
 
-        h1 {
-          font-size: 2rem;
-        }
+				.demo-section {
+					padding: 1rem;
+				}
 
-        .demo-section {
-          padding: 1rem;
-        }
+				.controls {
+					grid-template-columns: 1fr;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>Gift with Purchase Demo</h1>
 
-        .controls {
-          grid-template-columns: 1fr;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Gift with Purchase Demo</h1>
+			<section class="demo-section">
+				<h2>Interactive Demo</h2>
+				<p>
+					Control the gift with purchase component in real-time. Adjust the cart amount and
+					threshold to see how the component responds and automatically manages the gift.
+				</p>
 
-      <section class="demo-section">
-        <h2>Interactive Demo</h2>
-        <p>
-          Control the gift with purchase component in real-time. Adjust the cart
-          amount and threshold to see how the component responds and
-          automatically manages the gift.
-        </p>
+				<div class="controls">
+					<div class="control-group">
+						<label for="cartAmount">Current Cart Amount ($)</label>
+						<input type="number" id="cartAmount" value="45.00" step="0.01" min="0" />
+					</div>
+					<div class="control-group">
+						<label for="thresholdAmount">Gift Threshold ($)</label>
+						<input type="number" id="thresholdAmount" value="75.00" step="0.01" min="0" />
+					</div>
+					<div class="control-group">
+						<label for="variantId">Variant ID</label>
+						<input type="text" id="variantId" value="12345678" placeholder="Shopify variant ID" />
+					</div>
+					<div class="control-group">
+						<label>Quick Actions</label>
+						<button onclick="setCartAmount(25)">Below Threshold</button>
+						<button onclick="setCartAmount(75)" class="secondary">Meet Threshold</button>
+						<button onclick="setCartAmount(100)">Above Threshold</button>
+					</div>
+				</div>
 
-        <div class="controls">
-          <div class="control-group">
-            <label for="cartAmount">Current Cart Amount ($)</label>
-            <input
-              type="number"
-              id="cartAmount"
-              value="45.00"
-              step="0.01"
-              min="0"
-            />
-          </div>
-          <div class="control-group">
-            <label for="thresholdAmount">Gift Threshold ($)</label>
-            <input
-              type="number"
-              id="thresholdAmount"
-              value="75.00"
-              step="0.01"
-              min="0"
-            />
-          </div>
-          <div class="control-group">
-            <label for="variantId">Variant ID</label>
-            <input
-              type="text"
-              id="variantId"
-              value="12345678"
-              placeholder="Shopify variant ID"
-            />
-          </div>
-          <div class="control-group">
-            <label>Quick Actions</label>
-            <button onclick="setCartAmount(25)">Below Threshold</button>
-            <button onclick="setCartAmount(75)" class="secondary">
-              Meet Threshold
-            </button>
-            <button onclick="setCartAmount(100)">Above Threshold</button>
-          </div>
-        </div>
+				<div class="status-info">
+					<div>Cart Amount: $<span id="currentAmount">45.00</span></div>
+					<div>Threshold: $<span id="currentThreshold">75.00</span></div>
+					<div>Remaining: $<span id="remainingAmount">30.00</span></div>
+					<div>Status: <span id="currentStatus">Inactive</span></div>
+				</div>
 
-        <div class="status-info">
-          <div>Cart Amount: $<span id="currentAmount">45.00</span></div>
-          <div>Threshold: $<span id="currentThreshold">75.00</span></div>
-          <div>Remaining: $<span id="remainingAmount">30.00</span></div>
-          <div>Status: <span id="currentStatus">Inactive</span></div>
-        </div>
+				<div class="gwp-demo">
+					<h3>Main Demo</h3>
+					<gift-with-purchase
+						id="mainDemo"
+						threshold="75.00"
+						current="45.00"
+						variant-id="12345678"
+						message-above="🎉 Congratulations! You've qualified for your FREE gift!"
+						message-below="Add ${ amount } more to unlock your free gift! 🎁">
+						<div class="gwp-product">
+							<div class="sample-product-image">GIFT</div>
+							<div class="gwp-content">
+								<h4 class="gwp-title">Free Sample Set</h4>
+								<p class="gwp-variant">Travel Size Collection</p>
+							</div>
+						</div>
+						<p data-content-gwp-message></p>
+					</gift-with-purchase>
+				</div>
+			</section>
 
-        <div class="gwp-demo">
-          <h3>Main Demo</h3>
-          <gift-with-purchase
-            id="mainDemo"
-            threshold="75.00"
-            current="45.00"
-            variant-id="12345678"
-            message-above="🎉 Congratulations! You've qualified for your FREE gift!"
-            message-below="Add ${{ amount }} more to unlock your free gift! 🎁"
-          >
-            <div class="gwp-product">
-              <div class="sample-product-image" data-gwp-image>GIFT</div>
-              <div class="gwp-content">
-                <h4 data-gwp-title>Free Sample Set</h4>
-                <p data-gwp-variant>Travel Size Collection</p>
-              </div>
-            </div>
-          </gift-with-purchase>
-        </div>
-      </section>
+			<section class="demo-section">
+				<h2>Different Configurations</h2>
+				<p>Examples of different gift configurations and visual styles.</p>
 
-      <section class="demo-section">
-        <h2>Different Configurations</h2>
-        <p>Examples of different gift configurations and visual styles.</p>
+				<div class="gwp-demo">
+					<h3>Low Threshold Gift</h3>
+					<gift-with-purchase
+						threshold="25.00"
+						current="45.00"
+						variant-id="11111111"
+						message-above="🎉 Congratulations! You've unlocked a free tote bag!"
+						message-below="Add ${ amount } more for a free tote bag! 👜">
+						<div class="gwp-product">
+							<div
+								class="sample-product-image"
+								style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)">
+								GIFT
+							</div>
+							<div class="gwp-content">
+								<h4 class="gwp-title">Exclusive Tote Bag</h4>
+								<p class="gwp-variant">Limited Edition</p>
+							</div>
+						</div>
+						<p data-content-gwp-message></p>
+					</gift-with-purchase>
+				</div>
 
-        <div class="gwp-demo">
-          <h3>Low Threshold Gift</h3>
-          <gift-with-purchase
-            threshold="25.00"
-            current="45.00"
-            variant-id="11111111"
-            message-above="🎉 Congratulations! You've unlocked a free tote bag!"
-            message-below="Add ${{ amount }} more for a free tote bag! 👜"
-          >
-            <div class="gwp-product">
-              <div
-                class="sample-product-image"
-                data-gwp-image
-                style="
-                  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-                "
-              >
-                GIFT
-              </div>
-              <div class="gwp-content">
-                <h4 data-gwp-title>Exclusive Tote Bag</h4>
-                <p data-gwp-variant>Limited Edition</p>
-              </div>
-            </div>
-          </gift-with-purchase>
-        </div>
+				<div class="gwp-demo">
+					<h3>High Value Gift</h3>
+					<gift-with-purchase
+						threshold="150.00"
+						current="45.00"
+						variant-id="22222222"
+						message-above="✨ Amazing! You've earned our premium gift set!"
+						message-below="Spend ${ amount } more for our exclusive premium gift set! ✨">
+						<div class="gwp-product">
+							<div
+								class="sample-product-image"
+								style="background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); color: #333">
+								VIP
+							</div>
+							<div class="gwp-content">
+								<h4 class="gwp-title">Premium Gift Set</h4>
+								<p class="gwp-variant">Full Size Products</p>
+							</div>
+						</div>
+						<p data-content-gwp-message></p>
+					</gift-with-purchase>
+				</div>
+			</section>
 
-        <div class="gwp-demo">
-          <h3>High Value Gift</h3>
-          <gift-with-purchase
-            threshold="150.00"
-            current="45.00"
-            variant-id="22222222"
-            message-above="✨ Amazing! You've earned our premium gift set!"
-            message-below="Spend ${{ amount }} more for our exclusive premium gift set! ✨"
-          >
-            <div class="gwp-product">
-              <div
-                class="sample-product-image"
-                data-gwp-image
-                style="
-                  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-                  color: #333;
-                "
-              >
-                VIP
-              </div>
-              <div class="gwp-content">
-                <h4 data-gwp-title>Premium Gift Set</h4>
-                <p data-gwp-variant>Full Size Products</p>
-              </div>
-            </div>
-          </gift-with-purchase>
-        </div>
-      </section>
+			<section class="demo-section">
+				<h2>Usage Examples</h2>
 
-      <section class="demo-section">
-        <h2>Usage Examples</h2>
-
-        <h3>Basic Setup</h3>
-        <pre class="code-block"><code>&lt;gift-with-purchase 
+				<h3>Basic Setup</h3>
+				<pre class="code-block"><code>&lt;gift-with-purchase 
   threshold="75.00" 
   current="45.00"
   variant-id="12345678"
   message-above="🎉 Congratulations! You've qualified for your FREE gift!"
-  message-below="Add ${{ amount }} more to unlock your free gift! 🎁"&gt;
+  message-below="Add ${ amount } more to unlock your free gift! 🎁"&gt;
   &lt;div class="gwp-product"&gt;
-    &lt;img src="gift-image.jpg" alt="Free Gift" data-gwp-image&gt;
+    &lt;img src="gift-image.jpg" alt="Free Gift" &gt;
     &lt;div class="gwp-content"&gt;
-      &lt;h4 data-gwp-title&gt;Free Sample Set&lt;/h4&gt;
-      &lt;p data-gwp-variant&gt;Travel Size Collection&lt;/p&gt;
+      &lt;h4 class="gwp-title"&gt;Free Sample Set&lt;/h4&gt;
+      &lt;p class="gwp-variant"&gt;Travel Size Collection&lt;/p&gt;
     &lt;/div&gt;
   &lt;/div&gt;
+  &lt;p data-content-gwp-message&gt;&lt;/p&gt;
 &lt;/gift-with-purchase&gt;</code></pre>
 
-        <h3>JavaScript API</h3>
-        <pre
-          class="code-block"
-        ><code>const gwp = document.querySelector('gift-with-purchase');
+				<h3>JavaScript API</h3>
+				<pre class="code-block"><code>const gwp = document.querySelector('gift-with-purchase');
 
 // Update cart amount
 gwp.setCurrentAmount(85.50);
@@ -435,38 +398,31 @@ gwp.setVariantId('87654321');
 
 // Get current state
 const state = gwp.getState();
-console.log(state.isActive, state.isAdded, state.remainingAmount);
+console.log(state.isActive, state.isAdded, state.remainingAmount);</code></pre>
 
-// Update product information
-gwp.updateProduct({
-  image: 'new-gift.jpg',
-  title: 'Updated Gift',
-  variantTitle: 'New Variant',
-  alt: 'New gift image'
-});</code></pre>
-
-        <h3>Cart Integration</h3>
-        <pre class="code-block"><code>&lt;cart-panel&gt;
+				<h3>Cart Integration</h3>
+				<pre class="code-block"><code>&lt;cart-panel&gt;
   &lt;gift-with-purchase 
     threshold="75.00"
     variant-id="12345678"
     message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-    message-below="Add ${{ amount }} more to get FREE shipping! 🚚"&gt;
+    message-below="Add ${ amount } more to get FREE shipping! 🚚"&gt;
     &lt;!-- Gift content --&gt;
   &lt;/gift-with-purchase&gt;
 &lt;/cart-panel&gt;</code></pre>
 
-        <h3>Message Attributes</h3>
-        <pre class="code-block"><code>&lt;gift-with-purchase 
+				<h3>Message Handling</h3>
+				<pre class="code-block"><code>&lt;gift-with-purchase 
   threshold="75.00"
   variant-id="12345678"
   message-above="🎉 Congratulations! You've qualified for your FREE gift!"
-  message-below="Add ${{ amount }} more to unlock your free gift! 🎁"&gt;
-  &lt;!-- Component automatically creates .gwp-message element --&gt;
+  message-below="Add ${ amount } more to unlock your free gift! 🎁"&gt;
+  &lt;!-- Add a paragraph with data-content-gwp-message for the component to inject messages --&gt;
+  &lt;p data-content-gwp-message class="your-custom-styles"&gt;&lt;/p&gt;
 &lt;/gift-with-purchase&gt;</code></pre>
 
-        <h3>Event Handling</h3>
-        <pre class="code-block"><code>// Listen for gift events
+				<h3>Event Handling</h3>
+				<pre class="code-block"><code>// Listen for gift events
 gwp.addEventListener('gwp:added', (event) => {
   console.log('Gift added:', event.detail);
 });
@@ -478,151 +434,147 @@ gwp.addEventListener('gwp:removed', (event) => {
 gwp.addEventListener('gwp:error', (event) => {
   console.error('GWP Error:', event.detail);
 });</code></pre>
-      </section>
+			</section>
 
-      <section class="demo-section">
-        <h2>Features</h2>
-        <div class="features-grid">
-          <div class="feature">
-            <h3>🎁 Automatic Gift Management</h3>
-            <p>
-              Automatically adds and removes gifts from the cart based on
-              threshold rules and cart changes.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>🛒 Shopify Integration</h3>
-            <p>
-              Built-in support for Shopify Cart API with proper line item
-              properties for gift identification.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>📱 Cart Panel Sync</h3>
-            <p>
-              Automatically syncs with cart-panel components and responds to
-              cart data changes in real-time.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>🎨 Highly Customizable</h3>
-            <p>
-              CSS custom properties, data attributes, and swappable content
-              elements for complete customization.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>⚡ Event-Driven</h3>
-            <p>
-              Emits custom events for gift addition, removal, and errors for
-              easy integration with other components.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>🔧 Flexible Content</h3>
-            <p>
-              Use data attributes to define swappable images, titles, and
-              variant information with automatic updates.
-            </p>
-          </div>
-        </div>
-      </section>
-    </div>
+			<section class="demo-section">
+				<h2>Features</h2>
+				<div class="features-grid">
+					<div class="feature">
+						<h3>🎁 Automatic Gift Management</h3>
+						<p>
+							Automatically adds and removes gifts from the cart based on threshold rules and cart
+							changes.
+						</p>
+					</div>
+					<div class="feature">
+						<h3>🛒 Shopify Integration</h3>
+						<p>
+							Built-in support for Shopify Cart API with proper line item properties for gift
+							identification.
+						</p>
+					</div>
+					<div class="feature">
+						<h3>📱 Cart Panel Sync</h3>
+						<p>
+							Automatically syncs with cart-panel components and responds to cart data changes in
+							real-time.
+						</p>
+					</div>
+					<div class="feature">
+						<h3>🎨 Highly Customizable</h3>
+						<p>
+							CSS custom properties, data attributes, and swappable content elements for complete
+							customization.
+						</p>
+					</div>
+					<div class="feature">
+						<h3>⚡ Event-Driven</h3>
+						<p>
+							Emits custom events for gift addition, removal, and errors for easy integration with
+							other components.
+						</p>
+					</div>
+					<div class="feature">
+						<h3>🔧 Flexible Content</h3>
+						<p>
+							Style your gift content with any CSS classes or frameworks. The component looks for
+							your message element with data-content-gwp-message.
+						</p>
+					</div>
+				</div>
+			</section>
+		</div>
 
-    <script type="module" src="./gift-with-purchase.esm.js"></script>
-    <script>
-      // Demo functionality
-      document.addEventListener("DOMContentLoaded", function () {
-        const mainDemo = document.getElementById("mainDemo");
-        const cartAmountInput = document.getElementById("cartAmount");
-        const thresholdAmountInput = document.getElementById("thresholdAmount");
-        const variantIdInput = document.getElementById("variantId");
+		<script type="module" src="./gift-with-purchase.esm.js"></script>
+		<script>
+			// Demo functionality
+			document.addEventListener('DOMContentLoaded', function () {
+				const mainDemo = document.getElementById('mainDemo');
+				const cartAmountInput = document.getElementById('cartAmount');
+				const thresholdAmountInput = document.getElementById('thresholdAmount');
+				const variantIdInput = document.getElementById('variantId');
 
-        // Status display elements
-        const currentAmountDisplay = document.getElementById("currentAmount");
-        const currentThresholdDisplay =
-          document.getElementById("currentThreshold");
-        const remainingAmountDisplay =
-          document.getElementById("remainingAmount");
-        const currentStatusDisplay = document.getElementById("currentStatus");
+				// Status display elements
+				const currentAmountDisplay = document.getElementById('currentAmount');
+				const currentThresholdDisplay = document.getElementById('currentThreshold');
+				const remainingAmountDisplay = document.getElementById('remainingAmount');
+				const currentStatusDisplay = document.getElementById('currentStatus');
 
-        // Update displays
-        function updateDisplays() {
-          const state = mainDemo.getState();
-          currentAmountDisplay.textContent = state.currentAmount.toFixed(2);
-          currentThresholdDisplay.textContent = state.threshold.toFixed(2);
-          remainingAmountDisplay.textContent = state.remainingAmount.toFixed(2);
+				// Update displays
+				function updateDisplays() {
+					const state = mainDemo.getState();
+					currentAmountDisplay.textContent = state.currentAmount.toFixed(2);
+					currentThresholdDisplay.textContent = state.threshold.toFixed(2);
+					remainingAmountDisplay.textContent = state.remainingAmount.toFixed(2);
 
-          let status = "Inactive";
-          if (state.isAdded) {
-            status = "Added to Cart";
-          } else if (state.isActive) {
-            status = "Active (Threshold Met)";
-          }
-          currentStatusDisplay.textContent = status;
+					let status = 'Inactive';
+					if (state.isAdded) {
+						status = 'Added to Cart';
+					} else if (state.isActive) {
+						status = 'Active (Threshold Met)';
+					}
+					currentStatusDisplay.textContent = status;
 
-          // Update remaining amount in messages
-          document.querySelectorAll(".remaining-amount").forEach((el) => {
-            el.textContent = state.remainingAmount.toFixed(2);
-          });
-        }
+					// Update remaining amount in messages
+					document.querySelectorAll('.remaining-amount').forEach((el) => {
+						el.textContent = state.remainingAmount.toFixed(2);
+					});
+				}
 
-        // Input event handlers
-        cartAmountInput.addEventListener("input", function () {
-          const amount = parseFloat(this.value) || 0;
-          mainDemo.setCurrentAmount(amount);
-          updateDisplays();
-        });
+				// Input event handlers
+				cartAmountInput.addEventListener('input', function () {
+					const amount = parseFloat(this.value) || 0;
+					mainDemo.setCurrentAmount(amount);
+					updateDisplays();
+				});
 
-        thresholdAmountInput.addEventListener("input", function () {
-          const amount = parseFloat(this.value) || 0;
-          mainDemo.setThreshold(amount);
-          updateDisplays();
-        });
+				thresholdAmountInput.addEventListener('input', function () {
+					const amount = parseFloat(this.value) || 0;
+					mainDemo.setThreshold(amount);
+					updateDisplays();
+				});
 
-        variantIdInput.addEventListener("input", function () {
-          mainDemo.setVariantId(this.value);
-        });
+				variantIdInput.addEventListener('input', function () {
+					mainDemo.setVariantId(this.value);
+				});
 
-        // Global function for quick actions
-        window.setCartAmount = function (amount) {
-          cartAmountInput.value = amount.toFixed(2);
-          mainDemo.setCurrentAmount(amount);
-          updateDisplays();
-        };
+				// Global function for quick actions
+				window.setCartAmount = function (amount) {
+					cartAmountInput.value = amount.toFixed(2);
+					mainDemo.setCurrentAmount(amount);
+					updateDisplays();
+				};
 
-        // Listen for GWP events
-        mainDemo.addEventListener("gwp:added", (event) => {
-          console.log("🎁 Gift added to cart:", event.detail);
-          updateDisplays();
-        });
+				// Listen for GWP events
+				mainDemo.addEventListener('gwp:added', (event) => {
+					console.log('🎁 Gift added to cart:', event.detail);
+					updateDisplays();
+				});
 
-        mainDemo.addEventListener("gwp:removed", (event) => {
-          console.log("🗑️ Gift removed from cart:", event.detail);
-          updateDisplays();
-        });
+				mainDemo.addEventListener('gwp:removed', (event) => {
+					console.log('🗑️ Gift removed from cart:', event.detail);
+					updateDisplays();
+				});
 
-        mainDemo.addEventListener("gwp:error", (event) => {
-          console.error("❌ GWP Error:", event.detail);
-          // alert(`Error ${event.detail.action}ing gift: ${event.detail.error}`);
-        });
+				mainDemo.addEventListener('gwp:error', (event) => {
+					console.error('❌ GWP Error:', event.detail);
+					// alert(`Error ${event.detail.action}ing gift: ${event.detail.error}`);
+				});
 
-        // Initial display update
-        updateDisplays();
+				// Initial display update
+				updateDisplays();
 
-        // Console helpers
-        console.log("Gift with Purchase Demo loaded!");
-        console.log("Try the following in the console:");
-        console.log("mainDemo.setCurrentAmount(85)");
-        console.log("mainDemo.getState()");
-        console.log("mainDemo.setThreshold(50)");
-        console.log(
-          "mainDemo.updateProduct({title: 'New Gift', variantTitle: 'Special Edition'})"
-        );
+				// Console helpers
+				console.log('Gift with Purchase Demo loaded!');
+				console.log('Try the following in the console:');
+				console.log('mainDemo.setCurrentAmount(85)');
+				console.log('mainDemo.getState()');
+				console.log('mainDemo.setThreshold(50)');
+				console.log('mainDemo.setVariantId("87654321")');
 
-        // Make mainDemo globally accessible for console testing
-        window.mainDemo = mainDemo;
-      });
-    </script>
-  </body>
+				// Make mainDemo globally accessible for console testing
+				window.mainDemo = mainDemo;
+			});
+		</script>
+	</body>
 </html>

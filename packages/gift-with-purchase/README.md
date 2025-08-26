@@ -6,9 +6,9 @@ A powerful, e-commerce web component for automatic gift-with-purchase threshold 
 
 ## Features
 
-- 🎁 **Automatic Gift Management** - Adds/removes gifts based on cart thresholds
+- 🎁 **Automatic Gift Management** - Adds/removes gifts based on cart thresholds using smart pricing logic
 - 🛒 **Shopify Integration** - Built-in Cart API support with proper line item properties
-- 📱 **Cart Panel Sync** - Automatically syncs with cart-panel components
+- 📱 **Cart Panel Sync** - Automatically syncs with cart-dialog components using `calculated_subtotal`
 - 🎨 **Highly Customizable** - CSS custom properties and swappable content elements
 - ⚡ **Event-Driven** - Custom events for gift addition, removal, and errors
 - 🔧 **Flexible Content** - Data attributes for dynamic image, title, and variant updates
@@ -24,18 +24,19 @@ npm install @magic-spells/gift-with-purchase
 
 ```html
 <gift-with-purchase
-  threshold="75.00"
-  current="45.00"
-  variant-id="12345678"
-  message-above="🎉 Congratulations! You've qualified for your FREE gift!"
-  message-below="Add ${{ amount }} more to unlock your free gift! 🎁">
-  <div class="gwp-product">
-    <img src="gift-image.jpg" alt="Free Gift" data-gwp-image />
-    <div class="gwp-content">
-      <h4 data-gwp-title>Free Sample Set</h4>
-      <p data-gwp-variant>Travel Size Collection</p>
-    </div>
-  </div>
+	threshold="75.00"
+	current="45.00"
+	variant-id="12345678"
+	message-above="🎉 Congratulations! You've qualified for your FREE gift!"
+	message-below="Add ${ amount } more to unlock your free gift! 🎁">
+	<div class="gwp-product">
+		<img src="gift-image.jpg" alt="Free Gift" />
+		<div class="gwp-content">
+			<h4 class="gwp-title">Free Sample Set</h4>
+			<p class="gwp-variant">Travel Size Collection</p>
+		</div>
+	</div>
+	<p data-content-gwp-message class="text-sm font-medium"></p>
 </gift-with-purchase>
 ```
 
@@ -45,26 +46,34 @@ npm install @magic-spells/gift-with-purchase
 
 ## Cart Integration
 
-The component automatically listens for cart data changes when placed inside a `<cart-panel>` component:
+The component automatically listens for cart data changes when placed inside a `<cart-dialog>` component from the `@magic-spells/cart-panel` package:
 
 ```html
-<cart-panel>
-  <gift-with-purchase
-    threshold="75.00"
-    variant-id="12345678"
-    message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-    message-below="Add ${{ amount }} more to get FREE shipping! 🚚">
-    <!-- Gift content -->
-  </gift-with-purchase>
-</cart-panel>
+<cart-dialog>
+	<gift-with-purchase
+		threshold="75.00"
+		variant-id="12345678"
+		message-above="🎉 Congratulations! You've qualified for your FREE gift!"
+		message-below="Add ${ amount } more to unlock your free gift! 🎁">
+		<!-- Gift content -->
+	</gift-with-purchase>
+</cart-dialog>
 ```
 
-When the cart-panel emits a `cart-dialog:data-changed` event (typically from Shopify cart updates), the gift component will automatically:
+When the cart-dialog emits a `cart-dialog:data-changed` event (typically from Shopify cart updates), the gift component will automatically:
 
-- Update the current cart amount
-- Check if the threshold is met
+- Update the current cart amount using `calculated_subtotal` for accurate threshold calculation
+- Check if the threshold is met (excludes other gifts and honors pricing exclusions)
 - Add the gift to cart if threshold is reached
 - Remove the gift if cart falls below threshold
+
+### Smart Pricing Logic
+
+The component uses intelligent threshold calculation:
+- **Uses `calculated_subtotal`** from cart-panel which properly handles item exclusions
+- **Excludes gifts**: Other gifts with purchase won't count toward this threshold
+- **Includes bundle items**: Hidden bundle components that should count are included
+- **Backwards compatible**: Falls back to `total_price` if `calculated_subtotal` unavailable
 
 ## JavaScript API
 
@@ -84,13 +93,11 @@ gwp.setVariantId('87654321');
 const state = gwp.getState();
 console.log(state.isActive, state.isAdded, state.remainingAmount);
 
-// Update product information
-gwp.updateProduct({
-  image: 'new-gift.jpg',
-  title: 'Updated Gift',
-  variantTitle: 'New Variant',
-  alt: 'New gift image',
-});
+// Manual message updates (component handles this automatically)
+const messageEl = gwp.querySelector('[data-content-gwp-message]');
+if (messageEl) {
+	messageEl.textContent = 'Custom message';
+}
 ```
 
 ## Attributes
@@ -101,17 +108,24 @@ gwp.updateProduct({
 | `current`       | Current cart amount                                                  | `"45.00"`                                                    |
 | `variant-id`    | Shopify variant ID for the gift product                              | `"12345678"`                                                 |
 | `message-above` | Message shown when threshold is met                                  | `"🎉 Congratulations! You've qualified for your FREE gift!"` |
-| `message-below` | Message shown when below threshold (uses `{{ amount }}` placeholder) | `"Add ${{ amount }} more to unlock your free gift! 🎁"`      |
+| `message-below` | Message shown when below threshold (uses `{ amount }` placeholder) | `"Add ${ amount } more to unlock your free gift! 🎁"`      |
 
-## Data Attributes for Content
+## Message Element
 
-Use these data attributes to create swappable content elements:
+The component requires a message element to display threshold messages:
 
-| Data Attribute     | Description              | Element Type     |
-| ------------------ | ------------------------ | ---------------- |
-| `data-gwp-image`   | Gift product image       | `<img>`          |
-| `data-gwp-title`   | Gift product title       | Any text element |
-| `data-gwp-variant` | Gift variant/description | Any text element |
+```html
+<gift-with-purchase threshold="75.00" variant-id="12345678">
+	<!-- Your gift content with any styling -->
+	<div class="gift-content">
+		<h4 class="font-bold">Free Gift</h4>
+		<p class="text-gray-600">Sample Description</p>
+	</div>
+
+	<!-- Required: Element where messages will be injected -->
+	<p data-content-gwp-message class="bg-green-100 p-2 rounded"></p>
+</gift-with-purchase>
+```
 
 ## Events
 
@@ -120,18 +134,18 @@ The component emits custom events for integration:
 ```javascript
 // Gift successfully added to cart
 gwp.addEventListener('gwp:added', (event) => {
-  console.log('Gift added:', event.detail.variantId);
+	console.log('Gift added:', event.detail.variantId);
 });
 
 // Gift successfully removed from cart
 gwp.addEventListener('gwp:removed', (event) => {
-  console.log('Gift removed:', event.detail.variantId);
+	console.log('Gift removed:', event.detail.variantId);
 });
 
 // Error occurred during add/remove
 gwp.addEventListener('gwp:error', (event) => {
-  console.error('Error:', event.detail.error);
-  console.log('Action:', event.detail.action); // 'add' or 'remove'
+	console.error('Error:', event.detail.error);
+	console.log('Action:', event.detail.action); // 'add' or 'remove'
 });
 ```
 
@@ -141,45 +155,38 @@ Use CSS custom properties to customize the appearance:
 
 ```css
 gift-with-purchase {
-  --gwp-border-radius: 12px;
-  --gwp-padding: 1.5rem;
-  --gwp-bg-active: #e8f5e8;
-  --gwp-border-active: #28a745;
-  --gwp-text-active: #155724;
-  --gwp-image-size: 80px;
+	--gwp-border-radius: 12px;
+	--gwp-padding: 1.5rem;
+	--gwp-bg-active: #e8f5e8;
+	--gwp-border-active: #28a745;
+	--gwp-text-active: #155724;
+	--gwp-image-size: 80px;
 }
 ```
 
 ## Available CSS Custom Properties
 
-| Property                | Description              | Default   |
-| ----------------------- | ------------------------ | --------- |
-| `--gwp-border-radius`   | Border radius            | `8px`     |
-| `--gwp-padding`         | Internal padding         | `1rem`    |
-| `--gwp-bg-inactive`     | Background when inactive | `#f8f9fa` |
-| `--gwp-bg-active`       | Background when active   | `#e8f5e8` |
-| `--gwp-bg-added`        | Background when added    | `#d4edda` |
-| `--gwp-border-inactive` | Border when inactive     | `#dee2e6` |
-| `--gwp-border-active`   | Border when active       | `#28a745` |
-| `--gwp-border-added`    | Border when added        | `#155724` |
-| `--gwp-text-inactive`   | Text color when inactive | `#6c757d` |
-| `--gwp-text-active`     | Text color when active   | `#155724` |
-| `--gwp-image-size`      | Size of product image    | `60px`    |
-| `--gwp-gap`             | Gap between elements     | `0.75rem` |
+| Property              | Description            | Default   |
+| --------------------- | ---------------------- | --------- |
+| `--gwp-border-radius` | Border radius          | `8px`     |
+| `--gwp-padding`       | Internal padding       | `1rem`    |
+| `--gwp-bg-active`     | Background when active | `#e8f5e8` |
+| `--gwp-bg-added`      | Background when added  | `#d4edda` |
+| `--gwp-border-active` | Border when active     | `#28a745` |
+| `--gwp-border-added`  | Border when added      | `#155724` |
+| `--gwp-text-active`   | Text color when active | `#155724` |
+| `--gwp-text-added`    | Text color when added  | `#155724` |
+| `--gwp-gap`           | Gap between elements   | `1rem`    |
 
 ## Component States
 
-The component automatically applies CSS classes based on its state:
+The component automatically applies a `state` attribute based on its current condition:
 
-- `.gwp-inactive` - Below threshold (default state)
-- `.gwp-active` - Threshold met, gift available
-- `.gwp-added` - Gift successfully added to cart
+- `state="active"` - Threshold met, gift available to add
+- `state="added"` - Gift successfully added to cart
+- `state="ended"` - Promo ended (component hidden)
 
-And data attributes:
-
-- `data-inactive="true"` - When below threshold
-- `data-active="true"` - When threshold is met
-- `data-added="true"` - When gift is in cart
+Note: There is no `inactive` state since the component would typically not be loaded at all when below threshold in most Shopify implementations.
 
 ## Shopify Integration Details
 
@@ -193,7 +200,7 @@ The component uses Shopify's Cart API endpoints:
 
 ### Line Item Properties
 
-When adding gifts to the cart, the component sets these properties:
+When adding gifts to the cart, the component automatically sets these properties for proper cart integration:
 
 ```javascript
 {
@@ -201,16 +208,17 @@ When adding gifts to the cart, the component sets these properties:
   quantity: 1,
   properties: {
     _gwp_item: "true",
-    _gwp_threshold: "75.00"
+    _hide_in_cart: "true",
+    _ignore_price_in_subtotal: "true"
   }
 }
 ```
 
-This allows you to:
-
-- Identify gift items in cart templates
-- Hide gifts from cart totals if needed
-- Remove gifts when cart changes
+**Property Functions:**
+- **`_gwp_item: "true"`** - Identifies gift items in cart templates and for removal logic
+- **`_hide_in_cart: "true"`** - Hides gifts from cart display (handled by `@magic-spells/cart-panel`)
+- **`_ignore_price_in_subtotal: "true"`** - Excludes gift price from subtotal calculations and threshold checks
+- **Automatic management** - These properties ensure gifts don't interfere with other promotions or cart totals
 
 ### Cart Template Integration
 
@@ -237,26 +245,28 @@ In your Shopify cart template, you can identify and handle gift items:
 ```html
 <!-- Low tier gift -->
 <gift-with-purchase
-  threshold="50.00"
-  variant-id="111111"
-  message-above="🎉 You've unlocked a free tote bag!"
-  message-below="Add ${{ amount }} more for a free tote bag! 👜">
-  <div class="gwp-product">
-    <img src="tote-bag.jpg" data-gwp-image />
-    <h4 data-gwp-title>Free Tote Bag</h4>
-  </div>
+	threshold="50.00"
+	variant-id="111111"
+	message-above="🎉 You've unlocked a free tote bag!"
+	message-below="Add ${ amount } more for a free tote bag! 👜">
+	<div class="gwp-product">
+		<img src="tote-bag.jpg" alt="Free Tote Bag" />
+		<h4 class="gwp-title">Free Tote Bag</h4>
+	</div>
+	<p data-content-gwp-message class="message-low-tier"></p>
 </gift-with-purchase>
 
 <!-- High tier gift -->
 <gift-with-purchase
-  threshold="100.00"
-  variant-id="222222"
-  message-above="✨ Amazing! You've earned our premium gift set!"
-  message-below="Spend ${{ amount }} more for our exclusive premium gift set! ✨">
-  <div class="gwp-product">
-    <img src="gift-set.jpg" data-gwp-image />
-    <h4 data-gwp-title>Premium Gift Set</h4>
-  </div>
+	threshold="100.00"
+	variant-id="222222"
+	message-above="✨ Amazing! You've earned our premium gift set!"
+	message-below="Spend ${ amount } more for our exclusive premium gift set! ✨">
+	<div class="gwp-product">
+		<img src="gift-set.jpg" alt="Premium Gift Set" />
+		<h4 class="gwp-title">Premium Gift Set</h4>
+	</div>
+	<p data-content-gwp-message class="message-premium"></p>
 </gift-with-purchase>
 ```
 
@@ -265,26 +275,26 @@ In your Shopify cart template, you can identify and handle gift items:
 ```css
 /* Minimal style */
 .gwp-minimal {
-  --gwp-padding: 0.75rem;
-  --gwp-border-radius: 4px;
-  --gwp-bg-active: #f0f8f0;
+	--gwp-padding: 0.75rem;
+	--gwp-border-radius: 4px;
+	--gwp-bg-active: #f0f8f0;
 }
 
 /* Bold style */
 .gwp-bold {
-  --gwp-padding: 1.5rem;
-  --gwp-border-radius: 12px;
-  --gwp-bg-active: #28a745;
-  --gwp-text-active: white;
+	--gwp-padding: 1.5rem;
+	--gwp-border-radius: 12px;
+	--gwp-bg-active: #28a745;
+	--gwp-text-active: white;
 }
 
 /* Compact mobile style */
 @media (max-width: 768px) {
-  gift-with-purchase {
-    --gwp-image-size: 40px;
-    --gwp-padding: 0.5rem;
-    --gwp-gap: 0.5rem;
-  }
+	gift-with-purchase {
+		--gwp-image-size: 40px;
+		--gwp-padding: 0.5rem;
+		--gwp-gap: 0.5rem;
+	}
 }
 ```
 
@@ -301,20 +311,16 @@ Type definitions are included in the package:
 
 ```typescript
 interface GiftWithPurchaseState {
-  currentAmount: number;
-  threshold: number;
-  variantId: string | null;
-  isActive: boolean;
-  isAdded: boolean;
-  remainingAmount: number;
+	currentAmount: number;
+	threshold: number;
+	variantId: string | null;
+	isActive: boolean;
+	isAdded: boolean;
+	remainingAmount: number;
 }
 
-interface GiftWithPurchaseProductData {
-  image?: string;
-  title?: string;
-  variantTitle?: string;
-  alt?: string;
-}
+// Component automatically handles message injection
+// Style your content and message elements with any CSS classes
 ```
 
 ## Contributing

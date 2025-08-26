@@ -4,80 +4,67 @@ $gwp-padding: 1rem !default;
 $gwp-gap: 1rem !default;
 
 // Colors
-$gwp-bg-inactive: #f8f9fa !default;
 $gwp-bg-active: #e8f5e8 !default;
 $gwp-bg-added: #d4edda !default;
-$gwp-border-inactive: #dee2e6 !default;
 $gwp-border-active: #28a745 !default;
 $gwp-border-added: #155724 !default;
-$gwp-text-inactive: #6c757d !default;
 $gwp-text-active: #155724 !default;
 $gwp-text-added: #155724 !default;
 
 // Gift with purchase component styles
 gift-with-purchase {
-  // CSS Custom Properties for customization
-  --gwp-border-radius: #{$gwp-border-radius};
-  --gwp-padding: #{$gwp-padding};
-  --gwp-gap: #{$gwp-gap};
-  --gwp-bg-inactive: #{$gwp-bg-inactive};
-  --gwp-bg-active: #{$gwp-bg-active};
-  --gwp-bg-added: #{$gwp-bg-added};
-  --gwp-border-inactive: #{$gwp-border-inactive};
-  --gwp-border-active: #{$gwp-border-active};
-  --gwp-border-added: #{$gwp-border-added};
-  --gwp-text-inactive: #{$gwp-text-inactive};
-  --gwp-text-active: #{$gwp-text-active};
-  --gwp-text-added: #{$gwp-text-added};
+	// CSS Custom Properties for customization
+	--gwp-border-radius: #{$gwp-border-radius};
+	--gwp-padding: #{$gwp-padding};
+	--gwp-gap: #{$gwp-gap};
+	--gwp-bg-active: #{$gwp-bg-active};
+	--gwp-bg-added: #{$gwp-bg-added};
+	--gwp-border-active: #{$gwp-border-active};
+	--gwp-border-added: #{$gwp-border-added};
+	--gwp-text-active: #{$gwp-text-active};
+	--gwp-text-added: #{$gwp-text-added};
 
-  display: block;
-  border: 2px solid var(--gwp-border-inactive);
-  border-radius: var(--gwp-border-radius);
-  padding: var(--gwp-padding);
-  background-color: var(--gwp-bg-inactive);
-  color: var(--gwp-text-inactive);
+	display: block;
+	border: 2px solid var(--gwp-border-active);
+	border-radius: var(--gwp-border-radius);
+	padding: var(--gwp-padding);
+	background-color: var(--gwp-bg-active);
+	color: var(--gwp-text-active);
 
-  // Basic product layout - image left, content right
-  .gwp-product {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--gwp-gap);
-  }
+	// Basic product layout - image left, content right
+	.gwp-product {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--gwp-gap);
+	}
 
-  // Basic image styling
-  [data-gwp-image] {
-    flex-shrink: 0;
-  }
+	// Basic image styling
+	[data-gwp-image] {
+		flex-shrink: 0;
+	}
 
-  // Content takes remaining space
-  .gwp-content {
-    flex: 1;
-    min-width: 0;
-  }
+	// Content takes remaining space
+	.gwp-content {
+		flex: 1;
+		min-width: 0;
+	}
 
-  // State: Inactive (below threshold)
-  &.gwp-inactive {
-    background-color: var(--gwp-bg-inactive);
-    border-color: var(--gwp-border-inactive);
-    color: var(--gwp-text-inactive);
-  }
+	// State: Active (threshold reached, gift not yet added)
+	&[state='active'] {
+		background-color: var(--gwp-bg-active);
+		border-color: var(--gwp-border-active);
+		color: var(--gwp-text-active);
+	}
 
-  // State: Active (threshold reached)
-  &.gwp-active {
-    background-color: var(--gwp-bg-active);
-    border-color: var(--gwp-border-active);
-    color: var(--gwp-text-active);
-  }
+	// State: Added (gift in cart)
+	&[state='added'] {
+		background-color: var(--gwp-bg-added);
+		border-color: var(--gwp-border-added);
+		color: var(--gwp-text-added);
+	}
 
-  // State: Added (gift in cart)
-  &.gwp-added {
-    background-color: var(--gwp-bg-added);
-    border-color: var(--gwp-border-added);
-    color: var(--gwp-text-added);
-  }
-
-  // Hide when promo ended
-  &.gwp-ended {
-    display: none;
-  }
+	// State: Ended (promo ended - component hidden)
+	&[state='ended'] {
+		display: none;
+	}
 }

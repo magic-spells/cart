@@ -1,75 +1,75 @@
 {
-  "name": "@magic-spells/gift-with-purchase",
-  "version": "0.1.0",
-  "description": "Gift with purchase web component for e-commerce threshold promotions.",
-  "author": "Cory Schulz",
-  "license": "MIT",
-  "type": "module",
-  "main": "dist/gift-with-purchase.cjs.js",
-  "module": "dist/gift-with-purchase.esm.js",
-  "unpkg": "dist/gift-with-purchase.min.js",
-  "style": "dist/gift-with-purchase.min.css",
-  "sass": "dist/gift-with-purchase.scss",
-  "exports": {
-    ".": {
-      "import": "./dist/gift-with-purchase.esm.js",
-      "require": "./dist/gift-with-purchase.cjs.js",
-      "default": "./dist/gift-with-purchase.esm.js"
-    },
-    "./css": "./dist/gift-with-purchase.css",
-    "./css/min": "./dist/gift-with-purchase.min.css",
-    "./scss": "./dist/gift-with-purchase.scss"
-  },
-  "sideEffects": true,
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/magic-spells/gift-with-purchase"
-  },
-  "homepage": "https://github.com/magic-spells/gift-with-purchase#readme",
-  "bugs": {
-    "url": "https://github.com/magic-spells/gift-with-purchase/issues"
-  },
-  "keywords": [
-    "gift-with-purchase",
-    "e-commerce",
-    "web-components",
-    "shopify",
-    "custom-elements",
-    "threshold-promotion",
-    "cart-promotion"
-  ],
-  "files": [
-    "dist/",
-    "src/"
-  ],
-  "scripts": {
-    "build": "rollup -c",
-    "lint": "eslint src/ rollup.config.mjs",
-    "format": "prettier --write .",
-    "prepublishOnly": "npm run build",
-    "serve": "rollup -c --watch",
-    "dev": "rollup -c --watch"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
-  "browserslist": [
-    "last 2 versions",
-    "not dead",
-    "not ie <= 11"
-  ],
-  "devDependencies": {
-    "@eslint/js": "^8.57.0",
-    "@rollup/plugin-node-resolve": "^15.2.3",
-    "@rollup/plugin-terser": "^0.4.4",
-    "eslint": "^8.0.0",
-    "globals": "^13.24.0",
-    "prettier": "^3.3.3",
-    "rollup": "^3.0.0",
-    "rollup-plugin-copy": "^3.5.0",
-    "rollup-plugin-postcss": "^4.0.2",
-    "rollup-plugin-serve": "^1.1.1",
-    "sass": "^1.86.3"
-  }
+	"name": "@magic-spells/gift-with-purchase",
+	"version": "0.1.0",
+	"description": "Gift with purchase web component for e-commerce threshold promotions.",
+	"author": "Cory Schulz",
+	"license": "MIT",
+	"type": "module",
+	"main": "dist/gift-with-purchase.cjs.js",
+	"module": "dist/gift-with-purchase.esm.js",
+	"unpkg": "dist/gift-with-purchase.min.js",
+	"style": "dist/gift-with-purchase.min.css",
+	"sass": "dist/gift-with-purchase.scss",
+	"exports": {
+		".": {
+			"import": "./dist/gift-with-purchase.esm.js",
+			"require": "./dist/gift-with-purchase.cjs.js",
+			"default": "./dist/gift-with-purchase.esm.js"
+		},
+		"./css": "./dist/gift-with-purchase.css",
+		"./css/min": "./dist/gift-with-purchase.min.css",
+		"./scss": "./dist/gift-with-purchase.scss"
+	},
+	"sideEffects": true,
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/magic-spells/gift-with-purchase"
+	},
+	"homepage": "https://github.com/magic-spells/gift-with-purchase#readme",
+	"bugs": {
+		"url": "https://github.com/magic-spells/gift-with-purchase/issues"
+	},
+	"keywords": [
+		"gift-with-purchase",
+		"e-commerce",
+		"web-components",
+		"shopify",
+		"custom-elements",
+		"threshold-promotion",
+		"cart-promotion"
+	],
+	"files": [
+		"dist/",
+		"src/"
+	],
+	"scripts": {
+		"build": "rollup -c",
+		"lint": "eslint src/ rollup.config.mjs",
+		"format": "prettier --write .",
+		"prepublishOnly": "npm run build",
+		"serve": "rollup -c --watch",
+		"dev": "rollup -c --watch"
+	},
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"browserslist": [
+		"last 2 versions",
+		"not dead",
+		"not ie <= 11"
+	],
+	"devDependencies": {
+		"@eslint/js": "^8.57.0",
+		"@rollup/plugin-node-resolve": "^15.2.3",
+		"@rollup/plugin-terser": "^0.4.4",
+		"eslint": "^8.0.0",
+		"globals": "^13.24.0",
+		"prettier": "^3.3.3",
+		"rollup": "^3.0.0",
+		"rollup-plugin-copy": "^3.5.0",
+		"rollup-plugin-postcss": "^4.0.2",
+		"rollup-plugin-serve": "^1.1.1",
+		"sass": "^1.86.3"
+	}
 }
