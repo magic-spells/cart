@@ -48,9 +48,16 @@ The component automatically integrates with a parent `<cart-dialog>` component (
 - Gift items with `_ignore_price_in_subtotal` are excluded from the progress calculation
 
 ### Message Templating
-Uses `{ amount }` placeholder in message templates that gets replaced with formatted USD currency amounts (using Intl.NumberFormat). Shows different messages based on completion status:
-- `message-below`: Shown when cart total is below threshold
-- `message-above`: Shown when cart total meets/exceeds threshold
+Uses flexible placeholder formats in message templates. Users include currency symbols directly in their messages. Supports multiple placeholder formats:
+- `{ amount }` - with spaces around amount
+- `{amount}` - no spaces
+- `[amount]` - square brackets (with or without spaces)
+
+Shows different messages based on completion status:
+- `message-below`: Shown when cart total is below threshold (e.g., "Add ${ amount } more for free shipping!")
+- `message-above`: Shown when cart total meets/exceeds threshold (e.g., "🎉 FREE shipping unlocked!")
+
+Amount formatting: Uses `toFixed(2).replace('.00', '')` to keep amounts compact (e.g., "15" instead of "15.00", but "15.50" stays "15.50").
 
 ## Development Notes
 

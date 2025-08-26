@@ -255,8 +255,8 @@
 						threshold="75.00"
 						current="25.50"
 						message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-						message-below="Add { amount } more to get FREE shipping! 🚚">
-						<p data-content-cart-progress-message>Add { amount } more to get FREE shipping! 🚚</p>
+						message-below="Add ${ amount } more to get FREE shipping! 🚚">
+						<p data-content-cart-progress-message>Add ${ amount } more to get FREE shipping! 🚚</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -272,8 +272,8 @@
 						class="theme-minimal"
 						threshold="50.00"
 						current="32.50"
-						message-below="{ amount } away from free delivery">
-						<p data-content-cart-progress-message>{ amount } away from free delivery</p>
+						message-below="${ amount } away from free delivery">
+						<p data-content-cart-progress-message>${ amount } away from free delivery</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -285,8 +285,8 @@
 						threshold="100.00"
 						current="78.90"
 						message-above="🎉 FREE shipping unlocked!"
-						message-below="🎯 { amount } more for FREE shipping!">
-						<p data-content-cart-progress-message>🎯 { amount } more for FREE shipping!</p>
+						message-below="🎯 ${ amount } more for FREE shipping!">
+						<p data-content-cart-progress-message>🎯 ${ amount } more for FREE shipping!</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -298,9 +298,9 @@
 						threshold="150.00"
 						current="120.00"
 						message-above="⚡ TURBO shipping activated!"
-						message-below="⚡ Only { amount } until TURBO shipping!">
+						message-below="⚡ Only ${ amount } until TURBO shipping!">
 						<progress-bar></progress-bar>
-						<p data-content-cart-progress-message>⚡ Only { amount } until TURBO shipping!</p>
+						<p data-content-cart-progress-message>⚡ Only ${ amount } until TURBO shipping!</p>
 					</cart-progress-bar>
 				</div>
 			</section>
@@ -313,8 +313,8 @@
   threshold="75.00" 
   current="25.50"
   message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-  message-below="Add { amount } more for FREE shipping!"&gt;
-  &lt;p data-content-cart-progress-message&gt;Add { amount } more for FREE shipping!&lt;/p&gt;
+  message-below="Add ${ amount } more for FREE shipping!"&gt;
+  &lt;p data-content-cart-progress-message&gt;Add ${ amount } more for FREE shipping!&lt;/p&gt;
   &lt;progress-bar&gt;&lt;/progress-bar&gt;
 &lt;/cart-progress-bar&gt;</code></pre>
 
@@ -356,7 +356,7 @@ console.log(info.percent, info.isComplete, info.thresholdAmount);</code></pre>
 					<div class="feature">
 						<h3>🎯 Smart Messaging</h3>
 						<p>
-							Template-based messages with automatic currency formatting and show/hide logic based
+							Template-based messages with flexible placeholder formats ({ amount }, [amount]) and show/hide logic based
 							on completion status.
 						</p>
 					</div>
@@ -443,7 +443,7 @@ console.log(info.percent, info.isComplete, info.thresholdAmount);</code></pre>
 				console.log('mainDemo.setPercent(75)');
 				console.log('mainDemo.getProgress()');
 				console.log('mainDemo.setThresholdAmount(100)');
-				console.log('mainDemo.setMessages(null, "Only { amount } left to save!")');
+				console.log('mainDemo.setMessages(null, "Only ${ amount } left to save!")');
 
 				// Make mainDemo globally accessible for console testing
 				window.mainDemo = mainDemo;

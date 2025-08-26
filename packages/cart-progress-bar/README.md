@@ -6,7 +6,7 @@ A beautiful, accessible cart progress bar web component for free shipping thresh
 
 ## Features
 
-- 🎯 **Smart Messaging** - Template-based messages with automatic currency formatting
+- 🎯 **Smart Messaging** - Template-based messages with flexible placeholder formats
 - 🎨 **Simplified Theming** - Just 5 CSS variables to control all colors and appearance
 - 📱 **Responsive** - Mobile-optimized with responsive breakpoints
 - ⚡ **Smooth Animations** - Buttery smooth transitions and completion effects
@@ -25,8 +25,8 @@ npm install @magic-spells/cart-progress-bar
 	threshold="75.00"
 	current="25.50"
 	message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-	message-below="Add { amount } more for FREE shipping!">
-	<p data-content-cart-progress-message>Add { amount } more for FREE shipping!</p>
+	message-below="Add ${ amount } more for FREE shipping!">
+	<p data-content-cart-progress-message>Add ${ amount } more for FREE shipping!</p>
 	<progress-bar></progress-bar>
 </cart-progress-bar>
 ```
@@ -54,7 +54,7 @@ const info = progressBar.getProgress();
 console.log(info.percent, info.isComplete, info.thresholdAmount);
 
 // Update message templates
-progressBar.setMessages('Almost there!', 'Only { amount } more to go!');
+progressBar.setMessages('Almost there!', 'Only ${ amount } more to go!');
 ```
 
 ## Cart Integration
@@ -63,7 +63,7 @@ The component automatically listens for cart data changes when placed inside a `
 
 ```html
 <cart-dialog>
-	<cart-progress-bar threshold="75.00" message-below="Add { amount } more for FREE shipping!">
+	<cart-progress-bar threshold="75.00" message-below="Add ${ amount } more for FREE shipping!">
 	</cart-progress-bar>
 </cart-dialog>
 ```
@@ -86,7 +86,7 @@ The progress bar uses intelligent pricing calculation:
 | `threshold`     | Threshold amount for free shipping        | `"75.00"`                      |
 | `current`       | Current cart amount                       | `"25.50"`                      |
 | `message-above` | Success message when threshold is reached | `"🎉 FREE shipping unlocked!"` |
-| `message-below` | Message template shown below the bar      | `"Add { amount } more!"`       |
+| `message-below` | Message template shown below the bar      | `"Add ${ amount } more!"`       |
 
 ## Customization
 
@@ -130,21 +130,40 @@ cart-progress-bar {
 
 ## Message Templates
 
-Use `{ amount }` in your message templates for automatic currency formatting:
+Use placeholder formats in your message templates and include the currency symbol:
 
 ```html
 <cart-progress-bar
 	message-above="🎉 FREE shipping unlocked!"
-	message-below="You need { amount } more for free shipping!">
-	<p data-content-cart-progress-message>You need { amount } more for free shipping!</p>
+	message-below="You need ${ amount } more for free shipping!">
+	<p data-content-cart-progress-message>You need ${ amount } more for free shipping!</p>
 </cart-progress-bar>
+```
+
+### Supported Placeholder Formats
+
+- `{ amount }` - spaces around amount
+- `{amount}` - no spaces
+- `[amount]` - square brackets (with or without spaces)
+
+### Examples
+
+```html
+<!-- Dollar amounts -->
+<cart-progress-bar message-below="Add ${ amount } more for free shipping!">
+
+<!-- Euro amounts -->
+<cart-progress-bar message-below="Only €{amount} left to unlock free delivery!">
+
+<!-- With square brackets -->
+<cart-progress-bar message-below="Just £[amount] more to go!">
 ```
 
 The component automatically:
 
-- Shows `message-below` when incomplete (with `{ amount }` replaced with remaining amount needed)
-- Shows `message-above` when threshold is reached (success message)
-- Formats the amount as USD currency using Intl.NumberFormat (removes .00 for whole dollar amounts)
+- Shows `message-below` when incomplete (with placeholder replaced with remaining amount)
+- Shows `message-above` when threshold is reached (success message)  
+- Formats amounts as minimal decimal numbers (removes .00 for whole amounts)
 - Updates messages when amounts change
 - Switches between before/after progress bar colors based on completion status
 

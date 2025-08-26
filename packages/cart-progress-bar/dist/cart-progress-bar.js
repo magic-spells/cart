@@ -194,8 +194,8 @@
 			const isComplete = this.#currentAmount >= this.#minAmount;
 			const remainingAmount = Math.max(0, this.#minAmount - this.#currentAmount);
 
-			// Format remaining amount as currency (assuming USD for now)
-			const formattedAmount = this.#formatCurrency(remainingAmount);
+			// Format amount with minimal formatting
+			const formattedAmount = remainingAmount.toFixed(2).replace('.00', '');
 
 			// Update the single message element
 			if (this.#messageElement) {
@@ -210,7 +210,10 @@
 				}
 
 				if (messageTemplate) {
-					const message = messageTemplate.replace('{ amount }', formattedAmount);
+					// Support multiple placeholder formats: {amount}, { amount }, [amount]
+					const message = messageTemplate
+						.replace(/\{\s*amount\s*\}/g, formattedAmount)
+						.replace(/\[\s*amount\s*\]/g, formattedAmount);
 					this.#messageElement.textContent = message;
 					this.#messageElement.style.display = 'block';
 				} else {
@@ -225,17 +228,6 @@
 			this.setAttribute('complete', isComplete.toString());
 		}
 
-		#formatCurrency(amount) {
-			// Basic currency formatting - could be enhanced with locale/currency options
-			return new Intl.NumberFormat('en-US', {
-				style: 'currency',
-				currency: 'USD',
-				minimumFractionDigits: 2,
-				maximumFractionDigits: 2,
-			})
-				.format(amount)
-				.replace('.00', '');
-		}
 
 		/**
 		 * Public API: Set the progress percentage directly
