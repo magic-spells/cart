@@ -1,7 +1,7 @@
-import { CartItem } from '@magic-spells/cart-item';
-export { CartItem } from '@magic-spells/cart-item';
 import '@magic-spells/focus-trap';
 import EventEmitter from '@magic-spells/event-emitter';
+import { CartItem } from '@magic-spells/cart-item';
+export { CartItem } from '@magic-spells/cart-item';
 
 /**
  * Custom element that creates an accessible modal cart dialog with focus management
@@ -277,7 +277,6 @@ class CartDialog extends HTMLElement {
 					this.#currentCart = updatedCart;
 					this.#renderCartItems(updatedCart);
 					this.#renderCartPanel(updatedCart);
-					element.setState('ready');
 
 					// Emit cart updated and data changed events
 					const cartWithCalculatedFields = this.#addCalculatedFields(updatedCart);
@@ -322,7 +321,7 @@ class CartDialog extends HTMLElement {
 		if (!cartData) return;
 
 		// Calculate subtotal from all items except those marked to ignore pricing
-		const pricedItems = cartData.items.filter(item => {
+		const pricedItems = cartData.items.filter((item) => {
 			const ignorePrice = item.properties?._ignore_price_in_subtotal;
 			return !ignorePrice;
 		});
@@ -478,6 +477,26 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
+	 * Update existing cart-item elements with fresh cart data
+	 * @private
+	 */
+	#updateItemsInDOM(itemsContainer, cartData) {
+		const visibleItems = this.#getVisibleCartItems(cartData);
+		const existingItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+
+		existingItems.forEach((cartItemEl) => {
+			const key = cartItemEl.getAttribute('key');
+			const updatedItemData = visibleItems.find((item) => (item.key || item.id) === key);
+
+			if (updatedItemData) {
+				// Update cart-item with fresh data and full cart context
+				// The cart-item will handle HTML comparison and only re-render if needed
+				cartItemEl.setData(updatedItemData, cartData);
+			}
+		});
+	}
+
+	/**
 	 * Add new items to DOM with animation delay
 	 * @private
 	 */
@@ -535,9 +554,16 @@ class CartDialog extends HTMLElement {
 	#addCalculatedFields(cartData) {
 		if (!cartData) return cartData;
 
+		// For display counts: use visible items (excludes _hide_in_cart)
 		const visibleItems = this.#getVisibleCartItems(cartData);
 		const calculated_count = visibleItems.reduce((total, item) => total + item.quantity, 0);
-		const calculated_subtotal = visibleItems.reduce(
+
+		// For pricing: use all items except those marked to ignore pricing
+		const pricedItems = cartData.items.filter((item) => {
+			const ignorePrice = item.properties?._ignore_price_in_subtotal;
+			return !ignorePrice;
+		});
+		const calculated_subtotal = pricedItems.reduce(
 			(total, item) => total + (item.line_price || 0),
 			0
 		);
@@ -578,8 +604,6 @@ class CartDialog extends HTMLElement {
 			// Create cart-item elements without animation
 			visibleItems.forEach((itemData) => {
 				const cartItem = new CartItem(itemData); // No animation
-				// const cartItem = document.createElement('cart-item');
-				// cartItem.setData(itemData);
 				itemsContainer.appendChild(cartItem);
 			});
 
@@ -599,7 +623,10 @@ class CartDialog extends HTMLElement {
 		// Step 1: Remove items that are no longer in cart data
 		this.#removeItemsFromDOM(itemsContainer, newKeysSet);
 
-		// Step 2: Add new items that weren't in DOM (with animation delay)
+		// Step 2: Update existing items with fresh data (handles templates, bundles, etc.)
+		this.#updateItemsInDOM(itemsContainer, cartData);
+
+		// Step 3: Add new items that weren't in DOM (with animation delay)
 		const itemsToAdd = visibleItems.filter(
 			(itemData) => !currentKeys.has(itemData.key || itemData.id)
 		);
