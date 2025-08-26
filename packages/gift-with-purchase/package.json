@@ -1,6 +1,6 @@
 {
 	"name": "@magic-spells/gift-with-purchase",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Gift with purchase web component for e-commerce threshold promotions.",
 	"author": "Cory Schulz",
 	"license": "MIT",
