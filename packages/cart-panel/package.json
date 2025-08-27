@@ -1,6 +1,6 @@
 {
 	"name": "@magic-spells/cart-panel",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Accessible modal shopping cart dialog web component with Shopify integration, focus management, and smooth animations.",
 	"author": "Cory Schulz",
 	"license": "MIT",
