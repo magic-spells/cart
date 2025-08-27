@@ -75,7 +75,7 @@
 		"sass": "^1.89.2"
 	},
 	"dependencies": {
-		"@magic-spells/cart-item": "^0.4.1",
+		"@magic-spells/cart-item": "^0.4.2",
 		"@magic-spells/event-emitter": "^0.1.0",
 		"@magic-spells/focus-trap": "^1.0.7"
 	}

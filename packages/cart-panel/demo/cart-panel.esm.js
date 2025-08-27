@@ -417,7 +417,7 @@ class QuantityModifier extends HTMLElement {
 
     if (decrementBtn) decrementBtn.addEventListener('click', this.handleDecrement);
     if (incrementBtn) incrementBtn.addEventListener('click', this.handleIncrement);
-    if (input) input.addEventListener('input', this.handleInputChange);
+    if (input) input.addEventListener('change', this.handleInputChange);
   }
 
   // Remove event listeners to prevent memory leaks
@@ -428,7 +428,7 @@ class QuantityModifier extends HTMLElement {
 
     if (decrementBtn) decrementBtn.removeEventListener('click', this.handleDecrement);
     if (incrementBtn) incrementBtn.removeEventListener('click', this.handleIncrement);
-    if (input) input.removeEventListener('input', this.handleInputChange);
+    if (input) input.removeEventListener('change', this.handleInputChange);
   }
 
   // Handle decrement button click, respects minimum value
@@ -448,8 +448,13 @@ class QuantityModifier extends HTMLElement {
   // Handle direct input changes, clamps value between min and max
   handleInputChange(event) {
     const inputValue = parseInt(event.target.value);
+
     if (!isNaN(inputValue)) {
       const clampedValue = Math.max(this.min, Math.min(inputValue, this.max));
+      // Update the DOM input if the value was clamped
+      if (clampedValue !== inputValue) {
+        event.target.value = clampedValue;
+      }
       this.updateValue(clampedValue);
     }
   }

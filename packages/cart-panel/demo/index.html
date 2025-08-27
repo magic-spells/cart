@@ -206,8 +206,10 @@
 
 			.item-controls {
 				display: flex;
-				align-items: center;
-				gap: 8px;
+				flex-direction: column;
+				justify-content: space-between;
+				align-items: flex-end;
+				min-height: 60px;
 			}
 
 			.quantity-input {
@@ -219,17 +221,25 @@
 			}
 
 			.remove-button {
-				background: #dc3545;
-				color: white;
+				background: transparent;
+				color: #666;
 				border: none;
-				padding: 4px 8px;
-				border-radius: 4px;
+				padding: 4px;
+				border-radius: 50%;
 				cursor: pointer;
-				font-size: 12px;
+				font-size: 18px;
+				font-weight: bold;
+				width: 24px;
+				height: 24px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transition: background-color 0.2s, color 0.2s;
 			}
 
 			.remove-button:hover {
-				background: #c82333;
+				background: #f0f0f0;
+				color: #333;
 			}
 
 			.trigger-button {
@@ -380,16 +390,14 @@
 										<div class="item-image">🎧</div>
 										<div class="item-details">
 											<div class="item-name">Wireless Headphones</div>
-											<div class="item-price">$99.99</div>
-										</div>
-										<div class="item-controls">
-											<input
-												type="number"
-												class="quantity-input"
+											<quantity-modifier
 												value="1"
 												min="1"
-												data-cart-quantity />
-											<button class="remove-button" data-action-remove-item>Remove</button>
+												data-cart-quantity></quantity-modifier>
+										</div>
+										<div class="item-controls">
+											<button class="remove-button" data-action-remove-item>&times;</button>
+											<div class="item-price">$99.99</div>
 										</div>
 									</div>
 								</cart-item-content>
@@ -404,16 +412,14 @@
 										<div class="item-image">📱</div>
 										<div class="item-details">
 											<div class="item-name">Smartphone Case</div>
-											<div class="item-price">$24.99</div>
-										</div>
-										<div class="item-controls">
-											<input
-												type="number"
-												class="quantity-input"
+											<quantity-modifier
 												value="2"
 												min="1"
-												data-cart-quantity />
-											<button class="remove-button" data-action-remove-item>Remove</button>
+												data-cart-quantity></quantity-modifier>
+										</div>
+										<div class="item-controls">
+											<button class="remove-button" data-action-remove-item>&times;</button>
+											<div class="item-price">$24.99</div>
 										</div>
 									</div>
 								</cart-item-content>
@@ -428,16 +434,14 @@
 										<div class="item-image">🔌</div>
 										<div class="item-details">
 											<div class="item-name">USB Cable</div>
-											<div class="item-price">$12.99</div>
-										</div>
-										<div class="item-controls">
-											<input
-												type="number"
-												class="quantity-input"
+											<quantity-modifier
 												value="1"
 												min="1"
-												data-cart-quantity />
-											<button class="remove-button" data-action-remove-item>Remove</button>
+												data-cart-quantity></quantity-modifier>
+										</div>
+										<div class="item-controls">
+											<button class="remove-button" data-action-remove-item>&times;</button>
+											<div class="item-price">$12.99</div>
 										</div>
 									</div>
 								</cart-item-content>
@@ -511,11 +515,11 @@
 						<div class="item-image">${emoji}</div>
 						<div class="item-details">
 							<div class="item-name">${itemData.product_title}</div>
-							<div class="item-price">$${price}</div>
+							<quantity-modifier value="${itemData.quantity}" min="1" data-cart-quantity></quantity-modifier>
 						</div>
 						<div class="item-controls">
-							<input type="number" class="quantity-input" value="${itemData.quantity}" min="1" data-cart-quantity>
-							<button class="remove-button" data-action-remove-item>Remove</button>
+							<button class="remove-button" data-action-remove-item>&times;</button>
+							<div class="item-price">$${price}</div>
 						</div>
 					</div>
 				`;
