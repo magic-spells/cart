@@ -50,7 +50,7 @@ Or include directly in your HTML:
   <cart-panel>
     <div class="cart-header">
       <h2 id="cart-title">Shopping Cart</h2>
-      <button data-action="hide-cart" aria-label="Close cart">&times;</button>
+      <button data-action-hide-cart aria-label="Close cart">&times;</button>
     </div>
 
     <div class="cart-body">
@@ -66,7 +66,7 @@ Or include directly in your HTML:
           </div>
           <div class="quantity-controls">
             <input type="number" data-cart-quantity value="1" min="1" />
-            <button data-action="remove">Remove</button>
+            <button data-action-remove-item>Remove</button>
           </div>
         </cart-item-content>
         <cart-item-processing>
@@ -124,8 +124,8 @@ The component automatically handles:
 | Selector                    | Description                         | Event Triggered             |
 | --------------------------- | ----------------------------------- | --------------------------- |
 | `[aria-controls="cart-id"]` | Trigger buttons to open cart        | Opens modal                 |
-| `[data-action="hide-cart"]` | Close buttons inside modal          | Closes modal                |
-| `[data-action="remove"]`    | Remove item buttons (via cart-item) | `cart-item:remove`          |
+| `[data-action-hide-cart]`   | Close buttons inside modal          | Closes modal                |
+| `[data-action-remove-item]` | Remove item buttons (via cart-item) | `cart-item:remove`          |
 | `[data-cart-quantity]`      | Quantity inputs (via cart-item)     | `cart-item:quantity-change` |
 
 Example:
@@ -135,7 +135,7 @@ Example:
 <cart-dialog id="simple-cart">
   <cart-panel>
     <h2>Cart</h2>
-    <button data-action="hide-cart">Close</button>
+    <button data-action-hide-cart>Close</button>
     <!-- Cart content here -->
   </cart-panel>
 </cart-dialog>
@@ -146,7 +146,7 @@ Example:
   <cart-panel>
     <header class="cart-header">
       <h2 id="cart-heading">Shopping Cart</h2>
-      <button data-action="hide-cart" aria-label="Close cart">×</button>
+      <button data-action-hide-cart aria-label="Close cart">×</button>
     </header>
     <div class="cart-content">
       <!-- Cart items will be rendered here -->
@@ -582,7 +582,7 @@ The cart panel automatically integrates with Shopify's AJAX Cart API. Simply add
   <cart-panel>
     <header class="cart-header">
       <h2 id="cart-heading">Your Cart</h2>
-      <button data-action="hide-cart" aria-label="hide cart">X</button>
+      <button data-action-hide-cart aria-label="hide cart">X</button>
     </header>
 
     <div class="cart-content">

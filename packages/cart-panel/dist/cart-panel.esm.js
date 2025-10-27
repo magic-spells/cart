@@ -429,7 +429,6 @@ class CartDialog extends HTMLElement {
 	refreshCart(cartObj = null) {
 		// If cart object is provided, use it directly
 		if (cartObj && !cartObj.error) {
-			// console.log('Using provided cart data:', cartObj);
 			this.#currentCart = cartObj;
 			this.#renderCartItems(cartObj);
 			this.#renderCartPanel(cartObj);
@@ -444,7 +443,6 @@ class CartDialog extends HTMLElement {
 
 		// Otherwise fetch from server
 		return this.getCart().then((cartData) => {
-			// console.log('Cart data received:', cartData);
 			if (cartData && !cartData.error) {
 				this.#currentCart = cartData;
 				this.#renderCartItems(cartData);
@@ -471,7 +469,6 @@ class CartDialog extends HTMLElement {
 		const itemsToRemove = currentItems.filter((item) => !newKeysSet.has(item.getAttribute('key')));
 
 		itemsToRemove.forEach((item) => {
-			console.log('destroy yourself', item);
 			item.destroyYourself();
 		});
 	}
@@ -596,8 +593,6 @@ class CartDialog extends HTMLElement {
 
 		// Handle initial render - load all items without animation
 		if (this.#isInitialRender) {
-			// console.log('Initial cart render:', visibleItems.length, 'visible items');
-
 			// Clear existing items
 			itemsContainer.innerHTML = '';
 
