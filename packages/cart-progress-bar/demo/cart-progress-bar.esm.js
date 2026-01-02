@@ -4,23 +4,18 @@
 class ProgressBar extends HTMLElement {
 	constructor() {
 		super();
-		this.#setupProgressBar();
-	}
-
-	#setupProgressBar() {
-		this.setAttribute('role', 'progressbar');
-		this.setAttribute('aria-valuemin', '0');
-		this.setAttribute('aria-valuemax', '100');
-		this.setAttribute('aria-valuenow', '0');
-
-		// Create the visual progress bar
-		this.innerHTML = '<div class="progress-bar-fill"></div>';
+		const _ = this;
+		_.setAttribute('role', 'progressbar');
+		_.setAttribute('aria-valuemin', '0');
+		_.setAttribute('aria-valuemax', '100');
+		_.setAttribute('aria-valuenow', '0');
+		_.innerHTML = '<div class="progress-bar-fill"></div>';
 	}
 
 	setPercent(percent) {
-		const clampedPercent = Math.max(0, Math.min(100, percent));
-		this.style.setProperty('--cart-progress-percent', `${clampedPercent}%`);
-		this.setAttribute('aria-valuenow', clampedPercent);
+		const p = Math.max(0, Math.min(100, percent));
+		this.style.setProperty('--cart-progress-percent', `${p}%`);
+		this.setAttribute('aria-valuenow', p);
 	}
 }
 
@@ -32,295 +27,230 @@ customElements.define('progress-bar', ProgressBar);
  */
 class CartProgressBar extends HTMLElement {
 	// Private fields
-	#minAmount = 0;
-	#currentAmount = 0;
-	#progressPercent = 0;
-	#originalAboveMessage = '';
-	#originalBelowMessage = '';
-	#progressBar = null;
-	#messageElement = null;
+	#threshold = 0;
+	#current = 0;
+	#percent = 0;
+	#msgAbove = '';
+	#msgBelow = '';
+	#bar = null;
+	#msgEl = null;
+	#moneyFmt = null;
+	#debounce = null;
 
-	/**
-	 * Define which attributes should be observed for changes
-	 */
 	static get observedAttributes() {
-		return ['threshold', 'current', 'message-above', 'message-below'];
+		return ['threshold', 'current', 'message-above', 'message-below', 'money-format'];
 	}
 
 	constructor() {
 		super();
-		this.#init();
-	}
-
-	#init() {
-		// Read initial attributes
-		this.#minAmount = parseFloat(this.getAttribute('threshold')) || 0;
-		this.#currentAmount = parseFloat(this.getAttribute('current')) || 0;
-
-		// Store original message templates
-		this.#originalAboveMessage = this.getAttribute('message-above') || '';
-		this.#originalBelowMessage = this.getAttribute('message-below') || '';
+		const _ = this;
+		_.#threshold = parseFloat(_.getAttribute('threshold')) || 0;
+		_.#current = parseFloat(_.getAttribute('current')) || 0;
+		_.#msgAbove = _.getAttribute('message-above') || '';
+		_.#msgBelow = _.getAttribute('message-below') || '';
+		_.#moneyFmt = _.getAttribute('money-format');
 	}
 
 	async connectedCallback() {
-		// ensure the child custom element has been registered
 		await customElements.whenDefined('progress-bar');
-
-		if (!customElements.get('progress-bar')) {
-			throw new Error('<progress-bar> must be registered before <cart-progress-bar> runs');
-		}
-
 		this.#render();
 		this.#updateProgress();
 		this.#attachListeners();
 	}
 
-	attributeChangedCallback(name, oldValue, newValue) {
-		if (oldValue === newValue) return;
+	disconnectedCallback() {
+		if (this.#debounce) clearTimeout(this.#debounce);
+	}
+
+	attributeChangedCallback(name, oldVal, newVal) {
+		if (oldVal === newVal) return;
+		const _ = this;
 
 		switch (name) {
 			case 'threshold':
-				this.#minAmount = parseFloat(newValue) || 0;
-				this.#updateProgress();
+				_.#threshold = parseFloat(newVal) || 0;
+				_.#updateProgress();
 				break;
 			case 'current':
-				this.#currentAmount = parseFloat(newValue) || 0;
-				this.#updateProgress();
+				_.#current = parseFloat(newVal) || 0;
+				_.#updateProgress();
 				break;
 			case 'message-above':
-				this.#originalAboveMessage = newValue || '';
-				this.#updateMessages();
+				_.#msgAbove = newVal || '';
+				_.#updateMessages();
 				break;
 			case 'message-below':
-				this.#originalBelowMessage = newValue || '';
-				this.#updateMessages();
+				_.#msgBelow = newVal || '';
+				_.#updateMessages();
+				break;
+			case 'money-format':
+				_.#moneyFmt = newVal;
+				_.#updateMessages();
 				break;
 		}
 	}
 
 	#render() {
-		// Find or create the message element
-		this.#messageElement =
-			this.querySelector('[data-content-cart-progress-message]') ||
-			this.querySelector('p[data-content-cart-progress-message]');
+		const _ = this;
+		// Find existing elements or create them
+		_.#msgEl = _.querySelector('[data-content-cart-progress-message]');
+		_.#bar = _.querySelector('progress-bar');
 
-		// Find existing progress bar (user can add their own)
-		this.#progressBar = this.querySelector('progress-bar');
-
-		// Create message element if it doesn't exist but we have message templates
-		if (!this.#messageElement && (this.#originalAboveMessage || this.#originalBelowMessage)) {
-			this.#messageElement = document.createElement('p');
-			this.#messageElement.setAttribute('data-content-cart-progress-message', '');
-			this.appendChild(this.#messageElement);
+		// Create message element if needed
+		if (!_.#msgEl && (_.#msgAbove || _.#msgBelow)) {
+			_.#msgEl = document.createElement('p');
+			_.#msgEl.setAttribute('data-content-cart-progress-message', '');
+			_.appendChild(_.#msgEl);
 		}
 
-		// Create progress bar if it doesn't exist - add it at the end (below text message)
-		if (!this.#progressBar) {
-			// Ensure progress-bar is defined before creating
-			if (customElements.get('progress-bar')) {
-				this.#progressBar = document.createElement('progress-bar');
-				this.appendChild(this.#progressBar);
-			} else {
-				// Fallback: wait for definition
-				customElements.whenDefined('progress-bar').then(() => {
-					if (!this.#progressBar) {
-						this.#progressBar = document.createElement('progress-bar');
-						this.appendChild(this.#progressBar);
-						this.#updateProgress(); // Update progress after creating
-					}
-				});
-			}
+		// Create progress bar if needed
+		if (!_.#bar) {
+			_.#bar = document.createElement('progress-bar');
+			_.appendChild(_.#bar);
 		}
 	}
 
 	#updateProgress() {
-		if (this.#minAmount === 0) {
-			this.#progressPercent = 100;
-		} else {
-			this.#progressPercent = Math.min(100, (this.#currentAmount / this.#minAmount) * 100);
-		}
-
-		// Update progress bar
-		if (this.#progressBar) {
-			this.#progressBar.setPercent(this.#progressPercent);
-		}
-
-		// Update messages
-		this.#updateMessages();
-
-		// Update component state
-		this.#updateComponentState();
+		const _ = this;
+		const converted = _.#converted();
+		_.#percent = converted === 0 ? 100 : Math.min(100, (_.#current / converted) * 100);
+		if (_.#bar) _.#bar.setPercent(_.#percent);
+		_.#updateState(converted);
 	}
 
 	#attachListeners() {
-		// Find the nearest cart-panel component
-		const cartDialog = this.closest('cart-dialog');
-
-		if (cartDialog) {
-			// Listen for cart data changes
-			cartDialog.addEventListener('cart-dialog:data-changed', (event) => {
-				this.#handleCartDataChange(event);
-			});
+		const _ = this;
+		const panel = _.closest('cart-panel');
+		if (panel) {
+			panel.addEventListener('cart-panel:data-changed', (e) => _.#onCartChange(e));
 		}
 	}
 
-	#handleCartDataChange(event) {
-		const updatedCart = event.detail;
+	#onCartChange(event) {
+		const _ = this;
+		const cart = event.detail;
+		if (!cart) return;
 
-		if (updatedCart) {
-			// Use calculated_subtotal if available (handles _ignore_price_in_subtotal logic)
-			// Otherwise fall back to total_price for backwards compatibility
-			let currentAmount = 0;
+		if (_.#debounce) clearTimeout(_.#debounce);
+		_.#debounce = setTimeout(() => {
+			_.#debounce = null;
+			// Use calculated_subtotal if available, else total_price (both in cents)
+			const amt = (cart.calculated_subtotal ?? cart.total_price ?? 0) / 100;
+			_.setCurrentAmount(amt);
+		}, 100);
+	}
 
-			if (typeof updatedCart.calculated_subtotal !== 'undefined') {
-				// calculated_subtotal is already in dollars, no conversion needed
-				currentAmount = updatedCart.calculated_subtotal / 100;
-			} else if (typeof updatedCart.total_price !== 'undefined') {
-				// Convert from cents to dollars if needed (Shopify typically returns cents)
-				currentAmount = updatedCart.total_price / 100;
+	#updateState(converted) {
+		const _ = this;
+		const complete = _.#current >= converted;
+		const remaining = Math.max(0, converted - _.#current);
+		const formatted = _.#fmtMoney(remaining);
+
+		// Update message
+		if (_.#msgEl) {
+			let tpl = complete ? _.#msgAbove : (_.#msgBelow || _.#msgAbove);
+			if (tpl) {
+				_.#msgEl.textContent = tpl.replace(/\[\s*amount\s*\]/g, formatted);
+				_.#msgEl.style.display = 'block';
+			} else {
+				_.#msgEl.style.display = 'none';
 			}
-
-			this.setCurrentAmount(currentAmount);
 		}
+
+		// Update complete attribute
+		_.setAttribute('complete', complete.toString());
+	}
+
+	#fmtMoney(amt) {
+		const fmt = this.#moneyFmt;
+		if (!fmt) return amt.toFixed(2).replace(/\.00$/, '');
+
+		const fixed = amt.toFixed(2);
+		const noDecimals = Math.round(amt).toString();
+		const withComma = fixed.replace('.', ',');
+		const noDecWithComma = noDecimals.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+		return fmt
+			.replace(/\{\{\s*amount_no_decimals_with_comma_separator\s*\}\}/g, noDecWithComma)
+			.replace(/\{\{\s*amount_with_comma_separator\s*\}\}/g, withComma)
+			.replace(/\{\{\s*amount_no_decimals\s*\}\}/g, noDecimals)
+			.replace(/\{\{\s*amount\s*\}\}/g, fixed);
+	}
+
+	#converted() {
+		const rate = parseFloat(window.Shopify?.currency?.rate) || 1;
+		return this.#threshold * rate;
 	}
 
 	#updateMessages() {
-		const isComplete = this.#currentAmount >= this.#minAmount;
-		const remainingAmount = Math.max(0, this.#minAmount - this.#currentAmount);
-
-		// Format amount with minimal formatting
-		const formattedAmount = remainingAmount.toFixed(2).replace('.00', '');
-
-		// Update the single message element
-		if (this.#messageElement) {
-			let messageTemplate;
-
-			if (isComplete && this.#originalAboveMessage) {
-				// Show success message when complete
-				messageTemplate = this.#originalAboveMessage;
-			} else if (!isComplete) {
-				// Show progress message when incomplete
-				messageTemplate = this.#originalBelowMessage || this.#originalAboveMessage;
-			}
-
-			if (messageTemplate) {
-				// Support multiple placeholder formats: {amount}, { amount }, [amount]
-				const message = messageTemplate
-					.replace(/\{\s*amount\s*\}/g, formattedAmount)
-					.replace(/\[\s*amount\s*\]/g, formattedAmount);
-				this.#messageElement.textContent = message;
-				this.#messageElement.style.display = 'block';
-			} else {
-				// Hide message if no template available for current state
-				this.#messageElement.style.display = 'none';
-			}
-		}
+		this.#updateState(this.#converted());
 	}
 
-	#updateComponentState() {
-		const isComplete = this.#currentAmount >= this.#minAmount;
-		this.setAttribute('complete', isComplete.toString());
+	// Public API
+	setPercent(pct) {
+		const _ = this;
+		const p = Math.max(0, Math.min(100, pct));
+		_.#percent = p;
+		if (_.#bar) _.#bar.setPercent(p);
+		// Use converted threshold for multi-currency consistency
+		_.#current = (p / 100) * _.#converted();
+		_.setAttribute('current', _.#current.toString());
+		_.#updateState(_.#converted());
 	}
 
-
-	/**
-	 * Public API: Set the progress percentage directly
-	 * @param {number} percent - Progress percentage (0-100)
-	 */
-	setPercent(percent) {
-		const clampedPercent = Math.max(0, Math.min(100, percent));
-		this.#progressPercent = clampedPercent;
-
-		if (this.#progressBar) {
-			this.#progressBar.setPercent(clampedPercent);
-		}
-
-		// Calculate current amount based on percentage
-		this.#currentAmount = (clampedPercent / 100) * this.#minAmount;
-		this.setAttribute('current', this.#currentAmount.toString());
-
-		this.#updateMessages();
-		this.#updateComponentState();
+	setCurrentAmount(amt) {
+		const _ = this;
+		_.#current = parseFloat(amt) || 0;
+		_.setAttribute('current', _.#current.toString());
+		_.#updateProgress();
 	}
 
-	/**
-	 * Public API: Set the current cart amount
-	 * @param {number} amount - Current cart amount
-	 */
-	setCurrentAmount(amount) {
-		this.#currentAmount = parseFloat(amount) || 0;
-		this.setAttribute('current', this.#currentAmount.toString());
-		this.#updateProgress();
+	setThresholdAmount(amt) {
+		const _ = this;
+		_.#threshold = parseFloat(amt) || 0;
+		_.setAttribute('threshold', _.#threshold.toString());
+		_.#updateProgress();
 	}
 
-	/**
-	 * Public API: Set the threshold amount for free shipping
-	 * @param {number} amount - Threshold amount for free shipping
-	 */
-	setThresholdAmount(amount) {
-		this.#minAmount = parseFloat(amount) || 0;
-		this.setAttribute('threshold', this.#minAmount.toString());
-		this.#updateProgress();
+	/** @deprecated Use setThresholdAmount */
+	setMinAmount(amt) {
+		this.setThresholdAmount(amt);
 	}
 
-	/**
-	 * Public API: Set the minimum amount for free shipping (deprecated - use setThresholdAmount)
-	 * @param {number} amount - Minimum amount threshold
-	 * @deprecated Use setThresholdAmount instead
-	 */
-	setMinAmount(amount) {
-		this.setThresholdAmount(amount);
-	}
-
-	/**
-	 * Public API: Get current progress information
-	 */
 	getProgress() {
+		const _ = this;
+		const converted = _.#converted();
 		return {
-			currentAmount: this.#currentAmount,
-			thresholdAmount: this.#minAmount,
-			minAmount: this.#minAmount, // backwards compatibility
-			remainingAmount: Math.max(0, this.#minAmount - this.#currentAmount),
-			percent: this.#progressPercent,
-			isComplete: this.#currentAmount >= this.#minAmount,
+			currentAmount: _.#current,
+			thresholdAmount: _.#threshold,
+			convertedThreshold: converted,
+			minAmount: _.#threshold,
+			remainingAmount: Math.max(0, converted - _.#current),
+			percent: _.#percent,
+			isComplete: _.#current >= converted,
+			currencyRate: parseFloat(window.Shopify?.currency?.rate) || 1,
 		};
 	}
 
-	/**
-	 * Public API: Update message templates
-	 * @param {string} aboveMessage - Message template for above the bar
-	 * @param {string} belowMessage - Message template for below the bar
-	 */
-	setMessages(aboveMessage = null, belowMessage = null) {
-		if (aboveMessage !== null) {
-			this.#originalAboveMessage = aboveMessage;
-			this.setAttribute('message-above', aboveMessage);
+	setMessages(above = null, below = null) {
+		const _ = this;
+		if (above !== null) {
+			_.#msgAbove = above;
+			_.setAttribute('message-above', above);
 		}
-
-		if (belowMessage !== null) {
-			this.#originalBelowMessage = belowMessage;
-			this.setAttribute('message-below', belowMessage);
+		if (below !== null) {
+			_.#msgBelow = below;
+			_.setAttribute('message-below', below);
 		}
-
-		this.#updateMessages();
+		_.#updateMessages();
 	}
 
-	// Getters
-	get currentAmount() {
-		return this.#currentAmount;
-	}
-	get thresholdAmount() {
-		return this.#minAmount;
-	}
-	get minAmount() {
-		return this.#minAmount;
-	} // backwards compatibility
-	get percent() {
-		return this.#progressPercent;
-	}
-	get isComplete() {
-		return this.#currentAmount >= this.#minAmount;
-	}
+	// Getters (with backwards compatibility)
+	get currentAmount() { return this.#current; }
+	get thresholdAmount() { return this.#threshold; }
+	get minAmount() { return this.#threshold; }
+	get percent() { return this.#percent; }
+	get isComplete() { return this.#current >= this.#converted(); }
 }
 
 // Define CartProgressBar custom element

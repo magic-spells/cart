@@ -254,9 +254,10 @@
 						id="mainDemo"
 						threshold="75.00"
 						current="25.50"
+						money-format="${{amount}}"
 						message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-						message-below="Add ${ amount } more to get FREE shipping! 🚚">
-						<p data-content-cart-progress-message>Add ${ amount } more to get FREE shipping! 🚚</p>
+						message-below="Add [amount] more to get FREE shipping! 🚚">
+						<p data-content-cart-progress-message>Add [amount] more to get FREE shipping! 🚚</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -272,8 +273,9 @@
 						class="theme-minimal"
 						threshold="50.00"
 						current="32.50"
-						message-below="${ amount } away from free delivery">
-						<p data-content-cart-progress-message>${ amount } away from free delivery</p>
+						money-format="${{amount}}"
+						message-below="[amount] away from free delivery">
+						<p data-content-cart-progress-message>[amount] away from free delivery</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -284,9 +286,10 @@
 						class="theme-bold"
 						threshold="100.00"
 						current="78.90"
+						money-format="${{amount}}"
 						message-above="🎉 FREE shipping unlocked!"
-						message-below="🎯 ${ amount } more for FREE shipping!">
-						<p data-content-cart-progress-message>🎯 ${ amount } more for FREE shipping!</p>
+						message-below="🎯 [amount] more for FREE shipping!">
+						<p data-content-cart-progress-message>🎯 [amount] more for FREE shipping!</p>
 						<progress-bar></progress-bar>
 					</cart-progress-bar>
 				</div>
@@ -297,10 +300,11 @@
 						class="theme-neon"
 						threshold="150.00"
 						current="120.00"
+						money-format="${{amount}}"
 						message-above="⚡ TURBO shipping activated!"
-						message-below="⚡ Only ${ amount } until TURBO shipping!">
+						message-below="⚡ Only [amount] until TURBO shipping!">
 						<progress-bar></progress-bar>
-						<p data-content-cart-progress-message>⚡ Only ${ amount } until TURBO shipping!</p>
+						<p data-content-cart-progress-message>⚡ Only [amount] until TURBO shipping!</p>
 					</cart-progress-bar>
 				</div>
 			</section>
@@ -309,14 +313,28 @@
 				<h2>Usage Examples</h2>
 
 				<h3>Basic Setup</h3>
-				<pre class="code-block"><code>&lt;cart-progress-bar 
-  threshold="75.00" 
+				<pre class="code-block"><code>&lt;cart-progress-bar
+  threshold="75.00"
   current="25.50"
+  money-format="${{amount}}"
   message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-  message-below="Add ${ amount } more for FREE shipping!"&gt;
-  &lt;p data-content-cart-progress-message&gt;Add ${ amount } more for FREE shipping!&lt;/p&gt;
+  message-below="Add [amount] more for FREE shipping!"&gt;
+  &lt;p data-content-cart-progress-message&gt;&lt;/p&gt;
   &lt;progress-bar&gt;&lt;/progress-bar&gt;
 &lt;/cart-progress-bar&gt;</code></pre>
+
+				<h3>Currency Formatting</h3>
+				<pre class="code-block"><code>&lt;!-- US Dollars --&gt;
+&lt;cart-progress-bar money-format="${{amount}}" ...&gt;
+
+&lt;!-- Euros with comma separator --&gt;
+&lt;cart-progress-bar money-format="{{amount_with_comma_separator}} EUR" ...&gt;
+
+&lt;!-- No decimals --&gt;
+&lt;cart-progress-bar money-format="${{amount_no_decimals}}" ...&gt;
+
+&lt;!-- Shopify Liquid integration --&gt;
+&lt;cart-progress-bar money-format="{{ shop.money_format }}" ...&gt;</code></pre>
 
 				<h3>JavaScript API</h3>
 				<pre
@@ -356,8 +374,8 @@ console.log(info.percent, info.isComplete, info.thresholdAmount);</code></pre>
 					<div class="feature">
 						<h3>🎯 Smart Messaging</h3>
 						<p>
-							Template-based messages with flexible placeholder formats ({ amount }, [amount]) and show/hide logic based
-							on completion status.
+							Template-based messages with [amount] placeholders. Supports Shopify money formats
+							and multi-currency conversion.
 						</p>
 					</div>
 					<div class="feature">
@@ -443,7 +461,7 @@ console.log(info.percent, info.isComplete, info.thresholdAmount);</code></pre>
 				console.log('mainDemo.setPercent(75)');
 				console.log('mainDemo.getProgress()');
 				console.log('mainDemo.setThresholdAmount(100)');
-				console.log('mainDemo.setMessages(null, "Only ${ amount } left to save!")');
+				console.log('mainDemo.setMessages(null, "Only [amount] left to save!")');
 
 				// Make mainDemo globally accessible for console testing
 				window.mainDemo = mainDemo;
