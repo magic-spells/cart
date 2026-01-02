@@ -107,14 +107,42 @@ console.log(gwp.isDisabled);        // boolean - promo ended OR product unavaila
 
 | Attribute       | Description                                                          | Example                                                      |
 | --------------- | -------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `threshold`     | Spending threshold to unlock the gift                                | `"75.00"`                                                    |
-| `current`       | Current cart amount                                                  | `"45.00"`                                                    |
+| `threshold`     | Spending threshold to unlock the gift (auto-converts for multi-currency) | `"75.00"`                                                    |
+| `current`       | Current cart amount (typically set automatically via cart-panel)     | `"45.00"`                                                    |
 | `variant-id`    | Shopify variant ID for the gift product                              | `"12345678"`                                                 |
 | `promo-ended`   | Disables the promo and hides the component                           | `"true"`                                                     |
-| `product-available` | Whether the gift product is available (disables if false)       | `"true"`                                                     |
+| `product-available` | Whether the gift product is available (disables if false)        | `"true"`                                                     |
 | `message-above` | Message shown when threshold is met                                  | `"🎉 Congratulations! You've qualified for your FREE gift!"` |
-| `message-below` | Message shown when below threshold (uses `[amount]` placeholder) | `"Add [amount] more to unlock your free gift! 🎁"`      |
+| `message-below` | Message shown below threshold; use `[amount]` for remaining amount   | `"Add [amount] more to unlock your free gift! 🎁"`           |
 | `money-format`  | Shopify-style money format for currency display                      | `"${{amount}}"`                                              |
+
+### The `[amount]` Placeholder
+
+In the `message-below` attribute, use `[amount]` (with square brackets) to insert the remaining amount needed to reach the threshold. The component automatically:
+
+- Calculates the remaining amount (`threshold - currentAmount`)
+- Converts to the customer's currency using `Shopify.currency.rate`
+- Formats using your `money-format` attribute
+
+```html
+<!-- Example: If threshold is $75 and cart is $45, displays "Add $30 more..." -->
+<gift-with-purchase
+	threshold="75.00"
+	money-format="${{amount}}"
+	message-below="Add [amount] more to unlock your free gift!">
+</gift-with-purchase>
+```
+
+**Why square brackets?** We use `[amount]` instead of `{{amount}}` to avoid conflicts with Shopify Liquid templates and JavaScript template literals.
+
+### Multi-Currency Support
+
+The component automatically handles currency conversion for multi-currency Shopify stores:
+
+- Set `threshold` in your store's **base currency** (e.g., USD)
+- The component reads `Shopify.currency.rate` from the browser
+- Threshold is automatically converted to the customer's selected currency
+- The `[amount]` placeholder displays in the converted currency
 
 ## Message Element
 

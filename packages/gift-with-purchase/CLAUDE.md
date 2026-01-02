@@ -32,11 +32,15 @@ This is a **Web Components library** that provides a gift-with-purchase componen
 
 - **Threshold Management**: Automatically adds/removes gifts based on cart amount vs threshold using `calculated_subtotal`
 - **Cart Panel Integration**: Listens for `cart-panel:data-changed` events from parent cart-panel component and uses accurate pricing logic
-- **State Management**: Three states - inactive (below threshold), active (threshold met), added (gift in cart)
+- **State Management**: Five states - `inactive` (below threshold), `active` (threshold met), `added` (gift in cart), `ended` (promo ended), `disabled` (product unavailable)
 - **Message Injection**: Looks for user-provided elements with `data-content-gwp-message` to inject threshold messages
-- **Template Syntax**: Uses `[amount]` placeholder in `message-below` attribute for remaining threshold amount (uses brackets to avoid Liquid/JS template conflicts)
+- **Template Syntax**: Uses `[amount]` placeholder in `message-below` attribute for remaining threshold amount
+  - Square brackets avoid conflicts with Liquid (`{{ }}`) and JS template literals
+  - Example: `message-below="Add [amount] more!"` → "Add $30 more!"
 - **Currency Formatting**: Supports Shopify-style `money-format` attribute (e.g., `${{amount}}`, `€{{amount}}`) for proper currency display
-- **Multi-Currency**: Automatically converts threshold using `Shopify.currency.rate` for stores with multiple currencies enabled
+- **Multi-Currency**: Automatically converts threshold and `[amount]` using `Shopify.currency.rate`
+  - Set threshold in base currency; component converts to customer's selected currency
+- **Disabled States**: `promo-ended` and `product-available` attributes control visibility and auto-remove gifts when disabled
 - **Smart Line Item Properties**: Adds multiple properties to gift line items:
   - `_gwp_item: "true"` - identifies the item as a gift with purchase
   - `_hide_in_cart: "true"` - hides the gift from cart display (handled by cart-panel)
