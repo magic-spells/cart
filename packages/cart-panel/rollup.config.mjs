@@ -7,12 +7,20 @@ import postcss from 'rollup-plugin-postcss';
 const dev = process.env.ROLLUP_WATCH;
 const name = 'cart-panel';
 
-// External dependencies that should not be bundled
-const external = [
-	'@magic-spells/cart-item',
-	'@magic-spells/focus-trap',
-	'@magic-spells/event-emitter',
-];
+// External dependencies that should not be bundled in ESM/CJS
+const external = ['@magic-spells/event-emitter'];
+
+// CSS plugin config
+const cssPlugin = postcss({
+	extract: true,
+	minimize: false,
+});
+
+// CSS plugin config (minimized)
+const cssMinPlugin = postcss({
+	extract: true,
+	minimize: true,
+});
 
 export default [
 	// ESM build
@@ -24,31 +32,7 @@ export default [
 			format: 'es',
 			sourcemap: true,
 		},
-		plugins: [
-			resolve(),
-			postcss({
-				extract: true,
-				minimize: false,
-				includePaths: ['./node_modules'],
-				use: [
-					[
-						'sass',
-						{
-							includePaths: ['node_modules'],
-						},
-					],
-				],
-				extensions: ['.css', '.scss'],
-			}),
-			copy({
-				targets: [
-					{
-						src: 'src/cart-panel.scss',
-						dest: 'dist',
-					},
-				],
-			}),
-		],
+		plugins: [resolve(), cssPlugin],
 	},
 	// CommonJS build
 	{
@@ -60,50 +44,19 @@ export default [
 			sourcemap: true,
 			exports: 'named',
 		},
-		plugins: [
-			resolve(),
-			postcss({
-				extract: true,
-				minimize: false,
-				includePaths: ['./node_modules'],
-				use: [
-					[
-						'sass',
-						{
-							includePaths: ['node_modules'],
-						},
-					],
-				],
-				extensions: ['.css', '.scss'],
-			}),
-		],
+		plugins: [resolve(), cssPlugin],
 	},
-	// UMD build (includes all dependencies for standalone use)
+	// UMD build (bundles all dependencies for standalone use)
 	{
 		input: 'src/cart-panel.js',
 		output: {
 			file: `dist/${name}.js`,
 			format: 'umd',
-			name: 'CartDialog',
+			name: 'CartPanel',
 			sourcemap: true,
 			exports: 'named',
 		},
-		plugins: [
-			resolve(),
-			postcss({
-				extract: true,
-				minimize: false,
-				use: [
-					[
-						'sass',
-						{
-							includePaths: ['node_modules'],
-						},
-					],
-				],
-				extensions: ['.css', '.scss'],
-			}),
-		],
+		plugins: [resolve(), cssPlugin],
 	},
 	// Minified UMD for browsers
 	{
@@ -111,25 +64,13 @@ export default [
 		output: {
 			file: `dist/${name}.min.js`,
 			format: 'umd',
-			name: 'CartDialog',
+			name: 'CartPanel',
 			sourcemap: false,
 			exports: 'named',
 		},
 		plugins: [
 			resolve(),
-			postcss({
-				extract: true,
-				minimize: true,
-				use: [
-					[
-						'sass',
-						{
-							includePaths: ['node_modules'],
-						},
-					],
-				],
-				extensions: ['.css', '.scss'],
-			}),
+			cssMinPlugin,
 			terser({
 				keep_classnames: true,
 				format: {
@@ -150,20 +91,7 @@ export default [
 					},
 					plugins: [
 						resolve(),
-						postcss({
-							extract: true,
-							minimize: false,
-							includePaths: ['./node_modules'],
-							use: [
-								[
-									'sass',
-									{
-										includePaths: ['node_modules'],
-									},
-								],
-							],
-							extensions: ['.css', '.scss'],
-						}),
+						cssPlugin,
 						serve({
 							contentBase: ['dist', 'demo'],
 							open: true,
@@ -171,22 +99,9 @@ export default [
 						}),
 						copy({
 							targets: [
-								{
-									src: `dist/${name}.esm.js`,
-									dest: 'demo',
-								},
-								{
-									src: `dist/${name}.esm.js.map`,
-									dest: 'demo',
-								},
-								{
-									src: `dist/${name}.css`,
-									dest: 'demo',
-								},
-								{
-									src: `src/${name}.scss`,
-									dest: 'dist',
-								},
+								{ src: `dist/${name}.esm.js`, dest: 'demo' },
+								{ src: `dist/${name}.esm.js.map`, dest: 'demo' },
+								{ src: `dist/${name}.css`, dest: 'demo' },
 							],
 							hook: 'writeBundle',
 						}),

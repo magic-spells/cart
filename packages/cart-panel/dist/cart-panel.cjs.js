@@ -2,133 +2,495 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-require('@magic-spells/focus-trap');
 var EventEmitter = require('@magic-spells/event-emitter');
-var cartItem = require('@magic-spells/cart-item');
+
+// =============================================================================
+// CartItem Component
+// =============================================================================
 
 /**
- * Custom element that creates an accessible modal cart dialog with focus management
- * @extends HTMLElement
+ * CartItem class that handles the functionality of a cart item component
  */
-class CartDialog extends HTMLElement {
-	#handleTransitionEnd;
-	#currentCart = null;
-	#eventEmitter;
-	#isInitialRender = true;
+class CartItem extends HTMLElement {
+	// Static template functions shared across all instances
+	static #templates = new Map();
+	static #processingTemplate = null;
+
+	// Private fields
+	#currentState = 'ready';
+	#isDestroying = false;
+	#isAppearing = false;
+	#handlers = {};
+	#itemData = null;
+	#cartData = null;
+	#lastRenderedHTML = '';
 
 	/**
-	 * Clean up event listeners when component is removed from DOM
+	 * Set the template function for rendering cart items
+	 * @param {string} name - Template name ('default' for default template)
+	 * @param {Function} templateFn - Function that takes (itemData, cartData) and returns HTML string
 	 */
-	disconnectedCallback() {
-		const _ = this;
-		if (_.contentPanel) {
-			_.contentPanel.removeEventListener('transitionend', _.#handleTransitionEnd);
+	static setTemplate(name, templateFn) {
+		if (typeof name !== 'string') {
+			throw new Error('Template name must be a string');
 		}
-
-		// Ensure body scroll is restored if component is removed while open
-		document.body.classList.remove('overflow-hidden');
-		this.#restoreScroll();
-
-		// Detach event listeners
-		this.#detachListeners();
+		if (typeof templateFn !== 'function') {
+			throw new Error('Template must be a function');
+		}
+		CartItem.#templates.set(name, templateFn);
 	}
 
 	/**
-	 * Locks body scrolling
-	 * @private
+	 * Set the processing template function for rendering processing overlay
+	 * @param {Function} templateFn - Function that returns HTML string for processing state
 	 */
-	#lockScroll() {
-		// Apply overflow hidden to body
-		document.body.classList.add('overflow-hidden');
+	static setProcessingTemplate(templateFn) {
+		if (typeof templateFn !== 'function') {
+			throw new Error('Processing template must be a function');
+		}
+		CartItem.#processingTemplate = templateFn;
 	}
 
 	/**
-	 * Restores body scrolling when cart dialog is closed
-	 * @private
+	 * Create a cart item with appearing animation
+	 * @param {Object} itemData - Shopify cart item data
+	 * @param {Object} cartData - Full Shopify cart object
+	 * @returns {CartItem} Cart item instance that will animate in
 	 */
-	#restoreScroll() {
-		// Remove overflow hidden from body
-		document.body.classList.remove('overflow-hidden');
+	static createAnimated(itemData, cartData) {
+		return new CartItem(itemData, cartData, { animate: true });
 	}
 
 	/**
-	 * Initializes the cart dialog, sets up focus trap and overlay
+	 * Define which attributes should be observed for changes
 	 */
-	constructor() {
+	static get observedAttributes() {
+		return ['state', 'key'];
+	}
+
+	/**
+	 * Called when observed attributes change
+	 */
+	attributeChangedCallback(name, oldValue, newValue) {
+		if (oldValue === newValue) return;
+
+		if (name === 'state') {
+			this.#currentState = newValue || 'ready';
+		}
+	}
+
+	constructor(itemData = null, cartData = null, options = {}) {
 		super();
-		const _ = this;
-		_.id = _.getAttribute('id');
-		_.setAttribute('role', 'dialog');
-		_.setAttribute('aria-modal', 'true');
-		_.setAttribute('aria-hidden', 'true');
 
-		_.triggerEl = null;
+		// Store item and cart data if provided
+		this.#itemData = itemData;
+		this.#cartData = cartData;
 
-		// Initialize event emitter
-		_.#eventEmitter = new EventEmitter();
+		// Set initial state - start with 'appearing' only if explicitly requested
+		const shouldAnimate = options.animate || this.hasAttribute('animate-in');
+		this.#currentState =
+			itemData && shouldAnimate ? 'appearing' : this.getAttribute('state') || 'ready';
 
-		// Create a handler for transition end events
-		_.#handleTransitionEnd = (e) => {
-			if (e.propertyName === 'opacity' && _.getAttribute('aria-hidden') === 'true') {
-				_.contentPanel.classList.add('hidden');
-
-				// Emit afterHide event - cart dialog has completed its transition
-				_.#emit('cart-dialog:afterHide', { triggerElement: _.triggerEl });
-			}
+		// Bind event handlers
+		this.#handlers = {
+			click: this.#handleClick.bind(this),
+			change: this.#handleChange.bind(this),
+			transitionEnd: this.#handleTransitionEnd.bind(this),
 		};
 	}
 
 	connectedCallback() {
 		const _ = this;
 
-		// Now that we're in the DOM, find the content panel and set up focus trap
-		_.contentPanel = _.querySelector('cart-panel');
+		// If we have item data, render it first
+		if (_.#itemData) _.#render();
 
-		if (!_.contentPanel) {
-			console.error('cart-panel element not found inside cart-dialog');
-			return;
-		}
-
-		// Check if focus-trap already exists, if not create one
-		_.focusTrap = _.contentPanel.querySelector('focus-trap');
-		if (!_.focusTrap) {
-			_.focusTrap = document.createElement('focus-trap');
-
-			// Move all existing cart-panel content into the focus trap
-			const existingContent = Array.from(_.contentPanel.childNodes);
-			existingContent.forEach((child) => _.focusTrap.appendChild(child));
-
-			// Insert focus trap inside the cart-panel
-			_.contentPanel.appendChild(_.focusTrap);
-		}
-
-		// Ensure we have labelledby and describedby references
-		if (!_.getAttribute('aria-labelledby')) {
-			const heading = _.querySelector('h1, h2, h3');
-			if (heading && !heading.id) {
-				heading.id = `${_.id}-title`;
-			}
-			if (heading?.id) {
-				_.setAttribute('aria-labelledby', heading.id);
-			}
-		}
-
-		// Add modal overlay if it doesn't already exist
-		if (!_.querySelector('cart-overlay')) {
-			_.prepend(document.createElement('cart-overlay'));
-		}
+		// Find child elements and attach listeners
+		_.#queryDOM();
+		_.#updateLinePriceElements();
 		_.#attachListeners();
-		_.#bindKeyboard();
 
-		// Load cart data immediately after component initialization
-		_.refreshCart();
+		// If we started with 'appearing' state, handle the entry animation
+		if (_.#currentState === 'appearing') {
+			_.setAttribute('state', 'appearing');
+			_.#isAppearing = true;
+
+			requestAnimationFrame(() => {
+				_.style.height = `${_.scrollHeight}px`;
+				requestAnimationFrame(() => _.setState('ready'));
+			});
+		}
+	}
+
+	disconnectedCallback() {
+		// Cleanup event listeners
+		this.#detachListeners();
 	}
 
 	/**
-	 * Event emitter method - Add an event listener with a cleaner API
-	 * @param {string} eventName - Name of the event to listen for
-	 * @param {Function} callback - Callback function to execute when event is fired
-	 * @returns {CartDialog} Returns this for method chaining
+	 * Query and cache DOM elements
+	 */
+	#queryDOM() {
+		this.content = this.querySelector('cart-item-content');
+		this.processing = this.querySelector('cart-item-processing');
+	}
+
+	/**
+	 * Attach event listeners
+	 */
+	#attachListeners() {
+		const _ = this;
+		_.addEventListener('click', _.#handlers.click);
+		_.addEventListener('change', _.#handlers.change);
+		_.addEventListener('quantity-input:change', _.#handlers.change);
+		_.addEventListener('transitionend', _.#handlers.transitionEnd);
+	}
+
+	/**
+	 * Detach event listeners
+	 */
+	#detachListeners() {
+		const _ = this;
+		_.removeEventListener('click', _.#handlers.click);
+		_.removeEventListener('change', _.#handlers.change);
+		_.removeEventListener('quantity-input:change', _.#handlers.change);
+		_.removeEventListener('transitionend', _.#handlers.transitionEnd);
+	}
+
+	/**
+	 * Get the current state
+	 */
+	get state() {
+		return this.#currentState;
+	}
+
+	/**
+	 * Get the cart key for this item
+	 */
+	get cartKey() {
+		return this.getAttribute('key');
+	}
+
+	/**
+	 * Handle click events (for Remove buttons, etc.)
+	 */
+	#handleClick(e) {
+		// Check if clicked element is a remove button
+		const removeButton = e.target.closest('[data-action-remove-item]');
+		if (removeButton) {
+			e.preventDefault();
+			this.#emitRemoveEvent();
+		}
+	}
+
+	/**
+	 * Handle change events (for quantity inputs and quantity-input component)
+	 */
+	#handleChange(e) {
+		// Check if event is from quantity-input component
+		if (e.type === 'quantity-input:change') {
+			this.#emitQuantityChangeEvent(e.detail.value);
+			return;
+		}
+
+		// Check if changed element is a quantity input
+		const quantityInput = e.target.closest('[data-cart-quantity]');
+		if (quantityInput) {
+			this.#emitQuantityChangeEvent(quantityInput.value);
+		}
+	}
+
+	/**
+	 * Handle transition end events for destroy animation and appearing animation
+	 */
+	#handleTransitionEnd(e) {
+		if (e.propertyName === 'height' && this.#isDestroying) {
+			// Remove from DOM after height animation completes
+			this.remove();
+		} else if (e.propertyName === 'height' && this.#isAppearing) {
+			// Remove explicit height after appearing animation completes
+			this.style.height = '';
+			this.#isAppearing = false;
+		}
+	}
+
+	/**
+	 * Emit remove event
+	 */
+	#emitRemoveEvent() {
+		this.dispatchEvent(
+			new CustomEvent('cart-item:remove', {
+				bubbles: true,
+				detail: {
+					cartKey: this.cartKey,
+					element: this,
+				},
+			})
+		);
+	}
+
+	/**
+	 * Emit quantity change event
+	 */
+	#emitQuantityChangeEvent(quantity) {
+		this.dispatchEvent(
+			new CustomEvent('cart-item:quantity-change', {
+				bubbles: true,
+				detail: {
+					cartKey: this.cartKey,
+					quantity: parseInt(quantity),
+					element: this,
+				},
+			})
+		);
+	}
+
+	/**
+	 * Render cart item from data using the appropriate template
+	 */
+	#render() {
+		const _ = this;
+		if (!_.#itemData || CartItem.#templates.size === 0) return;
+
+		// Set the key attribute from item data
+		const key = _.#itemData.key || _.#itemData.id;
+		if (key) _.setAttribute('key', key);
+
+		// Generate HTML from template and store for future comparisons
+		const templateHTML = _.#generateTemplateHTML();
+		_.#lastRenderedHTML = templateHTML;
+
+		// Generate processing HTML from template or use default
+		const processingHTML = CartItem.#processingTemplate
+			? CartItem.#processingTemplate()
+			: '<div class="cart-item-loader"></div>';
+
+		// Create the cart-item structure with template content inside cart-item-content
+		_.innerHTML = `
+			<cart-item-content>
+				${templateHTML}
+			</cart-item-content>
+			<cart-item-processing>
+				${processingHTML}
+			</cart-item-processing>
+		`;
+	}
+
+	/**
+	 * Update the cart item with new data
+	 * @param {Object} itemData - Shopify cart item data
+	 * @param {Object} cartData - Full Shopify cart object
+	 */
+	setData(itemData, cartData = null) {
+		const _ = this;
+
+		// Update internal data
+		_.#itemData = itemData;
+		if (cartData) _.#cartData = cartData;
+
+		// Generate new HTML with updated data
+		const newHTML = _.#generateTemplateHTML();
+
+		// Compare with previously rendered HTML
+		if (newHTML === _.#lastRenderedHTML) {
+			// HTML hasn't changed, just reset processing state
+			_.setState('ready');
+			_.#updateQuantityInput();
+			return;
+		}
+
+		// HTML is different, proceed with full update
+		_.setState('ready');
+		_.#render();
+		_.#queryDOM();
+		_.#updateLinePriceElements();
+	}
+
+	/**
+	 * Generate HTML from the current template with current data
+	 * @returns {string} Generated HTML string or empty string if no template
+	 * @private
+	 */
+	#generateTemplateHTML() {
+		// If no templates are available, return empty string
+		if (!this.#itemData || CartItem.#templates.size === 0) {
+			return '';
+		}
+
+		// Determine which template to use
+		const templateName = this.#itemData.properties?._cart_template || 'default';
+		const templateFn = CartItem.#templates.get(templateName) || CartItem.#templates.get('default');
+
+		if (!templateFn) {
+			return '';
+		}
+
+		// Generate and return HTML from template
+		return templateFn(this.#itemData, this.#cartData);
+	}
+
+	/**
+	 * Update quantity input component to match server data
+	 * @private
+	 */
+	#updateQuantityInput() {
+		if (!this.#itemData) return;
+
+		const quantityInput = this.querySelector('quantity-input');
+		if (quantityInput) {
+			quantityInput.value = this.#itemData.quantity;
+		}
+	}
+
+	/**
+	 * Update elements with data-content-line-price attribute
+	 * @private
+	 */
+	#updateLinePriceElements() {
+		if (!this.#itemData) return;
+
+		const linePriceElements = this.querySelectorAll('[data-content-line-price]');
+		const formattedLinePrice = this.#formatCurrency(this.#itemData.line_price || 0);
+
+		linePriceElements.forEach((element) => {
+			element.textContent = formattedLinePrice;
+		});
+	}
+
+	/**
+	 * Format currency value from cents to dollar string
+	 * @param {number} cents - Price in cents
+	 * @returns {string} Formatted currency string (e.g., "$29.99")
+	 * @private
+	 */
+	#formatCurrency(cents) {
+		if (typeof cents !== 'number') return '$0.00';
+		return `$${(cents / 100).toFixed(2)}`;
+	}
+
+	/**
+	 * Get the current item data
+	 */
+	get itemData() {
+		return this.#itemData;
+	}
+
+	/**
+	 * Set the state of the cart item
+	 * @param {string} state - 'ready', 'processing', 'destroying', or 'appearing'
+	 */
+	setState(state) {
+		if (['ready', 'processing', 'destroying', 'appearing'].includes(state)) {
+			this.setAttribute('state', state);
+		}
+	}
+
+	/**
+	 * Gracefully animate this cart item closed, then remove it
+	 */
+	destroyYourself() {
+		const _ = this;
+
+		// bail if already in the middle of a destroy cycle
+		if (_.#isDestroying) return;
+		_.#isDestroying = true;
+
+		// snapshot the current rendered height before applying any "destroying" styles
+		const initialHeight = _.offsetHeight;
+		_.setState('destroying');
+
+		// lock the measured height on the next animation frame to ensure layout is fully flushed
+		requestAnimationFrame(() => {
+			_.style.height = `${initialHeight}px`;
+
+			// read the css custom property for timing, defaulting to 400ms
+			const destroyDuration =
+				getComputedStyle(_).getPropertyValue('--cart-item-destroying-duration')?.trim() || '400ms';
+
+			// animate only the height to zero; other properties stay under stylesheet control
+			_.style.transition = `height ${destroyDuration} ease`;
+			_.style.height = '0px';
+
+			setTimeout(() => _.remove(), 600);
+		});
+	}
+}
+
+/**
+ * Supporting component classes for cart item
+ */
+class CartItemContent extends HTMLElement {
+	constructor() {
+		super();
+	}
+}
+
+class CartItemProcessing extends HTMLElement {
+	constructor() {
+		super();
+	}
+}
+
+// =============================================================================
+// Register Custom Elements
+// =============================================================================
+
+if (!customElements.get('cart-item')) {
+	customElements.define('cart-item', CartItem);
+}
+if (!customElements.get('cart-item-content')) {
+	customElements.define('cart-item-content', CartItemContent);
+}
+if (!customElements.get('cart-item-processing')) {
+	customElements.define('cart-item-processing', CartItemProcessing);
+}
+
+// Make CartItem available globally for Shopify themes
+if (typeof window !== 'undefined') {
+	window.CartItem = CartItem;
+}
+
+// =============================================================================
+// CartPanel Component
+// =============================================================================
+
+/**
+ * Shopping cart panel web component for Shopify.
+ * Manages cart data and AJAX requests, delegates modal behavior to dialog-panel.
+ * @extends HTMLElement
+ */
+class CartPanel extends HTMLElement {
+	#currentCart = null;
+	#eventEmitter;
+	#isInitialRender = true;
+
+	constructor() {
+		super();
+		this.#eventEmitter = new EventEmitter();
+	}
+
+	connectedCallback() {
+		this.#attachListeners();
+
+		// Load cart data immediately unless manual mode is enabled
+		if (!this.hasAttribute('manual')) {
+			this.refreshCart();
+		}
+	}
+
+	disconnectedCallback() {
+		// Clean up handled by garbage collection
+	}
+
+	// =========================================================================
+	// Public API - Event Emitter
+	// =========================================================================
+
+	/**
+	 * Add an event listener
+	 * @param {string} eventName - Name of the event
+	 * @param {Function} callback - Callback function
+	 * @returns {CartPanel} Returns this for method chaining
 	 */
 	on(eventName, callback) {
 		this.#eventEmitter.on(eventName, callback);
@@ -136,254 +498,59 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
-	 * Event emitter method - Remove an event listener
-	 * @param {string} eventName - Name of the event to stop listening for
-	 * @param {Function} callback - Callback function to remove
-	 * @returns {CartDialog} Returns this for method chaining
+	 * Remove an event listener
+	 * @param {string} eventName - Name of the event
+	 * @param {Function} callback - Callback function
+	 * @returns {CartPanel} Returns this for method chaining
 	 */
 	off(eventName, callback) {
 		this.#eventEmitter.off(eventName, callback);
 		return this;
 	}
 
-	/**
-	 * Internal method to emit events via the event emitter
-	 * @param {string} eventName - Name of the event to emit
-	 * @param {*} [data] - Optional data to include with the event
-	 * @private
-	 */
-	#emit(eventName, data = null) {
-		this.#eventEmitter.emit(eventName, data);
-
-		// Also emit as native DOM events for better compatibility
-		this.dispatchEvent(
-			new CustomEvent(eventName, {
-				detail: data,
-				bubbles: true,
-			})
-		);
-	}
+	// =========================================================================
+	// Public API - Dialog Control
+	// =========================================================================
 
 	/**
-	 * Attach event listeners for cart dialog functionality
-	 * @private
+	 * Show the cart by finding and opening the nearest dialog-panel ancestor
+	 * @param {HTMLElement} [triggerEl=null] - The element that triggered the open
+	 * @param {Object} [cartObj=null] - Optional cart object to use instead of fetching
 	 */
-	#attachListeners() {
+	show(triggerEl = null, cartObj = null) {
 		const _ = this;
+		const dialogPanel = _.#findDialogPanel();
 
-		// Handle trigger buttons
-		document.addEventListener('click', (e) => {
-			const trigger = e.target.closest(`[aria-controls="${_.id}"]`);
-			if (!trigger) return;
-
-			if (trigger.getAttribute('data-prevent-default') === 'true') {
-				e.preventDefault();
-			}
-
-			_.show(trigger);
-		});
-
-		// Handle close buttons
-		_.addEventListener('click', (e) => {
-			if (!e.target.closest('[data-action-hide-cart]')) return;
-			_.hide();
-		});
-
-		// Handle cart item remove events
-		_.addEventListener('cart-item:remove', (e) => {
-			_.#handleCartItemRemove(e);
-		});
-
-		// Handle cart item quantity change events
-		_.addEventListener('cart-item:quantity-change', (e) => {
-			_.#handleCartItemQuantityChange(e);
-		});
-
-		// Add transition end listener
-		_.contentPanel.addEventListener('transitionend', _.#handleTransitionEnd);
-	}
-
-	/**
-	 * Detach event listeners
-	 * @private
-	 */
-	#detachListeners() {
-		const _ = this;
-		if (_.contentPanel) {
-			_.contentPanel.removeEventListener('transitionend', _.#handleTransitionEnd);
-		}
-	}
-
-	/**
-	 * Binds keyboard events for accessibility
-	 * @private
-	 */
-	#bindKeyboard() {
-		this.addEventListener('keydown', (e) => {
-			if (e.key === 'Escape') {
-				this.hide();
-			}
-		});
-	}
-
-	/**
-	 * Handle cart item removal
-	 * @private
-	 */
-	#handleCartItemRemove(e) {
-		const { cartKey, element } = e.detail;
-
-		// Set item to processing state
-		element.setState('processing');
-
-		// Remove item by setting quantity to 0
-		this.updateCartItem(cartKey, 0)
-			.then((updatedCart) => {
-				if (updatedCart && !updatedCart.error) {
-					// Success - let smart comparison handle the removal animation
-					this.#currentCart = updatedCart;
-					this.#renderCartItems(updatedCart);
-					this.#renderCartPanel(updatedCart);
-
-					// Emit cart updated and data changed events
-					const cartWithCalculatedFields = this.#addCalculatedFields(updatedCart);
-					this.#emit('cart-dialog:updated', { cart: cartWithCalculatedFields });
-					this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
-				} else {
-					// Error - reset to ready state
-					element.setState('ready');
-					console.error('Failed to remove cart item:', cartKey);
-				}
-			})
-			.catch((error) => {
-				// Error - reset to ready state
-				element.setState('ready');
-				console.error('Error removing cart item:', error);
-			});
-	}
-
-	/**
-	 * Handle cart item quantity change
-	 * @private
-	 */
-	#handleCartItemQuantityChange(e) {
-		const { cartKey, quantity, element } = e.detail;
-
-		// Set item to processing state
-		element.setState('processing');
-
-		// Update item quantity
-		this.updateCartItem(cartKey, quantity)
-			.then((updatedCart) => {
-				if (updatedCart && !updatedCart.error) {
-					// Success - update cart data and refresh items
-					this.#currentCart = updatedCart;
-					this.#renderCartItems(updatedCart);
-					this.#renderCartPanel(updatedCart);
-
-					// Emit cart updated and data changed events
-					const cartWithCalculatedFields = this.#addCalculatedFields(updatedCart);
-					this.#emit('cart-dialog:updated', { cart: cartWithCalculatedFields });
-					this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
-				} else {
-					// Error - reset to ready state
-					element.setState('ready');
-					console.error('Failed to update cart item quantity:', cartKey, quantity);
-				}
-			})
-			.catch((error) => {
-				// Error - reset to ready state
-				element.setState('ready');
-				console.error('Error updating cart item quantity:', error);
-			});
-	}
-
-	/**
-	 * Update cart count elements across the site
-	 * @private
-	 */
-	#renderCartCount(cartData) {
-		if (!cartData) return;
-
-		// Calculate visible item count (excluding _hide_in_cart items)
-		const visibleItems = this.#getVisibleCartItems(cartData);
-		const visibleItemCount = visibleItems.reduce((total, item) => total + item.quantity, 0);
-
-		// Update all cart count elements across the site
-		const cartCountElements = document.querySelectorAll('[data-content-cart-count]');
-		cartCountElements.forEach((element) => {
-			element.textContent = visibleItemCount;
-		});
-	}
-
-	/**
-	 * Update cart subtotal elements across the site
-	 * @private
-	 */
-	#renderCartSubtotal(cartData) {
-		if (!cartData) return;
-
-		// Calculate subtotal from all items except those marked to ignore pricing
-		const pricedItems = cartData.items.filter((item) => {
-			const ignorePrice = item.properties?._ignore_price_in_subtotal;
-			return !ignorePrice;
-		});
-		const subtotal = pricedItems.reduce((total, item) => total + (item.line_price || 0), 0);
-
-		// Update all cart subtotal elements across the site
-		const cartSubtotalElements = document.querySelectorAll('[data-content-cart-subtotal]');
-		cartSubtotalElements.forEach((element) => {
-			// Format as currency (assuming cents, convert to dollars)
-			const formatted = (subtotal / 100).toFixed(2);
-			element.textContent = `$${formatted}`;
-		});
-	}
-
-	/**
-	 * Update cart items display based on cart data
-	 * @private
-	 */
-	#renderCartPanel(cart = null) {
-		const cartData = cart || this.#currentCart;
-		if (!cartData) return;
-
-		// Get cart sections
-		const hasItemsSection = this.querySelector('[data-cart-has-items]');
-		const emptySection = this.querySelector('[data-cart-is-empty]');
-		const itemsContainer = this.querySelector('[data-content-cart-items]');
-
-		if (!hasItemsSection || !emptySection || !itemsContainer) {
-			console.warn(
-				'Cart sections not found. Expected [data-cart-has-items], [data-cart-is-empty], and [data-content-cart-items]'
-			);
-			return;
-		}
-
-		// Check visible item count for showing/hiding sections
-		const visibleItems = this.#getVisibleCartItems(cartData);
-		const hasVisibleItems = visibleItems.length > 0;
-
-		// Show/hide sections based on visible item count
-		if (hasVisibleItems) {
-			hasItemsSection.style.display = '';
-			emptySection.style.display = 'none';
+		if (dialogPanel) {
+			dialogPanel.show(triggerEl);
+			_.refreshCart(cartObj);
+			_.#emit('cart-panel:show', { triggerElement: triggerEl });
 		} else {
-			hasItemsSection.style.display = 'none';
-			emptySection.style.display = '';
+			console.warn('cart-panel: No dialog-panel ancestor found. Cart panel is visible but not in a modal.');
 		}
-
-		// Update cart count and subtotal across the site
-		this.#renderCartCount(cartData);
-		this.#renderCartSubtotal(cartData);
 	}
 
 	/**
-	 * Fetch current cart data from server
+	 * Hide the cart by finding and closing the nearest dialog-panel ancestor
+	 */
+	hide() {
+		const dialogPanel = this.#findDialogPanel();
+		if (dialogPanel) {
+			dialogPanel.hide();
+			this.#emit('cart-panel:hide', {});
+		}
+	}
+
+	// =========================================================================
+	// Public API - Cart Data
+	// =========================================================================
+
+	/**
+	 * Fetch current cart data from Shopify
 	 * @returns {Promise<Object>} Cart data object
 	 */
 	getCart() {
 		return fetch('/cart.json', {
-			crossDomain: true,
 			credentials: 'same-origin',
 		})
 			.then((response) => {
@@ -399,14 +566,13 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
-	 * Update cart item quantity on server
+	 * Update cart item quantity on Shopify
 	 * @param {string|number} key - Cart item key/ID
 	 * @param {number} quantity - New quantity (0 to remove)
 	 * @returns {Promise<Object>} Updated cart data object
 	 */
 	updateCartItem(key, quantity) {
 		return fetch('/cart/change.json', {
-			crossDomain: true,
 			method: 'POST',
 			credentials: 'same-origin',
 			body: JSON.stringify({ id: key, quantity: quantity }),
@@ -425,50 +591,283 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
-	 * Refresh cart data from server and update components
-	 * @param {Object} [cartObj=null] - Optional cart object to use instead of fetching
+	 * Refresh cart display - fetches from server if no cart object provided
+	 * @param {Object} [cartObj=null] - Cart data object to render, or null to fetch
 	 * @returns {Promise<Object>} Cart data object
 	 */
-	refreshCart(cartObj = null) {
-		// If cart object is provided, use it directly
-		if (cartObj && !cartObj.error) {
-			this.#currentCart = cartObj;
-			this.#renderCartItems(cartObj);
-			this.#renderCartPanel(cartObj);
+	async refreshCart(cartObj = null) {
+		const _ = this;
 
-			// Emit cart refreshed and data changed events
-			const cartWithCalculatedFields = this.#addCalculatedFields(cartObj);
-			this.#emit('cart-dialog:refreshed', { cart: cartWithCalculatedFields });
-			this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
-
-			return Promise.resolve(cartObj);
+		// Fetch from server if no cart object provided
+		cartObj = cartObj || (await _.getCart());
+		if (!cartObj || cartObj.error) {
+			console.warn('Cart data has error or is null:', cartObj);
+			return cartObj;
 		}
 
-		// Otherwise fetch from server
-		return this.getCart().then((cartData) => {
-			if (cartData && !cartData.error) {
-				this.#currentCart = cartData;
-				this.#renderCartItems(cartData);
-				this.#renderCartPanel(cartData);
+		_.#currentCart = cartObj;
+		_.#renderCartItems(cartObj);
+		_.#renderCartPanel(cartObj);
 
-				// Emit cart refreshed and data changed events
-				const cartWithCalculatedFields = this.#addCalculatedFields(cartData);
-				this.#emit('cart-dialog:refreshed', { cart: cartWithCalculatedFields });
-				this.#emit('cart-dialog:data-changed', cartWithCalculatedFields);
-			} else {
-				console.warn('Cart data has error or is null:', cartData);
-			}
-			return cartData;
+		const cartWithCalculatedFields = _.#addCalculatedFields(cartObj);
+		_.#emit('cart-panel:refreshed', { cart: cartWithCalculatedFields });
+		_.#emit('cart-panel:data-changed', cartWithCalculatedFields);
+
+		return cartObj;
+	}
+
+	// =========================================================================
+	// Public API - Templates
+	// =========================================================================
+
+	/**
+	 * Set the template function for cart items
+	 * @param {string} templateName - Name of the template
+	 * @param {Function} templateFn - Function that takes (itemData, cartData) and returns HTML string
+	 */
+	setCartItemTemplate(templateName, templateFn) {
+		CartItem.setTemplate(templateName, templateFn);
+	}
+
+	/**
+	 * Set the processing template function for cart items
+	 * @param {Function} templateFn - Function that returns HTML string for processing state
+	 */
+	setCartItemProcessingTemplate(templateFn) {
+		CartItem.setProcessingTemplate(templateFn);
+	}
+
+	// =========================================================================
+	// Private Methods - Core
+	// =========================================================================
+
+	/**
+	 * Find the nearest dialog-panel ancestor
+	 * @private
+	 */
+	#findDialogPanel() {
+		return this.closest('dialog-panel');
+	}
+
+	/**
+	 * Emit an event via EventEmitter and native CustomEvent
+	 * @private
+	 */
+	#emit(eventName, data = null) {
+		this.#eventEmitter.emit(eventName, data);
+
+		this.dispatchEvent(
+			new CustomEvent(eventName, {
+				detail: data,
+				bubbles: true,
+			})
+		);
+	}
+
+	/**
+	 * Attach event listeners
+	 * @private
+	 */
+	#attachListeners() {
+		// Handle close buttons
+		this.addEventListener('click', (e) => {
+			if (!e.target.closest('[data-action-hide-cart]')) return;
+			this.hide();
+		});
+
+		// Handle cart item remove events
+		this.addEventListener('cart-item:remove', (e) => {
+			this.#handleCartItemRemove(e);
+		});
+
+		// Handle cart item quantity change events
+		this.addEventListener('cart-item:quantity-change', (e) => {
+			this.#handleCartItemQuantityChange(e);
+		});
+	}
+
+	// =========================================================================
+	// Private Methods - Cart Item Event Handlers
+	// =========================================================================
+
+	/**
+	 * Handle cart item removal
+	 * @private
+	 */
+	#handleCartItemRemove(e) {
+		const _ = this;
+		const { cartKey, element } = e.detail;
+
+		element.setState('processing');
+
+		_.updateCartItem(cartKey, 0)
+			.then((updatedCart) => {
+				if (updatedCart && !updatedCart.error) {
+					_.#currentCart = updatedCart;
+					_.#renderCartItems(updatedCart);
+					_.#renderCartPanel(updatedCart);
+
+					const cartWithCalculatedFields = _.#addCalculatedFields(updatedCart);
+					_.#emit('cart-panel:updated', { cart: cartWithCalculatedFields });
+					_.#emit('cart-panel:data-changed', cartWithCalculatedFields);
+				} else {
+					element.setState('ready');
+					console.error('Failed to remove cart item:', cartKey);
+				}
+			})
+			.catch((error) => {
+				element.setState('ready');
+				console.error('Error removing cart item:', error);
+			});
+	}
+
+	/**
+	 * Handle cart item quantity change
+	 * @private
+	 */
+	#handleCartItemQuantityChange(e) {
+		const _ = this;
+		const { cartKey, quantity, element } = e.detail;
+
+		element.setState('processing');
+
+		_.updateCartItem(cartKey, quantity)
+			.then((updatedCart) => {
+				if (updatedCart && !updatedCart.error) {
+					_.#currentCart = updatedCart;
+					_.#renderCartItems(updatedCart);
+					_.#renderCartPanel(updatedCart);
+
+					const cartWithCalculatedFields = _.#addCalculatedFields(updatedCart);
+					_.#emit('cart-panel:updated', { cart: cartWithCalculatedFields });
+					_.#emit('cart-panel:data-changed', cartWithCalculatedFields);
+				} else {
+					element.setState('ready');
+					console.error('Failed to update cart item quantity:', cartKey, quantity);
+				}
+			})
+			.catch((error) => {
+				element.setState('ready');
+				console.error('Error updating cart item quantity:', error);
+			});
+	}
+
+	// =========================================================================
+	// Private Methods - Rendering
+	// =========================================================================
+
+	/**
+	 * Update cart count elements across the page
+	 * @private
+	 */
+	#renderCartCount(cartData) {
+		if (!cartData) return;
+
+		const visibleItems = this.#getVisibleCartItems(cartData);
+		const visibleItemCount = visibleItems.reduce((total, item) => total + item.quantity, 0);
+
+		const cartCountElements = document.querySelectorAll('[data-content-cart-count]');
+		cartCountElements.forEach((element) => {
+			element.textContent = visibleItemCount;
 		});
 	}
 
 	/**
-	 * Remove items from DOM that are no longer in cart data
+	 * Update cart subtotal elements across the page
+	 * @private
+	 */
+	#renderCartSubtotal(cartData) {
+		if (!cartData) return;
+
+		const pricedItems = cartData.items.filter((item) => {
+			const ignorePrice = item.properties?._ignore_price_in_subtotal;
+			return !ignorePrice;
+		});
+		const subtotal = pricedItems.reduce((total, item) => total + (item.line_price || 0), 0);
+
+		const cartSubtotalElements = document.querySelectorAll('[data-content-cart-subtotal]');
+		cartSubtotalElements.forEach((element) => {
+			const formatted = (subtotal / 100).toFixed(2);
+			element.textContent = `$${formatted}`;
+		});
+	}
+
+	/**
+	 * Update cart panel sections (has-items/empty)
+	 * @private
+	 */
+	#renderCartPanel(cart = null) {
+		const _ = this;
+		const cartData = cart || _.#currentCart;
+		if (!cartData) return;
+
+		const visibleItems = _.#getVisibleCartItems(cartData);
+		const hasVisibleItems = visibleItems.length > 0;
+
+		// Set state attribute for CSS styling (e.g., Tailwind variants)
+		_.setAttribute('state', hasVisibleItems ? 'has-items' : 'empty');
+
+		const hasItemsSection = _.querySelector('[data-cart-has-items]');
+		const emptySection = _.querySelector('[data-cart-is-empty]');
+
+		if (hasItemsSection && emptySection) {
+			hasItemsSection.style.display = hasVisibleItems ? '' : 'none';
+			emptySection.style.display = hasVisibleItems ? 'none' : '';
+		}
+
+		_.#renderCartCount(cartData);
+		_.#renderCartSubtotal(cartData);
+	}
+
+	/**
+	 * Render cart items with smart add/update/remove
+	 * @private
+	 */
+	#renderCartItems(cartData) {
+		const _ = this;
+		const itemsContainer = _.querySelector('[data-content-cart-items]');
+
+		if (!itemsContainer || !cartData || !cartData.items) return;
+
+		const visibleItems = _.#getVisibleCartItems(cartData);
+
+		// Initial render - load all items without animation
+		if (_.#isInitialRender) {
+			itemsContainer.innerHTML = '';
+			visibleItems.forEach((itemData) => {
+				itemsContainer.appendChild(new CartItem(itemData, cartData));
+			});
+			_.#isInitialRender = false;
+			return;
+		}
+
+		// Get current DOM items
+		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+		const currentKeys = new Set(currentItems.map((item) => item.getAttribute('key')));
+
+		// Get new cart data keys
+		const newKeys = visibleItems.map((item) => item.key || item.id);
+		const newKeysSet = new Set(newKeys);
+
+		// Step 1: Remove items no longer in cart
+		_.#removeItemsFromDOM(itemsContainer, newKeysSet);
+
+		// Step 2: Update existing items
+		_.#updateItemsInDOM(itemsContainer, cartData);
+
+		// Step 3: Add new items with animation
+		const itemsToAdd = visibleItems.filter(
+			(itemData) => !currentKeys.has(itemData.key || itemData.id)
+		);
+		_.#addItemsToDOM(itemsContainer, itemsToAdd, newKeys, cartData);
+	}
+
+	/**
+	 * Remove items from DOM that are no longer in cart
 	 * @private
 	 */
 	#removeItemsFromDOM(itemsContainer, newKeysSet) {
 		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
-
 		const itemsToRemove = currentItems.filter((item) => !newKeysSet.has(item.getAttribute('key')));
 
 		itemsToRemove.forEach((item) => {
@@ -477,7 +876,7 @@ class CartDialog extends HTMLElement {
 	}
 
 	/**
-	 * Update existing cart-item elements with fresh cart data
+	 * Update existing cart-item elements with fresh data
 	 * @private
 	 */
 	#updateItemsInDOM(itemsContainer, cartData) {
@@ -487,12 +886,7 @@ class CartDialog extends HTMLElement {
 		existingItems.forEach((cartItemEl) => {
 			const key = cartItemEl.getAttribute('key');
 			const updatedItemData = visibleItems.find((item) => (item.key || item.id) === key);
-
-			if (updatedItemData) {
-				// Update cart-item with fresh data and full cart context
-				// The cart-item will handle HTML comparison and only re-render if needed
-				cartItemEl.setData(updatedItemData, cartData);
-			}
+			if (updatedItemData) cartItemEl.setData(updatedItemData, cartData);
 		});
 	}
 
@@ -500,19 +894,15 @@ class CartDialog extends HTMLElement {
 	 * Add new items to DOM with animation delay
 	 * @private
 	 */
-	#addItemsToDOM(itemsContainer, itemsToAdd, newKeys) {
-		// Delay adding new items by 300ms to let cart slide open first
+	#addItemsToDOM(itemsContainer, itemsToAdd, newKeys, cartData) {
 		setTimeout(() => {
 			itemsToAdd.forEach((itemData) => {
-				const cartItem$1 = cartItem.CartItem.createAnimated(itemData);
+				const cartItem = CartItem.createAnimated(itemData, cartData);
 				const targetIndex = newKeys.indexOf(itemData.key || itemData.id);
 
-				// Find the correct position to insert the new item
 				if (targetIndex === 0) {
-					// Insert at the beginning
-					itemsContainer.insertBefore(cartItem$1, itemsContainer.firstChild);
+					itemsContainer.insertBefore(cartItem, itemsContainer.firstChild);
 				} else {
-					// Find the item that should come before this one
 					let insertAfter = null;
 					for (let i = targetIndex - 1; i >= 0; i--) {
 						const prevKey = newKeys[i];
@@ -524,260 +914,59 @@ class CartDialog extends HTMLElement {
 					}
 
 					if (insertAfter) {
-						insertAfter.insertAdjacentElement('afterend', cartItem$1);
+						insertAfter.insertAdjacentElement('afterend', cartItem);
 					} else {
-						itemsContainer.appendChild(cartItem$1);
+						itemsContainer.appendChild(cartItem);
 					}
 				}
 			});
 		}, 100);
 	}
 
+	// =========================================================================
+	// Private Methods - Helpers
+	// =========================================================================
+
 	/**
-	 * Filter cart items to exclude those with _hide_in_cart property
+	 * Filter cart items to exclude hidden items
 	 * @private
 	 */
 	#getVisibleCartItems(cartData) {
 		if (!cartData || !cartData.items) return [];
 		return cartData.items.filter((item) => {
-			// Check for _hide_in_cart in various possible locations
 			const hidden = item.properties?._hide_in_cart;
-
 			return !hidden;
 		});
 	}
 
 	/**
-	 * Add calculated fields to cart object for events
+	 * Add calculated fields to cart object
 	 * @private
 	 */
 	#addCalculatedFields(cartData) {
 		if (!cartData) return cartData;
 
-		// For display counts: use visible items (excludes _hide_in_cart)
 		const visibleItems = this.#getVisibleCartItems(cartData);
 		const calculated_count = visibleItems.reduce((total, item) => total + item.quantity, 0);
 
-		// For pricing: use all items except those marked to ignore pricing
-		const pricedItems = cartData.items.filter((item) => {
-			const ignorePrice = item.properties?._ignore_price_in_subtotal;
-			return !ignorePrice;
-		});
-		const calculated_subtotal = pricedItems.reduce(
-			(total, item) => total + (item.line_price || 0),
-			0
-		);
+		const pricedItems = cartData.items.filter((item) => !item.properties?._ignore_price_in_subtotal);
+		const calculated_subtotal = pricedItems.reduce((total, item) => total + (item.line_price || 0), 0);
 
-		return {
-			...cartData,
-			calculated_count,
-			calculated_subtotal,
-		};
-	}
-
-	/**
-	 * Render cart items from Shopify cart data with smart comparison
-	 * @private
-	 */
-	#renderCartItems(cartData) {
-		const itemsContainer = this.querySelector('[data-content-cart-items]');
-
-		if (!itemsContainer || !cartData || !cartData.items) {
-			console.warn('Cannot render cart items:', {
-				itemsContainer: !!itemsContainer,
-				cartData: !!cartData,
-				items: cartData?.items?.length,
-			});
-			return;
-		}
-
-		// Filter out items with _hide_in_cart property
-		const visibleItems = this.#getVisibleCartItems(cartData);
-
-		// Handle initial render - load all items without animation
-		if (this.#isInitialRender) {
-			// Clear existing items
-			itemsContainer.innerHTML = '';
-
-			// Create cart-item elements without animation
-			visibleItems.forEach((itemData) => {
-				const cartItem$1 = new cartItem.CartItem(itemData); // No animation
-				itemsContainer.appendChild(cartItem$1);
-			});
-
-			this.#isInitialRender = false;
-
-			return;
-		}
-
-		// Get current DOM items and their keys
-		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
-		const currentKeys = new Set(currentItems.map((item) => item.getAttribute('key')));
-
-		// Get new cart data keys in order (only visible items)
-		const newKeys = visibleItems.map((item) => item.key || item.id);
-		const newKeysSet = new Set(newKeys);
-
-		// Step 1: Remove items that are no longer in cart data
-		this.#removeItemsFromDOM(itemsContainer, newKeysSet);
-
-		// Step 2: Update existing items with fresh data (handles templates, bundles, etc.)
-		this.#updateItemsInDOM(itemsContainer, cartData);
-
-		// Step 3: Add new items that weren't in DOM (with animation delay)
-		const itemsToAdd = visibleItems.filter(
-			(itemData) => !currentKeys.has(itemData.key || itemData.id)
-		);
-		this.#addItemsToDOM(itemsContainer, itemsToAdd, newKeys);
-	}
-
-	/**
-	 * Set the template function for cart items
-	 * @param {Function} templateFn - Function that takes item data and returns HTML string
-	 */
-	setCartItemTemplate(templateName, templateFn) {
-		cartItem.CartItem.setTemplate(templateName, templateFn);
-	}
-
-	/**
-	 * Set the processing template function for cart items
-	 * @param {Function} templateFn - Function that returns HTML string for processing state
-	 */
-	setCartItemProcessingTemplate(templateFn) {
-		cartItem.CartItem.setProcessingTemplate(templateFn);
-	}
-
-	/**
-	 * Shows the cart dialog and traps focus within it
-	 * @param {HTMLElement} [triggerEl=null] - The element that triggered the cart dialog
-	 * @fires CartDialog#show - Fired when the cart dialog has been shown
-	 */
-	show(triggerEl = null, cartObj) {
-		const _ = this;
-		_.triggerEl = triggerEl || false;
-
-		// Lock body scrolling
-		_.#lockScroll();
-
-		// Remove the hidden class first to ensure content is rendered
-		_.contentPanel.classList.remove('hidden');
-
-		// Give the browser a moment to process before starting animation
-		requestAnimationFrame(() => {
-			// Update ARIA states
-			_.setAttribute('aria-hidden', 'false');
-
-			if (_.triggerEl) {
-				_.triggerEl.setAttribute('aria-expanded', 'true');
-			}
-
-			// Focus management
-			const firstFocusable = _.querySelector(
-				'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-			);
-
-			if (firstFocusable) {
-				requestAnimationFrame(() => {
-					firstFocusable.focus();
-				});
-			}
-
-			// Refresh cart data when showing
-			_.refreshCart(cartObj);
-
-			// Emit show event - cart dialog is now visible
-			_.#emit('cart-dialog:show', { triggerElement: _.triggerEl });
-		});
-	}
-
-	/**
-	 * Hides the cart dialog and restores focus
-	 * @fires CartDialog#hide - Fired when the cart dialog has started hiding (transition begins)
-	 * @fires CartDialog#afterHide - Fired when the cart dialog has completed its hide transition
-	 */
-	hide() {
-		const _ = this;
-
-		// Update ARIA states
-		if (_.triggerEl) {
-			// remove focus from modal panel first
-			_.triggerEl.focus();
-			// mark trigger as no longer expanded
-			_.triggerEl.setAttribute('aria-expanded', 'false');
-		} else {
-			// If no trigger element, blur any focused element inside the panel
-			const activeElement = document.activeElement;
-			if (activeElement && _.contains(activeElement)) {
-				activeElement.blur();
-			}
-		}
-
-		requestAnimationFrame(() => {
-			// Set aria-hidden to start transition
-			// The transitionend event handler will add display:none when complete
-			_.setAttribute('aria-hidden', 'true');
-
-			// Emit hide event - cart dialog is now starting to hide
-			_.#emit('cart-dialog:hide', { triggerElement: _.triggerEl });
-
-			// Restore body scroll
-			_.#restoreScroll();
-		});
+		return { ...cartData, calculated_count, calculated_subtotal };
 	}
 }
 
-/**
- * Custom element that creates a clickable overlay for the cart dialog
- * @extends HTMLElement
- */
-class CartOverlay extends HTMLElement {
-	constructor() {
-		super();
-		this.setAttribute('tabindex', '-1');
-		this.setAttribute('aria-hidden', 'true');
-		this.cartDialog = this.closest('cart-dialog');
-		this.#attachListeners();
-	}
+// =============================================================================
+// Register Custom Elements
+// =============================================================================
 
-	#attachListeners() {
-		this.addEventListener('click', () => {
-			this.cartDialog.hide();
-		});
-	}
-}
-
-/**
- * Custom element that wraps the content of the cart dialog
- * @extends HTMLElement
- */
-class CartPanel extends HTMLElement {
-	constructor() {
-		super();
-		this.setAttribute('role', 'document');
-	}
-}
-
-if (!customElements.get('cart-dialog')) {
-	customElements.define('cart-dialog', CartDialog);
-}
-if (!customElements.get('cart-overlay')) {
-	customElements.define('cart-overlay', CartOverlay);
-}
 if (!customElements.get('cart-panel')) {
 	customElements.define('cart-panel', CartPanel);
 }
 
-// Make CartItem available globally for Shopify themes
-if (typeof window !== 'undefined') {
-	window.CartItem = cartItem.CartItem;
-}
-
-Object.defineProperty(exports, 'CartItem', {
-	enumerable: true,
-	get: function () { return cartItem.CartItem; }
-});
-exports.CartDialog = CartDialog;
-exports.CartOverlay = CartOverlay;
+exports.CartItem = CartItem;
+exports.CartItemContent = CartItemContent;
+exports.CartItemProcessing = CartItemProcessing;
 exports.CartPanel = CartPanel;
-exports.default = CartDialog;
+exports.default = CartPanel;
 //# sourceMappingURL=cart-panel.cjs.js.map

@@ -1,4 +1,4 @@
 # Root .eslintignore
 **/dist/
-**/demo/*.js
+**/demo/
 **/node_modules/

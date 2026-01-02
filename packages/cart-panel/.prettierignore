@@ -1,5 +1,8 @@
 **/*.min.js
 **/*.min.css
+**/*.md
+demo/
+dist/
 assets/
 node_modules/
 CLAUDE.md

@@ -5,11 +5,15 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Cart Panel Demo</title>
 
-		<!-- Import compiled cart-panel CSS (includes cart-item styles automatically) -->
+		<!-- dialog-panel styles -->
+		<link rel="stylesheet" href="https://unpkg.com/@magic-spells/dialog-panel/dist/dialog-panel.css" />
+		<!-- quantity-input styles -->
+		<link rel="stylesheet" href="https://unpkg.com/@magic-spells/quantity-input/dist/quantity-input.css" />
+		<!-- cart-panel styles (includes cart-item) -->
 		<link rel="stylesheet" href="./cart-panel.css" />
 
 		<style>
-			/* Demo-specific styles */
+			/* Demo page styles */
 			body {
 				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 				margin: 0;
@@ -65,34 +69,51 @@
 				margin-bottom: 20px;
 			}
 
-			/* Body scroll lock when cart is open */
-			body.overflow-hidden {
+			/* Prevent body scroll when dialog is open */
+			body:has(dialog-panel[state='showing']),
+			body:has(dialog-panel[state='shown']) {
 				overflow: hidden;
+			}
+
+			/* Slide-from-right drawer override for dialog-panel */
+			dialog-panel > dialog {
 				position: fixed;
-				width: 100%;
-				height: 100%;
-				left: 0;
+				top: 0;
 				right: 0;
+				left: auto;
+				width: min(400px, 90vw);
+				height: 100dvh;
+				max-width: none;
+				max-height: none;
+				border: none;
+				border-radius: 0;
 				margin: 0;
+				padding: 0;
+				transform: translateX(100%);
+				opacity: 1;
+				transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+				display: flex;
+				flex-direction: column;
+				background: #fff;
+				box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
 			}
 
-			/* Custom cart dialog styles */
-			:root {
-				/* Custom overlay styling */
-				--cp-overlay-background: rgba(0, 0, 0, 0.15);
-				--cp-overlay-backdrop-filter: blur(4px);
-
-				/* Custom content styling */
-				--cp-content-background: #ffffff;
-				--cp-content-border-radius: 12px;
-				--cp-content-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
-
-				/* Animation timing */
-				--cp-transition-duration: 350ms;
-				--cp-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+			dialog-panel[state='showing'] > dialog,
+			dialog-panel[state='shown'] > dialog {
+				transform: translateX(0);
 			}
 
-			/* Cart content internal styling */
+			dialog-panel[state='hiding'] > dialog {
+				transform: translateX(100%);
+			}
+
+			/* Cart panel styling */
+			cart-panel {
+				display: flex;
+				flex-direction: column;
+				height: 100%;
+			}
+
 			.cart-header {
 				padding: 24px;
 				border-bottom: 1px solid #eee;
@@ -168,7 +189,7 @@
 				background-color: #218838;
 			}
 
-			/* Sample cart item styles */
+			/* Cart item template styles */
 			.sample-cart-item {
 				display: flex;
 				padding: 16px;
@@ -186,8 +207,7 @@
 				display: flex;
 				align-items: center;
 				justify-content: center;
-				font-size: 12px;
-				color: #666;
+				font-size: 24px;
 			}
 
 			.item-details {
@@ -196,12 +216,7 @@
 
 			.item-name {
 				font-weight: 600;
-				margin-bottom: 4px;
-			}
-
-			.item-price {
-				color: #666;
-				font-size: 14px;
+				margin-bottom: 8px;
 			}
 
 			.item-controls {
@@ -210,14 +225,6 @@
 				justify-content: space-between;
 				align-items: flex-end;
 				min-height: 60px;
-			}
-
-			.quantity-input {
-				width: 50px;
-				padding: 4px;
-				text-align: center;
-				border: 1px solid #ddd;
-				border-radius: 4px;
 			}
 
 			.remove-button {
@@ -240,6 +247,11 @@
 			.remove-button:hover {
 				background: #f0f0f0;
 				color: #333;
+			}
+
+			.item-price {
+				color: #666;
+				font-size: 14px;
 			}
 
 			.trigger-button {
@@ -266,6 +278,25 @@
 			.trigger-button:active {
 				transform: translateY(0);
 				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+			}
+
+			.button-group {
+				display: flex;
+				gap: 10px;
+				flex-wrap: wrap;
+				margin-top: 20px;
+			}
+
+			.empty-cart {
+				padding: 40px 20px;
+				text-align: center;
+				color: #666;
+			}
+
+			.empty-cart-icon {
+				font-size: 48px;
+				margin-bottom: 16px;
+				opacity: 0.5;
 			}
 
 			/* Event log styling */
@@ -298,61 +329,34 @@
 				font-family: monospace;
 				font-size: 0.9rem;
 				box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-				transition: all 0.2s ease;
 			}
 
 			.event-log li:last-child {
 				border-left-color: #ff6b6b;
 				font-weight: bold;
 			}
-
-			.button-group {
-				display: flex;
-				gap: 10px;
-				flex-wrap: wrap;
-				margin-top: 20px;
-			}
-
-			.empty-cart {
-				padding: 40px 20px;
-				text-align: center;
-				color: #666;
-			}
-
-			.empty-cart-icon {
-				font-size: 48px;
-				margin-bottom: 16px;
-				opacity: 0.5;
-			}
 		</style>
 	</head>
 	<body>
 		<div class="hero-section">
-			<!-- Trigger Button -->
-			<button
-				class="trigger-button"
-				aria-haspopup="dialog"
-				aria-controls="demo-cart"
-				aria-expanded="false">
-				Open Shopping Cart (3 items)
+			<button id="open-cart-btn" class="trigger-button">
+				Open Shopping Cart (<span data-content-cart-count>0</span> items)
 			</button>
-			<h1>Cart Panel Demo</h1>
-			<p>An accessible shopping cart modal with cart item management</p>
+			<h1>Cart Panel 1.0 Demo</h1>
+			<p>Shopping cart panel with dialog-panel integration</p>
 		</div>
 
 		<div class="content-section">
 			<h2>Cart Panel Features</h2>
 			<p>This cart panel component demonstrates:</p>
 			<ul>
+				<li>Uses dialog-panel for modal behavior (native &lt;dialog&gt;)</li>
 				<li>Slide-in animation from the right side</li>
-				<li>Cart item removal with smooth animations</li>
-				<li>Real-time cart API integration (getCart, updateCartItem)</li>
+				<li>Cart item management with smooth animations</li>
+				<li>Shopify cart API integration (getCart, updateCartItem)</li>
 				<li>Processing states during cart operations</li>
-				<li>Event system for cart updates (cart:updated, cart:refreshed)</li>
-				<li>Automatic component updates (gift-with-purchase, cart-progress-bar)</li>
-				<li>Accessibility features with proper ARIA support</li>
-				<li>Focus management and keyboard navigation</li>
-				<li>Body scroll locking</li>
+				<li>Event system (cart-panel:show, cart-panel:updated, etc.)</li>
+				<li>Native focus trap and escape key handling</li>
 			</ul>
 
 			<div class="button-group">
@@ -362,164 +366,85 @@
 				<button id="clear-cart-btn" class="trigger-button" style="background-color: #dc3545">
 					Clear Cart
 				</button>
-				<button id="prevent-close-btn" class="trigger-button" style="background-color: #ff9e5e">
-					Prevent Next Close
-				</button>
 			</div>
 		</div>
 
-		<!-- Cart Dialog Component -->
-		<cart-dialog id="demo-cart" aria-modal="true" aria-labelledby="cart-title">
-			<cart-overlay></cart-overlay>
-			<cart-panel>
-				<div class="cart-header">
-					<h2 id="cart-title">Shopping Cart</h2>
-					<button aria-label="Close cart" class="close-button" data-action-hide-cart>
-						&times;
-					</button>
-				</div>
-				<div class="cart-body">
-					<!-- Cart has items section -->
-					<div data-cart-has-items>
-						<div class="cart-items" data-content-cart-items>
-							<!-- Cart items will be dynamically rendered here by the cart-panel component -->
-							<!-- Sample cart items for demo (these will be replaced by dynamic rendering) -->
-							<cart-item key="1" state="ready">
-								<cart-item-content>
-									<div class="sample-cart-item">
-										<div class="item-image">🎧</div>
-										<div class="item-details">
-											<div class="item-name">Wireless Headphones</div>
-											<quantity-modifier
-												value="1"
-												min="1"
-												data-cart-quantity></quantity-modifier>
-										</div>
-										<div class="item-controls">
-											<button class="remove-button" data-action-remove-item>&times;</button>
-											<div class="item-price">$99.99</div>
-										</div>
-									</div>
-								</cart-item-content>
-								<cart-item-processing>
-									<div class="cart-item-loader"></div>
-								</cart-item-processing>
-							</cart-item>
+		<!-- Cart with dialog-panel wrapper -->
+		<dialog-panel id="cart-dialog">
+			<dialog aria-labelledby="cart-title">
+				<cart-panel manual>
+					<div class="cart-header">
+						<h2 id="cart-title">Shopping Cart</h2>
+						<button aria-label="Close cart" class="close-button" data-action-hide-cart>
+							&times;
+						</button>
+					</div>
+					<div class="cart-body">
+						<!-- Cart has items section -->
+						<div data-cart-has-items>
+							<div class="cart-items" data-content-cart-items>
+								<!-- Cart items rendered dynamically -->
+							</div>
+						</div>
 
-							<cart-item key="2" state="ready">
-								<cart-item-content>
-									<div class="sample-cart-item">
-										<div class="item-image">📱</div>
-										<div class="item-details">
-											<div class="item-name">Smartphone Case</div>
-											<quantity-modifier
-												value="2"
-												min="1"
-												data-cart-quantity></quantity-modifier>
-										</div>
-										<div class="item-controls">
-											<button class="remove-button" data-action-remove-item>&times;</button>
-											<div class="item-price">$24.99</div>
-										</div>
-									</div>
-								</cart-item-content>
-								<cart-item-processing>
-									<div class="cart-item-loader"></div>
-								</cart-item-processing>
-							</cart-item>
-
-							<cart-item key="3" state="ready">
-								<cart-item-content>
-									<div class="sample-cart-item">
-										<div class="item-image">🔌</div>
-										<div class="item-details">
-											<div class="item-name">USB Cable</div>
-											<quantity-modifier
-												value="1"
-												min="1"
-												data-cart-quantity></quantity-modifier>
-										</div>
-										<div class="item-controls">
-											<button class="remove-button" data-action-remove-item>&times;</button>
-											<div class="item-price">$12.99</div>
-										</div>
-									</div>
-								</cart-item-content>
-								<cart-item-processing>
-									<div class="cart-item-loader"></div>
-								</cart-item-processing>
-							</cart-item>
+						<!-- Cart is empty section -->
+						<div data-cart-is-empty>
+							<div class="empty-cart">
+								<div class="empty-cart-icon">🛒</div>
+								<p>Your cart is empty</p>
+								<p>Add some items to get started!</p>
+							</div>
 						</div>
 					</div>
-
-					<!-- Cart is empty section -->
-					<div data-cart-is-empty style="display: none">
-						<div class="empty-cart">
-							<div class="empty-cart-icon">🛒</div>
-							<p>Your cart is empty</p>
-							<p>Add some items to get started!</p>
-						</div>
+					<div class="cart-footer">
+						<div class="cart-total">Subtotal: <span data-content-cart-subtotal>$0.00</span></div>
+						<button class="checkout-button">Proceed to Checkout</button>
 					</div>
-				</div>
-				<div class="cart-footer">
-					<div class="cart-total" id="cart-total">Total: $162.97</div>
-					<button class="checkout-button">Proceed to Checkout</button>
-				</div>
-			</cart-panel>
-		</cart-dialog>
+				</cart-panel>
+			</dialog>
+		</dialog-panel>
 
 		<script type="module">
-			// Import the cart dialog component (includes cart-item automatically)
-			// To build: npm run build (creates ./dist/cart-panel.esm.js)
+			// Import components
+			import 'https://unpkg.com/@magic-spells/dialog-panel/dist/dialog-panel.esm.js';
+			import 'https://unpkg.com/@magic-spells/quantity-input/dist/quantity-input.esm.js';
 			import './cart-panel.esm.js';
 
-			// Demo page functionality - just for the demo buttons and event logging
-			// The cart-dialog component handles all its own functionality now!
+			// Get elements
+			const cartPanel = document.querySelector('cart-panel');
+			const openCartBtn = document.getElementById('open-cart-btn');
+			const addItemBtn = document.getElementById('add-item-btn');
+			const clearCartBtn = document.getElementById('clear-cart-btn');
 
 			// Sample items for adding to cart
 			const sampleItems = [
-				{ name: 'Laptop Stand', price: 45.99, image: '💻' },
-				{ name: 'Coffee Mug', price: 15.99, image: '☕' },
-				{ name: 'Notebook', price: 8.99, image: '📓' },
-				{ name: 'Pen Set', price: 22.99, image: '✏️' },
-				{ name: 'Desk Lamp', price: 67.99, image: '💡' },
+				{ name: 'Wireless Headphones', price: 99.99, emoji: '🎧' },
+				{ name: 'Smartphone Case', price: 24.99, emoji: '📱' },
+				{ name: 'USB Cable', price: 12.99, emoji: '🔌' },
+				{ name: 'Laptop Stand', price: 45.99, emoji: '💻' },
+				{ name: 'Coffee Mug', price: 15.99, emoji: '☕' },
+				{ name: 'Notebook', price: 8.99, emoji: '📓' },
 			];
 
-			// Get DOM elements
-			const cartDialog = document.getElementById('demo-cart');
-			const addItemBtn = document.getElementById('add-item-btn');
-			const clearCartBtn = document.getElementById('clear-cart-btn');
-			const preventCloseBtn = document.getElementById('prevent-close-btn');
-
-			let preventCloseOnce = false;
-
-			// Set up cart item templates
-			cartDialog.setCartItemTemplate('default', (itemData, cartData) => {
-				const productImages = {
-					'Wireless Headphones': '🎧',
-					'Smartphone Case': '📱',
-					'USB Cable': '🔌',
-					'Laptop Stand': '💻',
-					'Coffee Mug': '☕',
-					Notebook: '📓',
-					'Pen Set': '✏️',
-					'Desk Lamp': '💡',
-				};
-
-				const emoji = productImages[itemData.product_title] || '📦';
+			// Set up cart item template
+			cartPanel.setCartItemTemplate('default', (itemData, cartData) => {
 				const price = (itemData.line_price / 100).toFixed(2);
-				const total = ((itemData.line_price * itemData.quantity) / 100).toFixed(2);
+				const emoji = itemData.properties?.emoji || '📦';
 
 				return `
 					<div class="sample-cart-item">
 						<div class="item-image">${emoji}</div>
 						<div class="item-details">
 							<div class="item-name">${itemData.product_title}</div>
-							<quantity-modifier value="${itemData.quantity}" min="1" data-cart-quantity></quantity-modifier>
+							<quantity-input value="${itemData.quantity}" min="1">
+								<button data-action-decrement type="button">−</button>
+								<input type="number" />
+								<button data-action-increment type="button">+</button>
+							</quantity-input>
 						</div>
 						<div class="item-controls">
 							<button class="remove-button" data-action-remove-item>&times;</button>
-							<div class="item-price">$${price}</div>
+							<div class="item-price" data-content-line-price>$${price}</div>
 						</div>
 					</div>
 				`;
@@ -533,64 +458,66 @@
 						key: '1',
 						id: '1',
 						product_title: 'Wireless Headphones',
-						variant_title: 'Black',
 						quantity: 1,
 						line_price: 9999,
-						featured_image: null,
-						url: '/products/headphones',
+						properties: { emoji: '🎧' },
 					},
 					{
 						key: '2',
 						id: '2',
 						product_title: 'Smartphone Case',
-						variant_title: 'Clear',
 						quantity: 2,
 						line_price: 2499,
-						featured_image: null,
-						url: '/products/case',
+						properties: { emoji: '📱' },
 					},
 					{
 						key: '3',
 						id: '3',
 						product_title: 'USB Cable',
-						variant_title: '6ft',
 						quantity: 1,
 						line_price: 1299,
-						featured_image: null,
-						url: '/products/cable',
+						properties: { emoji: '🔌' },
 					},
 				],
 			};
 
 			// Override cart APIs to use simulated data
-			const originalGetCart = cartDialog.getCart;
-			const originalUpdateCartItem = cartDialog.updateCartItem;
-
-			cartDialog.getCart = function () {
+			cartPanel.getCart = function () {
 				return Promise.resolve(simulatedCartData);
 			};
 
-			cartDialog.updateCartItem = function (key, quantity) {
-				const itemIndex = simulatedCartData.items.findIndex(
-					(item) => (item.key || item.id) === key
-				);
-				if (itemIndex !== -1) {
-					if (quantity === 0) {
-						// Remove item
-						simulatedCartData.items.splice(itemIndex, 1);
-					} else {
-						// Update quantity
-						simulatedCartData.items[itemIndex].quantity = quantity;
-					}
-				}
-				simulatedCartData.item_count = simulatedCartData.items.reduce(
-					(sum, item) => sum + item.quantity,
-					0
-				);
-				return Promise.resolve(simulatedCartData);
+			cartPanel.updateCartItem = function (key, quantity) {
+				return new Promise((resolve) => {
+					// Simulate network delay
+					setTimeout(() => {
+						const itemIndex = simulatedCartData.items.findIndex(
+							(item) => (item.key || item.id) === key
+						);
+						if (itemIndex !== -1) {
+							if (quantity === 0) {
+								simulatedCartData.items.splice(itemIndex, 1);
+							} else {
+								simulatedCartData.items[itemIndex].quantity = quantity;
+							}
+						}
+						simulatedCartData.item_count = simulatedCartData.items.reduce(
+							(sum, item) => sum + item.quantity,
+							0
+						);
+						resolve(simulatedCartData);
+					}, 300);
+				});
 			};
 
-			// Add item functionality (demo only) - now simulates cart API
+			// Load initial cart data
+			cartPanel.refreshCart();
+
+			// Open cart button
+			openCartBtn.addEventListener('click', (e) => {
+				cartPanel.show(e.target);
+			});
+
+			// Add item functionality
 			addItemBtn.addEventListener('click', () => {
 				const randomItem = sampleItems[Math.floor(Math.random() * sampleItems.length)];
 				const newItemKey = Date.now().toString();
@@ -598,130 +525,41 @@
 					key: newItemKey,
 					id: newItemKey,
 					product_title: randomItem.name,
-					variant_title: 'Standard',
 					quantity: 1,
-					line_price: Math.round(randomItem.price * 100), // Convert to cents
-					featured_image: null,
-					url: `/products/${randomItem.name.toLowerCase().replace(/\s+/g, '-')}`,
+					line_price: Math.round(randomItem.price * 100),
+					properties: { emoji: randomItem.emoji },
 				};
 
-				// Add to simulated cart data
 				simulatedCartData.items.push(newItem);
-				simulatedCartData.item_count += newItem.quantity;
+				simulatedCartData.item_count += 1;
 
-				// Trigger cart refresh to use smart comparison
-				cartDialog.refreshCart().then(() => {
-					logEvent('item-added', { item: newItem });
+				cartPanel.refreshCart().then(() => {
+					logEvent('item-added', { item: randomItem.name });
 				});
 			});
 
-			// Clear cart functionality (demo only) - now simulates cart API
+			// Clear cart functionality
 			clearCartBtn.addEventListener('click', () => {
 				if (confirm('Are you sure you want to clear your cart?')) {
-					// Clear simulated cart data
 					simulatedCartData.items = [];
 					simulatedCartData.item_count = 0;
-
-					// Trigger cart refresh to use smart comparison
-					cartDialog.refreshCart().then(() => {
+					cartPanel.refreshCart().then(() => {
 						logEvent('cart-cleared');
 					});
 				}
 			});
 
-			// Prevent close functionality (demo only)
-			preventCloseBtn.addEventListener('click', () => {
-				preventCloseOnce = true;
-				alert('The next attempt to close the cart will be prevented!');
-			});
-
-			// Handle beforeHide prevention (demo functionality)
-			cartDialog.addEventListener('cart-dialog:beforeHide', (e) => {
-				if (preventCloseOnce) {
-					e.preventDefault();
-					preventCloseOnce = false;
-
-					// Show message in cart
-					const message = document.createElement('div');
-					message.className = 'prevention-message';
-					message.innerHTML =
-						'<p style="background: #ffeeee; padding: 10px; margin: 10px; border-radius: 4px;">Close prevented! Try closing again.</p>';
-
-					const cartBody = cartDialog.querySelector('.cart-body');
-					cartBody.appendChild(message);
-
-					setTimeout(() => {
-						message.remove();
-					}, 2000);
-
-					logEvent('close-prevented');
-				}
-			});
-
-			// Listen for cart component events using both traditional addEventListener and new event emitter pattern
-
-			// Traditional way (still works) - using namespaced events
-			cartDialog.addEventListener('cart-dialog:beforeShow', (e) => {
-				logEvent('cart-dialog:beforeShow', { triggerElement: e.detail.triggerElement });
-			});
-
-			// New event emitter pattern examples - using namespaced events
-			cartDialog
-				.on('cart-dialog:show', (e) => {
-					logEvent('cart-dialog:show', { triggerElement: e.triggerElement });
-				})
-				.on('cart-dialog:beforeHide', (e) => {
-					logEvent('cart-dialog:beforeHide', { triggerElement: e.triggerElement });
-				})
-				.on('cart-dialog:hide', (e) => {
-					logEvent('cart-dialog:hide', { triggerElement: e.triggerElement });
-				})
-				.on('cart-dialog:afterHide', (e) => {
-					logEvent('cart-dialog:afterHide', { triggerElement: e.triggerElement });
+			// Event listeners
+			cartPanel
+				.on('cart-panel:show', () => logEvent('cart-panel:show'))
+				.on('cart-panel:hide', () => logEvent('cart-panel:hide'))
+				.on('cart-panel:refreshed', () => logEvent('cart-panel:refreshed'))
+				.on('cart-panel:updated', () => logEvent('cart-panel:updated'))
+				.on('cart-panel:data-changed', (data) => {
+					logEvent('cart-panel:data-changed', { count: data.calculated_count });
 				});
 
-			// Cart data events using event emitter pattern
-			cartDialog.on('cart-dialog:updated', (e) => {
-				logEvent('cart-dialog:updated', { cart: e.cart });
-			});
-
-			cartDialog.on('cart-dialog:refreshed', (e) => {
-				logEvent('cart-dialog:refreshed', { cart: e.cart });
-			});
-
-			// NEW: Listen for the cart-data-changed event that fires on any cart data change
-			cartDialog.on('cart-dialog:data-changed', (cartData) => {
-				logEvent('cart-dialog:data-changed', { cart: cartData });
-
-				// Example: Update page elements when cart changes
-				console.log('Cart data changed:', cartData);
-				// You could update header cart count, total price displays, etc.
-			});
-
-			// Note: External event emitter doesn't have 'once' method
-			// Use regular 'on' and manually remove if needed
-
-			// Example: Programmatically emit custom events with namespace
-			// cartDialog.emit('cart-dialog:my-custom-event', { message: 'Hello from cart!' });
-
-			// Example: Listen for custom events
-			// cartDialog.on('cart-dialog:my-custom-event', (data) => {
-			//     console.log('Custom event received:', data.message);
-			// });
-
-			// Cart item events
-			cartDialog.on('cart-item:remove', (e) => {
-				logEvent('cart-item:remove', { cartKey: e.cartKey });
-			});
-
-			cartDialog.on('cart-item:quantity-change', (e) => {
-				logEvent('cart-item:quantity-change', {
-					cartKey: e.cartKey,
-					quantity: e.quantity,
-				});
-			});
-
-			// Event logging setup
+			// Event logging
 			const eventLog = document.createElement('div');
 			eventLog.classList.add('event-log');
 			eventLog.innerHTML = '<h3>Event Log:</h3><ul></ul>';
@@ -730,16 +568,10 @@
 			function logEvent(eventName, detail = {}) {
 				const list = eventLog.querySelector('ul');
 				const item = document.createElement('li');
-				item.textContent = `${eventName} at ${new Date().toLocaleTimeString()}`;
-				if (detail.triggerElement) {
-					item.textContent += ` (triggered by ${detail.triggerElement.tagName})`;
-				}
-				if (detail.cartKey) {
-					item.textContent += ` (item: ${detail.cartKey})`;
-				}
-				if (detail.quantity) {
-					item.textContent += ` (qty: ${detail.quantity})`;
-				}
+				let text = `${eventName} at ${new Date().toLocaleTimeString()}`;
+				if (detail.item) text += ` (${detail.item})`;
+				if (detail.count !== undefined) text += ` (count: ${detail.count})`;
+				item.textContent = text;
 				list.appendChild(item);
 
 				// Limit to last 10 events

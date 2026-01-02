@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with code in this repository.
 
 ## Development Commands
 
@@ -11,233 +11,104 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-This is a web component library that creates an accessible shopping cart modal dialog. The main component is `CartDialog` which extends `HTMLElement` and manages cart state, API calls, and UI interactions.
+This is a web component library for Shopify shopping carts. It provides two main components:
 
 ### Core Components
 
-- **CartDialog** (`cart-dialog`): Main modal component with focus management, scroll locking, and cart API integration
-- **CartOverlay** (`cart-overlay`): Clickable backdrop overlay
-- **CartPanel** (`cart-panel`): Content container that slides in from right
-- **Cart Items**: Uses `@magic-spells/cart-item` dependency for individual cart items
+- **CartPanel** (`<cart-panel>`) - Main component that manages cart data, AJAX requests, and rendering
+- **CartItem** (`<cart-item>`) - Individual cart item with processing/destroying/appearing states
+- **CartItemContent** (`<cart-item-content>`) - Content wrapper inside cart-item
+- **CartItemProcessing** (`<cart-item-processing>`) - Processing overlay with loader
 
-### Key Features
+### Key Architecture Decisions
 
-- **API Integration**: Fetches from `/cart.json` and updates via `/cart/change.json`
-- **Event System**: Uses `@magic-spells/event-emitter` for custom events like `cart-dialog:show`, `cart-dialog:hide`, `cart-dialog:updated`
-- **Focus Management**: Uses `@magic-spells/focus-trap` for accessibility
-- **Scroll Locking**: Prevents body scrolling when modal is open
-- **State Management**: Handles processing states during cart operations
-- **Item Filtering**: Supports hiding cart items with line item properties (excluded from display and calculations)
-- **Template System**: Uses `@magic-spells/cart-item` with customizable templates for dynamic cart rendering
+1. **Delegates modal to dialog-panel**: CartPanel finds its nearest `<dialog-panel>` ancestor and calls `show()`/`hide()` on it. No modal management code in cart-panel.
 
-### Build System
+2. **Native dialog features**: Focus trap, escape key, backdrop click are all handled by `<dialog-panel>` which wraps native `<dialog>`.
 
-Rollup configuration creates multiple builds:
+3. **Cart data management**: CartPanel handles all Shopify AJAX (`/cart.json`, `/cart/change.json`) and cart item rendering with smart add/update/remove logic.
 
-- **ESM**: `dist/cart-panel.esm.js` (primary export)
-- **CommonJS**: `dist/cart-panel.cjs.js`
-- **UMD**: `dist/cart-panel.js` (unminified), `dist/cart-panel.min.js` (minified)
-- **Styles**: `dist/cart-panel.css`, `dist/cart-panel.scss`
+4. **Event-driven items**: CartItem emits `cart-item:remove` and `cart-item:quantity-change` events that bubble up to CartPanel.
 
-External dependencies (`@magic-spells/cart-item`, `@magic-spells/focus-trap`, `@magic-spells/event-emitter`) are not bundled in ESM/CJS builds but are included in UMD builds.
+### Usage Structure
 
-### Development Setup
+```html
+<dialog-panel id="cart-dialog">
+  <dialog>
+    <cart-panel>
+      <div data-cart-has-items>
+        <div data-content-cart-items></div>
+      </div>
+      <div data-cart-is-empty>Empty cart message</div>
+      <button data-action-hide-cart>Close</button>
+      <span data-content-cart-count></span>
+      <span data-content-cart-subtotal></span>
+    </cart-panel>
+  </dialog>
+</dialog-panel>
+```
 
-The demo at `demo/index.html` provides a complete working example. Use `npm run dev` to start the development server which will automatically copy built files to the demo directory.
+### Public API
 
-### Event System Architecture
+**CartPanel Methods:**
+- `show(triggerEl?)` - Find dialog-panel ancestor and open it
+- `hide()` - Find dialog-panel ancestor and close it
+- `getCart()` - Fetch from `/cart.json`
+- `updateCartItem(key, quantity)` - POST to `/cart/change.json`
+- `refreshCart(cartObj?)` - Update display with provided or fetched cart
+- `setCartItemTemplate(name, fn)` - Set template for cart items
+- `on(event, callback)` / `off(event, callback)` - Event subscription
 
-The CartDialog uses a dual event system:
+**Events:**
+- `cart-panel:show` - When show() is called
+- `cart-panel:hide` - When hide() is called
+- `cart-panel:refreshed` - After cart data refreshed
+- `cart-panel:updated` - After item quantity changed
+- `cart-panel:data-changed` - Any cart change (includes `calculated_count`, `calculated_subtotal`)
 
-1. **Event Emitter**: Custom event emitter for cart-specific events with method chaining (`.on()`, `.off()`)
-2. **DOM Events**: Standard DOM events for broader compatibility
-
-Key events:
-
-- `cart-dialog:show/hide/afterHide` - Modal state changes
-- `cart-dialog:updated/refreshed/data-changed` - Cart data changes
-- `cart-item:remove/quantity-change` - Item interactions (bubbled from cart-item components)
+**CartItem States:**
+- `ready` - Default interactive state
+- `processing` - During AJAX calls (blur, scale, loader visible)
+- `destroying` - Removal animation (height collapses)
+- `appearing` - Entry animation (height expands)
 
 ### Dependencies
 
-- `@magic-spells/cart-item`: Cart item web component
-- `@magic-spells/event-emitter`: Event system
-- `@magic-spells/focus-trap`: Focus management for accessibility
+- `@magic-spells/event-emitter` - Event system (bundled)
+- `@magic-spells/dialog-panel` - Modal behavior (peer dependency)
+- `@magic-spells/quantity-input` - Optional, for quantity controls in templates
 
-The component follows web standards and can be used in any HTML page by importing the ESM build.
+### Build System
 
-## Line Item Properties
+Rollup creates multiple formats:
+- **ESM**: `dist/cart-panel.esm.js`
+- **CommonJS**: `dist/cart-panel.cjs.js`
+- **UMD**: `dist/cart-panel.js` / `dist/cart-panel.min.js`
+- **CSS**: `dist/cart-panel.css` (includes cart-item styles)
 
-The cart-panel component leverages Shopify's line item properties system to provide enhanced cart functionality. These properties are set when adding items to the cart and can be used to control cart behavior and display.
+### Line Item Properties
 
-### Supported Line Item Properties
+The cart-panel supports Shopify line item properties:
 
-#### `_hide_in_cart`
+- `_hide_in_cart` - Hide item from display (still in actual cart)
+- `_ignore_price_in_subtotal` - Exclude from subtotal calculation
+- `_cart_template` - Use a specific template name for this item
+- `_group_id` / `_group_role` - For bundle grouping
 
-Hides items from the cart display. Hidden items remain in the actual Shopify cart but are not visible to customers. Commonly used for child items in grouped bundles.
-
-**Use Cases:**
-
-- Gift wrapping fees that should be invisible to customers
-- Internal tracking items
-- Conditional promotional items
-- Hidden service charges
-
-**Usage in Shopify:**
-
-```liquid
-<!-- Add to cart form with hidden item -->
-<form action="/cart/add" method="post">
-  <input type="hidden" name="id" value="12345">
-  <input type="hidden" name="properties[_hide_in_cart]" value="true">
-  <!-- Any truthy value works: "1", "yes", etc. -->
-</form>
-```
-
-**JavaScript cart addition:**
+### Template System
 
 ```javascript
-fetch('/cart/add.json', {
-	method: 'POST',
-	headers: { 'Content-Type': 'application/json' },
-	body: JSON.stringify({
-		id: 12345,
-		quantity: 1,
-		properties: {
-			_hide_in_cart: 'true',
-		},
-	}),
-});
-```
+const cartPanel = document.querySelector('cart-panel');
 
-#### `_cart_template`
-
-Specifies which template to use when rendering cart items dynamically. The cart-item component supports multiple templates for different item types or display styles.
-
-**Default templates:**
-
-- `default` - Standard cart item template
-- Custom templates can be registered via `CartItem.setTemplate(name, templateFunction)`
-
-**Usage in Shopify:**
-
-```liquid
-<!-- Specify template for special items -->
-<form action="/cart/add" method="post">
-  <input type="hidden" name="id" value="12345">
-  <input type="hidden" name="properties[_cart_template]" value="subscription">
-</form>
-```
-
-**JavaScript template setup:**
-
-```javascript
-import { CartItem } from '@magic-spells/cart-item';
-
-// Register a custom template
-CartItem.setTemplate('subscription', (itemData, cartData) => {
-	return `
-    <div class="subscription-item">
-      <h4>${itemData.product_title}</h4>
-      <div class="subscription-frequency">
-        Delivers every ${itemData.properties.frequency}
-      </div>
-      <div class="price">$${(itemData.price / 100).toFixed(2)}</div>
-    </div>
-  `;
-});
-
-// Items with _cart_template: 'subscription' will use this template
-```
-
-#### `_group_id` and `_group_role`
-
-Groups items together for bundle products where multiple items should be displayed as a single unit.
-
-**Group Roles:**
-- `"parent"` - Main item that renders (typically with `_cart_template: "bundle"`)
-- `"child"` - Items that are part of the group (typically with `_hide_in_cart: true`)
-
-**Usage in Shopify:**
-```liquid
-<!-- Bundle parent item -->
-<input type="hidden" name="properties[_group_id]" value="Q6RT1B48">
-<input type="hidden" name="properties[_group_role]" value="parent">
-<input type="hidden" name="properties[_cart_template]" value="bundle">
-
-<!-- Bundle child items -->  
-<input type="hidden" name="properties[_group_id]" value="Q6RT1B48">
-<input type="hidden" name="properties[_group_role]" value="child">
-<input type="hidden" name="properties[_hide_in_cart]" value="true">
-```
-
-**Bundle template example:**
-```javascript
-CartItem.setTemplate('bundle', (itemData, cartData) => {
-  // Find all items in this group
-  const groupId = itemData.properties._group_id;
-  const groupItems = cartData.items.filter(item => 
-    item.properties?._group_id === groupId
-  );
-  
+cartPanel.setCartItemTemplate('default', (itemData, cartData) => {
   return `
-    <div class="bundle-item">
-      <div class="bundle-badge">📦 Bundle</div>
+    <div class="cart-item">
+      <img src="${itemData.image}" />
       <h4>${itemData.product_title}</h4>
-      <div class="bundle-contents">
-        ${groupItems.map(item => `
-          <div class="bundle-item">• ${item.product_title}</div>
-        `).join('')}
-      </div>
-      <div class="price">$${(groupItems.reduce((sum, item) => sum + item.line_price, 0) / 100).toFixed(2)}</div>
+      <quantity-input value="${itemData.quantity}" min="1"></quantity-input>
+      <button data-action-remove-item>Remove</button>
+      <span data-content-line-price></span>
     </div>
   `;
 });
 ```
-
-#### `_ignore_price_in_subtotal`
-
-Excludes items from subtotal calculations while keeping them in the cart. Useful for promotional items with automatic discounts applied at checkout.
-
-**Usage in Shopify:**
-```liquid
-<!-- Gift with purchase item -->
-<input type="hidden" name="properties[_ignore_price_in_subtotal]" value="true">
-```
-
-### Implementation Details
-
-The cart-panel processes these properties automatically with separate logic for display and pricing:
-
-1. **Display Filtering**: Items with `_hide_in_cart` are excluded from rendering
-2. **Pricing Calculations**: Items with `_ignore_price_in_subtotal` are excluded from subtotal calculations  
-3. **Template Selection**: The `_cart_template` property is passed to cart-item components for custom rendering
-4. **Group Processing**: Items with matching `_group_id` are processed together by bundle templates
-
-**Example cart processing:**
-
-```javascript
-// For rendering - exclude hidden items
-const visibleItems = cart.items.filter(item => {
-  const hidden = item.properties?._hide_in_cart;
-  return !hidden;
-});
-
-// For pricing - exclude items that shouldn't count toward subtotal
-const pricedItems = cart.items.filter(item => {
-  const ignorePrice = item.properties?._ignore_price_in_subtotal;
-  return !ignorePrice;
-});
-
-// Template name is passed to cart-item for rendering
-const templateName = item.properties?._cart_template || 'default';
-
-// Group processing for bundles
-const groupId = item.properties?._group_id;
-if (groupId) {
-  const groupItems = cart.items.filter(i => i.properties?._group_id === groupId);
-  // Bundle template handles rendering all group items together
-}
-```
-
-This system provides powerful cart customization while maintaining compatibility with Shopify's standard cart functionality. The separation of display logic from pricing logic allows for complex scenarios like bundles where child items are hidden but still contribute to pricing.
