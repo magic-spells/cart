@@ -12,9 +12,11 @@ class GiftWithPurchase extends HTMLElement {
 	#isAdded = false;
 	#promoEnded = false;
 	#cartPanel = null;
-	#handlers = {}; // pre-bound listener refs for clean-up
+	#handlers = {};
 	#debounceTimer = null;
 	#attachRetryTimer = null;
+	#isMutating = false; // prevents overlapping cart mutations
+	#pendingCart = null; // stores cart snapshot during mutation for recheck
 	#messageAbove = null;
 	#messageBelow = null;
 	#moneyFormat = null;
@@ -196,19 +198,32 @@ class GiftWithPurchase extends HTMLElement {
 		_.#isAdded = giftLines.length > 0;
 	}
 
+	#recheckIfPending() {
+		const _ = this;
+		if (_.#pendingCart) {
+			const cart = _.#pendingCart;
+			_.#pendingCart = null;
+			_.#checkGiftInCart(cart);
+			_.#updateState(cart);
+		}
+	}
+
 	#updateState(cart) {
 		const _ = this;
+
+		// If mutation in progress, queue this cart for recheck later
+		if (_.#isMutating) {
+			_.#pendingCart = cart;
+			return;
+		}
+
 		const wasActive = _.#isActive;
 		const convertedThreshold = _.#getConvertedThreshold();
 		_.#isActive = _.#currentAmount >= convertedThreshold && !_.#promoEnded;
 
 		if (_.#promoEnded) _.#removeGiftFromCart(cart);
-
-		if (_.#isActive && !wasActive && !_.#isAdded && _.#variantId) {
-			_.#addGiftToCart();
-		} else if (!_.#isActive && _.#isAdded && _.#variantId) {
-			_.#removeGiftFromCart(cart);
-		}
+		else if (_.#isActive && !wasActive && !_.#isAdded && _.#variantId) _.#addGiftToCart();
+		else if (!_.#isActive && _.#isAdded && _.#variantId) _.#removeGiftFromCart(cart);
 
 		_.#updateVisualState();
 		_.#updateMessages();
@@ -230,6 +245,7 @@ class GiftWithPurchase extends HTMLElement {
 
 	async #addGiftToCart() {
 		const _ = this;
+		_.#isMutating = true;
 		try {
 			const res = await fetch('/cart/add.js', {
 				method: 'POST',
@@ -247,6 +263,9 @@ class GiftWithPurchase extends HTMLElement {
 		} catch (err) {
 			console.error('giftwithpurchase: add error', err);
 			_.dispatchEvent(new CustomEvent('gwp:error', { detail: { action: 'add', error: err.message }, bubbles: true }));
+		} finally {
+			_.#isMutating = false;
+			_.#recheckIfPending();
 		}
 	}
 
@@ -254,18 +273,23 @@ class GiftWithPurchase extends HTMLElement {
 		const _ = this;
 		if (!cart?.items) return;
 
+		const giftLines = cart.items.filter(
+			(item) => item.variant_id.toString() === _.#variantId.toString() && item.properties?._gwp_item === 'true'
+		);
+		if (!giftLines.length) {
+			_.#isAdded = false;
+			return;
+		}
+
+		_.#isMutating = true;
 		try {
-			const giftLines = cart.items.filter(
-				(item) => item.variant_id.toString() === _.#variantId.toString() && item.properties?._gwp_item === 'true'
-			);
-			if (!giftLines.length) {
-				_.#isAdded = false;
-				return;
-			}
 			await _.#removeAllGiftItems(giftLines);
 		} catch (err) {
 			console.error('giftwithpurchase: remove error', err);
 			_.dispatchEvent(new CustomEvent('gwp:error', { detail: { action: 'remove', error: err.message }, bubbles: true }));
+		} finally {
+			_.#isMutating = false;
+			_.#recheckIfPending();
 		}
 	}
 
