@@ -555,7 +555,7 @@ class CartPanel extends HTMLElement {
 
 		// Load cart data immediately unless manual mode is enabled
 		if (!this.hasAttribute('manual')) {
-			this.getCartAndRefresh();
+			this.refreshCart();
 		}
 	}
 
@@ -604,7 +604,7 @@ class CartPanel extends HTMLElement {
 
 		if (dialogPanel) {
 			dialogPanel.show(triggerEl);
-			cartObj ? _.refreshCart(cartObj) : _.getCartAndRefresh();
+			_.refreshCart(cartObj);
 			_.#emit('cart-panel:show', { triggerElement: triggerEl });
 		} else {
 			console.warn('cart-panel: No dialog-panel ancestor found. Cart panel is visible but not in a modal.');
@@ -672,28 +672,19 @@ class CartPanel extends HTMLElement {
 	}
 
 	/**
-	 * Fetch cart from server and refresh display
+	 * Refresh cart display - fetches from server if no cart object provided
+	 * @param {Object} [cartObj=null] - Cart data object to render, or null to fetch
 	 * @returns {Promise<Object>} Cart data object
 	 */
-	getCartAndRefresh() {
+	async refreshCart(cartObj = null) {
 		const _ = this;
-		return _.getCart().then((cartData) => {
-			if (cartData && !cartData.error) {
-				_.refreshCart(cartData);
-			} else {
-				console.warn('Cart data has error or is null:', cartData);
-			}
-			return cartData;
-		});
-	}
 
-	/**
-	 * Refresh cart display with provided cart data
-	 * @param {Object} cartObj - Cart object to render
-	 */
-	refreshCart(cartObj) {
-		const _ = this;
-		if (!cartObj || cartObj.error) return;
+		// Fetch from server if no cart object provided
+		cartObj = cartObj || (await _.getCart());
+		if (!cartObj || cartObj.error) {
+			console.warn('Cart data has error or is null:', cartObj);
+			return cartObj;
+		}
 
 		_.#currentCart = cartObj;
 		_.#renderCartItems(cartObj);
@@ -702,6 +693,8 @@ class CartPanel extends HTMLElement {
 		const cartWithCalculatedFields = _.#addCalculatedFields(cartObj);
 		_.#emit('cart-panel:refreshed', { cart: cartWithCalculatedFields });
 		_.#emit('cart-panel:data-changed', cartWithCalculatedFields);
+
+		return cartObj;
 	}
 
 	// =========================================================================
