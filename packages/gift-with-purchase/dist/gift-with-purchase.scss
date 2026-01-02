@@ -67,4 +67,9 @@ gift-with-purchase {
 	&[state='ended'] {
 		display: none;
 	}
+
+	// State: Disabled (product unavailable - component hidden)
+	&[state='disabled'] {
+		display: none;
+	}
 }

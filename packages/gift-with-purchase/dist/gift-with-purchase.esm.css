@@ -40,4 +40,7 @@ gift-with-purchase[state=added] {
 gift-with-purchase[state=ended] {
   display: none;
 }
+gift-with-purchase[state=disabled] {
+  display: none;
+}
 /*# sourceMappingURL=gift-with-purchase.esm.css.map */

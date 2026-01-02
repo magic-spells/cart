@@ -76,31 +76,31 @@ The component uses intelligent threshold calculation:
 - **Excludes gifts**: Other gifts with purchase won't count toward this threshold
 - **Includes bundle items**: Hidden bundle components that should count are included
 - **Multi-currency support**: Automatically converts threshold using `Shopify.currency.rate` for stores with multiple currencies
-- **Backwards compatible**: Falls back to `total_price` if `calculated_subtotal` unavailable
+- **Requires cart-panel**: The component requires `calculated_subtotal` in cart events to function
 
 ## JavaScript API
 
 ```javascript
 const gwp = document.querySelector('gift-with-purchase');
 
-// Update cart amount
+// Setters - update state programmatically
 gwp.setCurrentAmount(85.5);
-
-// Change threshold
 gwp.setThreshold(100.0);
-
-// Update variant ID
 gwp.setVariantId('87654321');
 
-// Get current state
+// Get full state object
 const state = gwp.getState();
 console.log(state.isActive, state.isAdded, state.remainingAmount);
 
-// Manual message updates (component handles this automatically)
-const messageEl = gwp.querySelector('[data-content-gwp-message]');
-if (messageEl) {
-	messageEl.textContent = 'Custom message';
-}
+// Readonly getters - access individual properties
+console.log(gwp.currentAmount);     // number - current cart amount
+console.log(gwp.threshold);         // number - threshold amount
+console.log(gwp.variantId);         // string - gift variant ID
+console.log(gwp.isActive);          // boolean - threshold met
+console.log(gwp.isAdded);           // boolean - gift in cart
+console.log(gwp.promoEnded);        // boolean - promo has ended
+console.log(gwp.productAvailable);  // boolean - gift product available
+console.log(gwp.isDisabled);        // boolean - promo ended OR product unavailable
 ```
 
 ## Attributes
@@ -110,6 +110,8 @@ if (messageEl) {
 | `threshold`     | Spending threshold to unlock the gift                                | `"75.00"`                                                    |
 | `current`       | Current cart amount                                                  | `"45.00"`                                                    |
 | `variant-id`    | Shopify variant ID for the gift product                              | `"12345678"`                                                 |
+| `promo-ended`   | Disables the promo and hides the component                           | `"true"`                                                     |
+| `product-available` | Whether the gift product is available (disables if false)       | `"true"`                                                     |
 | `message-above` | Message shown when threshold is met                                  | `"🎉 Congratulations! You've qualified for your FREE gift!"` |
 | `message-below` | Message shown when below threshold (uses `[amount]` placeholder) | `"Add [amount] more to unlock your free gift! 🎁"`      |
 | `money-format`  | Shopify-style money format for currency display                      | `"${{amount}}"`                                              |
@@ -244,9 +246,11 @@ The component automatically applies a `state` attribute based on its current con
 
 - `state="active"` - Threshold met, gift available to add
 - `state="added"` - Gift successfully added to cart
+- `state="inactive"` - Below threshold (component idle)
 - `state="ended"` - Promo ended (component hidden)
+- `state="disabled"` - Gift unavailable (component hidden)
 
-Note: There is no `inactive` state since the component would typically not be loaded at all when below threshold in most Shopify implementations.
+Note: `ended` and `disabled` both hide the component while still removing any existing gift items.
 
 ## Shopify Integration Details
 
@@ -373,10 +377,15 @@ Type definitions are included in the package:
 interface GiftWithPurchaseState {
 	currentAmount: number;
 	threshold: number;
+	convertedThreshold: number;
 	variantId: string | null;
 	isActive: boolean;
 	isAdded: boolean;
+	promoEnded: boolean;
+	productAvailable: boolean;
+	isDisabled: boolean;
 	remainingAmount: number;
+	currencyRate: number;
 }
 
 // Component automatically handles message injection

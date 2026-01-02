@@ -64,13 +64,12 @@ The component integrates seamlessly with `@magic-spells/cart-panel`:
 - **Smart Pricing**: Uses `calculated_subtotal` from cart-panel events, which properly handles item exclusions
 - **Threshold Calculation**: Only includes items that should count toward the gift threshold (excludes gifts with purchase, bundle hidden items, etc.)
 - **Gift Exclusion**: Gifts added by this component are automatically excluded from future threshold calculations via `_ignore_price_in_subtotal`
-- **Backwards Compatibility**: Falls back to `total_price` if `calculated_subtotal` is unavailable
+- **Requires cart-panel**: The component requires `calculated_subtotal` in cart events; it will not process events without this field
 
 ### Styling Architecture
 
 - **CSS Custom Properties**: Extensive theming support with fallback SCSS variables
-- **State Classes**: `.gwp-inactive`, `.gwp-active`, `.gwp-added` for visual states
-- **Data Attributes**: `data-active`, `data-inactive`, `data-added` for additional styling hooks
+- **State Attribute**: `state="inactive|active|added|ended|disabled"` for CSS styling hooks (e.g., `gift-with-purchase[state="active"]`)
 - **Responsive Design**: Mobile-first with configurable breakpoints
 - **Accessibility**: High contrast, reduced motion, and dark mode support
 - **Print Styles**: Optimized for printed output

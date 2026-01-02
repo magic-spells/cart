@@ -9,6 +9,8 @@ class GiftWithPurchase extends HTMLElement {
 	#isActive = false;
 	#isAdded = false;
 	#promoEnded = false;
+	#productAvailable = true;
+	#isDisabled = false;
 	#cartPanel = null;
 	#handlers = {};
 	#debounceTimer = null;
@@ -25,6 +27,7 @@ class GiftWithPurchase extends HTMLElement {
 			'current',
 			'variant-id',
 			'promo-ended',
+			'product-available',
 			'message-above',
 			'message-below',
 			'money-format',
@@ -38,6 +41,7 @@ class GiftWithPurchase extends HTMLElement {
 		_.#currentAmount = parseFloat(_.getAttribute('current')) || 0;
 		_.#variantId = _.getAttribute('variant-id');
 		_.#promoEnded = _.hasAttribute('promo-ended');
+		_.#productAvailable = _.#parseBooleanValue(_.getAttribute('product-available'), true);
 		_.#messageAbove = _.getAttribute('message-above');
 		_.#messageBelow = _.getAttribute('message-below');
 		_.#moneyFormat = _.getAttribute('money-format');
@@ -57,7 +61,8 @@ class GiftWithPurchase extends HTMLElement {
 		const _ = this;
 		// Calculate initial active state based on attributes (before any cart events)
 		const convertedThreshold = _.#getConvertedThreshold();
-		_.#isActive = _.#currentAmount >= convertedThreshold && !_.#promoEnded;
+		_.#isDisabled = _.#promoEnded || !_.#productAvailable;
+		_.#isActive = _.#currentAmount >= convertedThreshold && !_.#isDisabled;
 	}
 
 	disconnectedCallback() {
@@ -83,6 +88,9 @@ class GiftWithPurchase extends HTMLElement {
 				break;
 			case 'promo-ended':
 				_.#promoEnded = newValue !== null;
+				break;
+			case 'product-available':
+				_.#productAvailable = _.#parseBooleanValue(newValue, true);
 				break;
 			case 'message-above':
 				_.#messageAbove = newValue;
@@ -132,6 +140,15 @@ class GiftWithPurchase extends HTMLElement {
 		// Convert threshold using Shopify currency rate if available (for multi-currency stores)
 		const rate = parseFloat(window.Shopify?.currency?.rate) || 1;
 		return this.#threshold * rate;
+	}
+
+	#parseBooleanValue(value, defaultValue = true) {
+		if (value === null || typeof value === 'undefined') return defaultValue;
+		if (value === '') return true;
+		const normalized = String(value).trim().toLowerCase();
+		if (normalized === 'false' || normalized === '0') return false;
+		if (normalized === 'true' || normalized === '1') return true;
+		return defaultValue;
 	}
 
 	#updateMessages() {
@@ -186,14 +203,19 @@ class GiftWithPurchase extends HTMLElement {
 
 	#checkGiftInCart(cart) {
 		const _ = this;
-		if (!cart.items || !_.#variantId) {
-			_.#isAdded = false;
-			return;
-		}
-		const giftLines = cart.items.filter(
-			(item) => item.variant_id.toString() === _.#variantId.toString() && item.properties?._gwp_item === 'true'
-		);
+		const giftLines = _.#getGiftLines(cart, true);
 		_.#isAdded = giftLines.length > 0;
+	}
+
+	#getGiftLines(cart, matchVariantId = true) {
+		const _ = this;
+		if (!cart?.items) return [];
+		return cart.items.filter((item) => {
+			if (item.properties?._gwp_item !== 'true') return false;
+			if (!matchVariantId) return true;
+			if (!_.#variantId) return false;
+			return item.variant_id?.toString() === _.#variantId.toString();
+		});
 	}
 
 	#recheckIfPending() {
@@ -217,9 +239,10 @@ class GiftWithPurchase extends HTMLElement {
 
 		const wasActive = _.#isActive;
 		const convertedThreshold = _.#getConvertedThreshold();
-		_.#isActive = _.#currentAmount >= convertedThreshold && !_.#promoEnded;
+		_.#isDisabled = _.#promoEnded || !_.#productAvailable;
+		_.#isActive = _.#currentAmount >= convertedThreshold && !_.#isDisabled;
 
-		if (_.#promoEnded) _.#removeGiftFromCart(cart);
+		if (_.#isDisabled) _.#removeAllGiftsFromCart(cart);
 		else if (_.#isActive && !wasActive && !_.#isAdded && _.#variantId) _.#addGiftToCart();
 		else if (!_.#isActive && _.#isAdded && _.#variantId) _.#removeGiftFromCart(cart);
 
@@ -231,6 +254,12 @@ class GiftWithPurchase extends HTMLElement {
 		const _ = this;
 		if (_.#promoEnded) {
 			_.setAttribute('state', 'ended');
+			_.style.display = 'none';
+			return;
+		}
+
+		if (!_.#productAvailable) {
+			_.setAttribute('state', 'disabled');
 			_.style.display = 'none';
 			return;
 		}
@@ -271,9 +300,7 @@ class GiftWithPurchase extends HTMLElement {
 		const _ = this;
 		if (!cart?.items) return;
 
-		const giftLines = cart.items.filter(
-			(item) => item.variant_id.toString() === _.#variantId.toString() && item.properties?._gwp_item === 'true'
-		);
+		const giftLines = _.#getGiftLines(cart, true);
 		if (!giftLines.length) {
 			_.#isAdded = false;
 			return;
@@ -282,9 +309,25 @@ class GiftWithPurchase extends HTMLElement {
 		_.#isMutating = true;
 		try {
 			await _.#removeAllGiftItems(giftLines);
-		} catch (err) {
-			console.error('giftwithpurchase: remove error', err);
-			_.dispatchEvent(new CustomEvent('gwp:error', { detail: { action: 'remove', error: err.message }, bubbles: true }));
+		} finally {
+			_.#isMutating = false;
+			_.#recheckIfPending();
+		}
+	}
+
+	async #removeAllGiftsFromCart(cart) {
+		const _ = this;
+		if (!cart?.items) return;
+
+		const giftLines = _.#getGiftLines(cart, false);
+		if (!giftLines.length) {
+			_.#isAdded = false;
+			return;
+		}
+
+		_.#isMutating = true;
+		try {
+			await _.#removeAllGiftItems(giftLines);
 		} finally {
 			_.#isMutating = false;
 			_.#recheckIfPending();
@@ -325,6 +368,8 @@ class GiftWithPurchase extends HTMLElement {
 			isActive: _.#isActive,
 			isAdded: _.#isAdded,
 			promoEnded: _.#promoEnded,
+			productAvailable: _.#productAvailable,
+			isDisabled: _.#isDisabled,
 			remainingAmount: Math.max(0, convertedThreshold - _.#currentAmount),
 			currencyRate: parseFloat(window.Shopify?.currency?.rate) || 1,
 		};
@@ -347,6 +392,12 @@ class GiftWithPurchase extends HTMLElement {
 	}
 	get promoEnded() {
 		return this.#promoEnded;
+	}
+	get productAvailable() {
+		return this.#productAvailable;
+	}
+	get isDisabled() {
+		return this.#isDisabled;
 	}
 
 	setCurrentAmount(amount) {
