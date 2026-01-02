@@ -3,47 +3,102 @@
  * Emits gwp:added/gwp:removed/gwp:error events and broadcasts cart updates
  */
 class GiftWithPurchase extends HTMLElement {
-	// private fields
 	#threshold = 0;
 	#currentAmount = 0;
 	#variantId = null;
 	#isActive = false;
 	#isAdded = false;
 	#promoEnded = false;
-	#cartDialog = null;
-	#boundHandleCartDataChange = null; // pre-bound listener ref for clean-up
-	#debounceTimer = null; // debouncing cart updates
-	#messageAbove = null; // message when threshold is met
-	#messageBelow = null; // message when below threshold
+	#cartPanel = null;
+	#handlers = {}; // pre-bound listener refs for clean-up
+	#debounceTimer = null;
+	#attachRetryTimer = null;
+	#messageAbove = null;
+	#messageBelow = null;
+	#moneyFormat = null;
 
 	static get observedAttributes() {
-		return ['threshold', 'current', 'variant-id', 'promo-ended', 'message-above', 'message-below'];
+		return [
+			'threshold',
+			'current',
+			'variant-id',
+			'promo-ended',
+			'message-above',
+			'message-below',
+			'money-format',
+		];
 	}
 
 	constructor() {
 		super();
-		// read initial attributes once
-		this.#threshold = parseFloat(this.getAttribute('threshold')) || 0;
-		this.#currentAmount = parseFloat(this.getAttribute('current')) || 0;
-		this.#variantId = this.getAttribute('variant-id');
-		this.#promoEnded = this.hasAttribute('promo-ended');
-		this.#messageAbove = this.getAttribute('message-above');
-		this.#messageBelow = this.getAttribute('message-below');
-		this.#boundHandleCartDataChange = this.#handleCartDataChange.bind(this);
+		const _ = this;
+		_.#threshold = parseFloat(_.getAttribute('threshold')) || 0;
+		_.#currentAmount = parseFloat(_.getAttribute('current')) || 0;
+		_.#variantId = _.getAttribute('variant-id');
+		_.#promoEnded = _.hasAttribute('promo-ended');
+		_.#messageAbove = _.getAttribute('message-above');
+		_.#messageBelow = _.getAttribute('message-below');
+		_.#moneyFormat = _.getAttribute('money-format');
+		_.#handlers = { cartDataChange: _.#handleCartDataChange.bind(_) };
 	}
 
 	connectedCallback() {
-		this.#render();
-		this.#attachListeners();
+		const _ = this;
+
+		_.#calculateInitialState();
+		_.#render();
+		_.#updateVisualState();
+		_.#attachListeners();
+	}
+
+	#calculateInitialState() {
+		const _ = this;
+		// Calculate initial active state based on attributes (before any cart events)
+		const convertedThreshold = _.#getConvertedThreshold();
+		_.#isActive = _.#currentAmount >= convertedThreshold && !_.#promoEnded;
 	}
 
 	disconnectedCallback() {
-		if (this.#debounceTimer) clearTimeout(this.#debounceTimer);
-		if (this.#cartDialog)
-			this.#cartDialog.removeEventListener(
-				'cart-dialog:data-changed',
-				this.#boundHandleCartDataChange
-			);
+		const _ = this;
+		if (_.#debounceTimer) clearTimeout(_.#debounceTimer);
+		if (_.#attachRetryTimer) clearTimeout(_.#attachRetryTimer);
+		if (_.#cartPanel) _.#cartPanel.removeEventListener('cart-panel:data-changed', _.#handlers.cartDataChange);
+	}
+
+	attributeChangedCallback(name, oldValue, newValue) {
+		const _ = this;
+		if (oldValue === newValue) return;
+
+		switch (name) {
+			case 'threshold':
+				_.#threshold = parseFloat(newValue) || 0;
+				break;
+			case 'current':
+				_.#currentAmount = parseFloat(newValue) || 0;
+				break;
+			case 'variant-id':
+				_.#variantId = newValue;
+				break;
+			case 'promo-ended':
+				_.#promoEnded = newValue !== null;
+				break;
+			case 'message-above':
+				_.#messageAbove = newValue;
+				break;
+			case 'message-below':
+				_.#messageBelow = newValue;
+				break;
+			case 'money-format':
+				_.#moneyFormat = newValue;
+				break;
+		}
+
+		// Recalculate state and update UI if component is connected
+		if (_.isConnected) {
+			_.#calculateInitialState();
+			_.#updateVisualState();
+			_.#updateMessages();
+		}
 	}
 
 	#render() {
@@ -56,24 +111,41 @@ class GiftWithPurchase extends HTMLElement {
 		this.#updateMessages();
 	}
 
+	#formatMoney(amount) {
+		if (!this.#moneyFormat) return amount.toFixed(2).replace(/\.00$/, '');
+
+		const amountFixed = amount.toFixed(2);
+		const amountNoDecimals = Math.round(amount).toString();
+		const amountWithComma = amountFixed.replace('.', ',');
+		const amountNoDecimalsWithComma = amountNoDecimals.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+		return this.#moneyFormat
+			.replace(/\{\{\s*amount_no_decimals_with_comma_separator\s*\}\}/g, amountNoDecimalsWithComma)
+			.replace(/\{\{\s*amount_with_comma_separator\s*\}\}/g, amountWithComma)
+			.replace(/\{\{\s*amount_no_decimals\s*\}\}/g, amountNoDecimals)
+			.replace(/\{\{\s*amount\s*\}\}/g, amountFixed);
+	}
+
+	#getConvertedThreshold() {
+		// Convert threshold using Shopify currency rate if available (for multi-currency stores)
+		const rate = parseFloat(window.Shopify?.currency?.rate) || 1;
+		return this.#threshold * rate;
+	}
+
 	#updateMessages() {
-		const messageEl = this.querySelector('[data-content-gwp-message]');
+		const _ = this;
+		const messageEl = _.querySelector('[data-content-gwp-message]');
 		if (!messageEl) return;
 
 		let message = '';
-
-		// console.log('updateMessages - this.#isActive', this.#isActive);
-
-		if (this.#isActive && this.#messageAbove) {
-			// set message to above threshold message
-			message = this.#messageAbove;
-		} else if (!this.#isActive && this.#messageBelow) {
-			// set message to below threshold message
-			const remaining = this.#threshold - this.#currentAmount;
-			const formattedAmount = remaining.toFixed(2).replace(/\.00$/, '');
-			message = this.#messageBelow
-				.replace(/\{\s*amount\s*\}/g, formattedAmount)
-				.replace(/\{amount\}/g, formattedAmount);
+		if (_.#isActive && _.#messageAbove) {
+			message = _.#messageAbove;
+		} else if (!_.#isActive && _.#messageBelow) {
+			const remaining = _.#getConvertedThreshold() - _.#currentAmount;
+			const formattedAmount = _.#formatMoney(remaining);
+			message = _.#messageBelow
+				.replace(/\[\s*amount\s*\]/g, formattedAmount)
+				.replace(/\[amount\]/g, formattedAmount);
 		}
 
 		messageEl.textContent = message;
@@ -81,214 +153,156 @@ class GiftWithPurchase extends HTMLElement {
 	}
 
 	#attachListeners() {
-		// Look for cart-dialog element when attaching listeners (more reliable timing)
-		this.#cartDialog = this.closest('cart-dialog');
+		const _ = this;
+		_.#cartPanel = _.closest('cart-panel');
 
-		if (this.#cartDialog) {
-			// console.log('cartDialog exists and is attaching events');
-			this.#cartDialog.addEventListener(
-				'cart-dialog:data-changed',
-				this.#boundHandleCartDataChange
-			);
+		if (_.#cartPanel) {
+			_.#cartPanel.addEventListener('cart-panel:data-changed', _.#handlers.cartDataChange);
 		} else {
-			// Try again after a short delay in case the DOM isn't fully ready
-			setTimeout(() => {
-				// console.log('cartDialog DIDNT exist and we waited to attach events');
-				this.#cartDialog = this.closest('cart-dialog');
-				if (this.#cartDialog) {
-					this.#cartDialog.addEventListener(
-						'cart-dialog:data-changed',
-						this.#boundHandleCartDataChange
-					);
-				} else {
-					console.error('GWP - cart-dialog still not found after delay');
-				}
+			_.#attachRetryTimer = setTimeout(() => {
+				_.#attachRetryTimer = null;
+				_.#cartPanel = _.closest('cart-panel');
+				if (_.#cartPanel) _.#cartPanel.addEventListener('cart-panel:data-changed', _.#handlers.cartDataChange);
+				else console.error('GWP - cart-panel still not found after delay');
 			}, 100);
 		}
 	}
 
 	#handleCartDataChange(event) {
+		const _ = this;
 		const cart = event.detail;
-		// console.log('GWP - handleCartDataChange cart: ', cart.calculated_subtotal, cart);
-
 		if (!cart || typeof cart.calculated_subtotal === 'undefined') return;
-		if (this.#debounceTimer) clearTimeout(this.#debounceTimer);
+		if (_.#debounceTimer) clearTimeout(_.#debounceTimer);
 
-		this.#debounceTimer = setTimeout(() => {
-			this.#debounceTimer = null;
-			this.#currentAmount = parseFloat(cart.calculated_subtotal / 100) || 0;
-			this.#checkGiftInCart(cart);
-			this.#updateState(cart);
+		_.#debounceTimer = setTimeout(() => {
+			_.#debounceTimer = null;
+			_.#currentAmount = parseFloat(cart.calculated_subtotal / 100) || 0;
+			_.#checkGiftInCart(cart);
+			_.#updateState(cart);
 		}, 300);
 	}
 
-	// checks to see if the gift is already in the cart
 	#checkGiftInCart(cart) {
-		if (!cart.items || !this.#variantId) {
-			this.#isAdded = false;
+		const _ = this;
+		if (!cart.items || !_.#variantId) {
+			_.#isAdded = false;
 			return;
 		}
 		const giftLines = cart.items.filter(
-			(lineItem) =>
-				lineItem.variant_id.toString() === this.#variantId.toString() &&
-				lineItem.properties?._gwp_item === 'true'
+			(item) => item.variant_id.toString() === _.#variantId.toString() && item.properties?._gwp_item === 'true'
 		);
-		this.#isAdded = giftLines.length > 0;
-		if (this.#promoEnded && giftLines.length) this.#removeAllGiftItems(giftLines);
+		_.#isAdded = giftLines.length > 0;
 	}
 
 	#updateState(cart) {
-		// console.log('********** ----------   Updating state....');
-		const wasActive = this.#isActive;
-		this.#isActive = this.#currentAmount >= this.#threshold && !this.#promoEnded;
+		const _ = this;
+		const wasActive = _.#isActive;
+		const convertedThreshold = _.#getConvertedThreshold();
+		_.#isActive = _.#currentAmount >= convertedThreshold && !_.#promoEnded;
 
-		// console.log('********** ----------   this.#isActive', this.#isActive);
+		if (_.#promoEnded) _.#removeGiftFromCart(cart);
 
-		if (this.#promoEnded) {
-			// remove GWP from cart
-			this.#removeGiftFromCart(cart);
+		if (_.#isActive && !wasActive && !_.#isAdded && _.#variantId) {
+			_.#addGiftToCart();
+		} else if (!_.#isActive && _.#isAdded && _.#variantId) {
+			_.#removeGiftFromCart(cart);
 		}
 
-		if (this.#isActive && !wasActive && !this.#isAdded && this.#variantId) {
-			this.#addGiftToCart();
-		} else if (!this.#isActive && wasActive && this.#isAdded && this.#variantId) {
-			this.#removeGiftFromCart(cart);
-		}
-
-		this.#updateVisualState();
-		this.#updateMessages();
+		_.#updateVisualState();
+		_.#updateMessages();
 	}
 
 	#updateVisualState() {
-		if (this.#promoEnded) {
-			this.setAttribute('state', 'ended');
-			this.style.display = 'none';
+		const _ = this;
+		if (_.#promoEnded) {
+			_.setAttribute('state', 'ended');
+			_.style.display = 'none';
 			return;
 		}
 
-		this.style.display = '';
-		if (this.#isAdded) {
-			this.setAttribute('state', 'added');
-		} else if (this.#isActive) {
-			this.setAttribute('state', 'active');
-		}
-		// Note: no 'inactive' state since component wouldn't be loaded if inactive
+		_.style.display = '';
+		if (_.#isAdded) _.setAttribute('state', 'added');
+		else if (_.#isActive) _.setAttribute('state', 'active');
+		else _.setAttribute('state', 'inactive');
 	}
 
 	async #addGiftToCart() {
+		const _ = this;
 		try {
 			const res = await fetch('/cart/add.js', {
 				method: 'POST',
 				credentials: 'same-origin',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-Requested-With': 'XMLHttpRequest',
-				},
+				headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
 				body: JSON.stringify({
-					items: [
-						{
-							id: this.#variantId,
-							quantity: 1,
-							properties: {
-								_gwp_item: 'true',
-								_hide_in_cart: 'true',
-								_ignore_price_in_subtotal: 'true',
-							},
-						},
-					],
+					items: [{ id: _.#variantId, quantity: 1, properties: { _gwp_item: 'true', _hide_in_cart: 'true', _ignore_price_in_subtotal: 'true' } }],
 				}),
 			});
 			if (!res.ok) throw new Error(`http ${res.status}`);
 			await res.json();
-			this.#isAdded = true;
-			this.dispatchEvent(
-				new CustomEvent('gwp:added', {
-					detail: { variantId: this.#variantId },
-					bubbles: true,
-				})
-			);
+			_.#isAdded = true;
+			_.dispatchEvent(new CustomEvent('gwp:added', { detail: { variantId: _.#variantId }, bubbles: true }));
+			_.#cartPanel?.getCartAndRefresh();
 		} catch (err) {
 			console.error('giftwithpurchase: add error', err);
-			this.dispatchEvent(
-				new CustomEvent('gwp:error', {
-					detail: { action: 'add', error: err.message },
-					bubbles: true,
-				})
-			);
+			_.dispatchEvent(new CustomEvent('gwp:error', { detail: { action: 'add', error: err.message }, bubbles: true }));
 		}
 	}
 
 	async #removeGiftFromCart(cart) {
-		try {
-			// get all GWP items in the cart
-			const giftLines = cart.items.filter(
-				(lineItem) =>
-					lineItem.variant_id.toString() === this.#variantId.toString() &&
-					lineItem.properties?._gwp_item === 'true'
-			);
+		const _ = this;
+		if (!cart?.items) return;
 
-			// exit if no items in the cart
+		try {
+			const giftLines = cart.items.filter(
+				(item) => item.variant_id.toString() === _.#variantId.toString() && item.properties?._gwp_item === 'true'
+			);
 			if (!giftLines.length) {
-				this.#isAdded = false;
+				_.#isAdded = false;
 				return;
 			}
-
-			// remove all GWP items from the cart
-			await this.#removeAllGiftItems(giftLines);
+			await _.#removeAllGiftItems(giftLines);
 		} catch (err) {
 			console.error('giftwithpurchase: remove error', err);
-			this.dispatchEvent(
-				new CustomEvent('gwp:error', {
-					detail: { action: 'remove', error: err.message },
-					bubbles: true,
-				})
-			);
+			_.dispatchEvent(new CustomEvent('gwp:error', { detail: { action: 'remove', error: err.message }, bubbles: true }));
 		}
 	}
 
 	async #removeAllGiftItems(giftLines) {
+		const _ = this;
 		try {
 			await Promise.all(
-				giftLines.map((giftItem) =>
-					fetch('/cart/change.js', {
+				giftLines.map(async (item) => {
+					const res = await fetch('/cart/change.js', {
 						method: 'POST',
 						credentials: 'same-origin',
-						headers: {
-							'Content-Type': 'application/json',
-							'X-Requested-With': 'XMLHttpRequest',
-						},
-						body: JSON.stringify({ id: giftItem.key, quantity: 0 }),
-					})
-				)
-			);
-			this.#isAdded = false;
-			// note: you can broadcast cart again here if you want real-time re-render after remove
-			this.dispatchEvent(
-				new CustomEvent('gwp:removed', {
-					detail: { variantId: this.#variantId },
-					bubbles: true,
+						headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+						body: JSON.stringify({ id: item.key, quantity: 0 }),
+					});
+					if (!res.ok) throw new Error(`http ${res.status}`);
 				})
 			);
+			_.#isAdded = false;
+			_.dispatchEvent(new CustomEvent('gwp:removed', { detail: { variantId: _.#variantId }, bubbles: true }));
+			_.#cartPanel?.getCartAndRefresh();
 		} catch (err) {
 			console.error('giftwithpurchase: bulk remove error', err);
-			this.dispatchEvent(
-				new CustomEvent('gwp:error', {
-					detail: { action: 'remove', error: err.message },
-					bubbles: true,
-				})
-			);
+			_.dispatchEvent(new CustomEvent('gwp:error', { detail: { action: 'remove', error: err.message }, bubbles: true }));
 		}
 	}
 
 	getState() {
+		const _ = this;
+		const convertedThreshold = _.#getConvertedThreshold();
 		return {
-			currentAmount: this.#currentAmount,
-			threshold: this.#threshold,
-			variantId: this.#variantId,
-			isActive: this.#isActive,
-			isAdded: this.#isAdded,
-			promoEnded: this.#promoEnded,
-			remainingAmount: Math.max(0, this.#threshold - this.#currentAmount),
+			currentAmount: _.#currentAmount,
+			threshold: _.#threshold,
+			convertedThreshold,
+			variantId: _.#variantId,
+			isActive: _.#isActive,
+			isAdded: _.#isAdded,
+			promoEnded: _.#promoEnded,
+			remainingAmount: Math.max(0, convertedThreshold - _.#currentAmount),
+			currencyRate: parseFloat(window.Shopify?.currency?.rate) || 1,
 		};
 	}
 
@@ -311,17 +325,18 @@ class GiftWithPurchase extends HTMLElement {
 		return this.#promoEnded;
 	}
 
-	// Public setter methods for programmatic control
 	setCurrentAmount(amount) {
-		this.#currentAmount = parseFloat(amount) || 0;
-		this.#updateState({ items: [] }); // Pass empty cart to avoid cart operations
-		this.#updateMessages();
+		const _ = this;
+		_.#currentAmount = parseFloat(amount) || 0;
+		_.#updateState({ items: [] });
+		_.#updateMessages();
 	}
 
 	setThreshold(threshold) {
-		this.#threshold = parseFloat(threshold) || 0;
-		this.#updateState({ items: [] }); // Pass empty cart to avoid cart operations
-		this.#updateMessages();
+		const _ = this;
+		_.#threshold = parseFloat(threshold) || 0;
+		_.#updateState({ items: [] });
+		_.#updateMessages();
 	}
 
 	setVariantId(variantId) {

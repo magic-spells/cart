@@ -299,8 +299,9 @@
 						threshold="75.00"
 						current="45.00"
 						variant-id="12345678"
+						money-format="${{amount}}"
 						message-above="🎉 Congratulations! You've qualified for your FREE gift!"
-						message-below="Add ${ amount } more to unlock your free gift! 🎁">
+						message-below="Add [amount] more to unlock your free gift! 🎁">
 						<div class="gwp-product">
 							<div class="sample-product-image">GIFT</div>
 							<div class="gwp-content">
@@ -323,8 +324,9 @@
 						threshold="25.00"
 						current="45.00"
 						variant-id="11111111"
+						money-format="${{amount}}"
 						message-above="🎉 Congratulations! You've unlocked a free tote bag!"
-						message-below="Add ${ amount } more for a free tote bag! 👜">
+						message-below="Add [amount] more for a free tote bag! 👜">
 						<div class="gwp-product">
 							<div
 								class="sample-product-image"
@@ -346,8 +348,9 @@
 						threshold="150.00"
 						current="45.00"
 						variant-id="22222222"
+						money-format="${{amount}}"
 						message-above="✨ Amazing! You've earned our premium gift set!"
-						message-below="Spend ${ amount } more for our exclusive premium gift set! ✨">
+						message-below="Spend [amount] more for our exclusive premium gift set! ✨">
 						<div class="gwp-product">
 							<div
 								class="sample-product-image"
@@ -362,18 +365,43 @@
 						<p data-content-gwp-message></p>
 					</gift-with-purchase>
 				</div>
+
+				<div class="gwp-demo">
+					<h3>European Store (EUR)</h3>
+					<gift-with-purchase
+						threshold="50.00"
+						current="35.00"
+						variant-id="33333333"
+						money-format="€{{amount_with_comma_separator}}"
+						message-above="🎉 Félicitations! Vous avez gagné un cadeau gratuit!"
+						message-below="Ajoutez [amount] de plus pour votre cadeau gratuit! 🎁">
+						<div class="gwp-product">
+							<div
+								class="sample-product-image"
+								style="background: linear-gradient(135deg, #0052cc 0%, #0747a6 100%)">
+								EU
+							</div>
+							<div class="gwp-content">
+								<h4 class="gwp-title">Échantillon Gratuit</h4>
+								<p class="gwp-variant">Collection Voyage</p>
+							</div>
+						</div>
+						<p data-content-gwp-message></p>
+					</gift-with-purchase>
+				</div>
 			</section>
 
 			<section class="demo-section">
 				<h2>Usage Examples</h2>
 
 				<h3>Basic Setup</h3>
-				<pre class="code-block"><code>&lt;gift-with-purchase 
-  threshold="75.00" 
+				<pre class="code-block"><code>&lt;gift-with-purchase
+  threshold="75.00"
   current="45.00"
   variant-id="12345678"
+  money-format="${{amount}}"
   message-above="🎉 Congratulations! You've qualified for your FREE gift!"
-  message-below="Add ${ amount } more to unlock your free gift! 🎁"&gt;
+  message-below="Add [amount] more to unlock your free gift! 🎁"&gt;
   &lt;div class="gwp-product"&gt;
     &lt;img src="gift-image.jpg" alt="Free Gift" &gt;
     &lt;div class="gwp-content"&gt;
@@ -400,23 +428,25 @@ gwp.setVariantId('87654321');
 const state = gwp.getState();
 console.log(state.isActive, state.isAdded, state.remainingAmount);</code></pre>
 
-				<h3>Cart Integration</h3>
+				<h3>Cart Integration (Shopify)</h3>
 				<pre class="code-block"><code>&lt;cart-panel&gt;
-  &lt;gift-with-purchase 
+  &lt;gift-with-purchase
     threshold="75.00"
     variant-id="12345678"
+    money-format="{{ shop.money_format | json }}"
     message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-    message-below="Add ${ amount } more to get FREE shipping! 🚚"&gt;
+    message-below="Add [amount] more to get FREE shipping! 🚚"&gt;
     &lt;!-- Gift content --&gt;
   &lt;/gift-with-purchase&gt;
 &lt;/cart-panel&gt;</code></pre>
 
 				<h3>Message Handling</h3>
-				<pre class="code-block"><code>&lt;gift-with-purchase 
+				<pre class="code-block"><code>&lt;gift-with-purchase
   threshold="75.00"
   variant-id="12345678"
+  money-format="${{amount}}"
   message-above="🎉 Congratulations! You've qualified for your FREE gift!"
-  message-below="Add ${ amount } more to unlock your free gift! 🎁"&gt;
+  message-below="Add [amount] more to unlock your free gift! 🎁"&gt;
   &lt;!-- Add a paragraph with data-content-gwp-message for the component to inject messages --&gt;
   &lt;p data-content-gwp-message class="your-custom-styles"&gt;&lt;/p&gt;
 &lt;/gift-with-purchase&gt;</code></pre>

@@ -31,10 +31,12 @@ This is a **Web Components library** that provides a gift-with-purchase componen
 ### Component Features
 
 - **Threshold Management**: Automatically adds/removes gifts based on cart amount vs threshold using `calculated_subtotal`
-- **Cart Panel Integration**: Listens for `cart-dialog:data-changed` events from parent cart components and uses accurate pricing logic
+- **Cart Panel Integration**: Listens for `cart-panel:data-changed` events from parent cart-panel component and uses accurate pricing logic
 - **State Management**: Three states - inactive (below threshold), active (threshold met), added (gift in cart)
 - **Message Injection**: Looks for user-provided elements with `data-content-gwp-message` to inject threshold messages
-- **Template Syntax**: Uses `{ amount }` or `{amount}` placeholders in `message-below` attribute for remaining threshold amount (changed from `{{ amount }}` to avoid Liquid conflicts)
+- **Template Syntax**: Uses `[amount]` placeholder in `message-below` attribute for remaining threshold amount (uses brackets to avoid Liquid/JS template conflicts)
+- **Currency Formatting**: Supports Shopify-style `money-format` attribute (e.g., `${{amount}}`, `€{{amount}}`) for proper currency display
+- **Multi-Currency**: Automatically converts threshold using `Shopify.currency.rate` for stores with multiple currencies enabled
 - **Smart Line Item Properties**: Adds multiple properties to gift line items:
   - `_gwp_item: "true"` - identifies the item as a gift with purchase
   - `_hide_in_cart: "true"` - hides the gift from cart display (handled by cart-panel)
@@ -59,7 +61,7 @@ This is a **Web Components library** that provides a gift-with-purchase componen
 ### Cart Integration & Pricing Logic
 
 The component integrates seamlessly with `@magic-spells/cart-panel`:
-- **Smart Pricing**: Uses `calculated_subtotal` from cart-dialog events, which properly handles item exclusions
+- **Smart Pricing**: Uses `calculated_subtotal` from cart-panel events, which properly handles item exclusions
 - **Threshold Calculation**: Only includes items that should count toward the gift threshold (excludes gifts with purchase, bundle hidden items, etc.)
 - **Gift Exclusion**: Gifts added by this component are automatically excluded from future threshold calculations via `_ignore_price_in_subtotal`
 - **Backwards Compatibility**: Falls back to `total_price` if `calculated_subtotal` is unavailable

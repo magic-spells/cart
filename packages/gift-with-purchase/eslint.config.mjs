@@ -8,10 +8,10 @@ export default [
 		languageOptions: {
 			globals: {
 				...globals.browser,
-				...globals.es2022,
+				...globals.es2024,
 				customElements: 'readonly',
 			},
-			ecmaVersion: 2022,
+			ecmaVersion: 2024,
 			sourceType: 'module',
 		},
 		rules: {
@@ -26,9 +26,9 @@ export default [
 		languageOptions: {
 			globals: {
 				...globals.node,
-				...globals.es2022,
+				...globals.es2024,
 			},
-			ecmaVersion: 2022,
+			ecmaVersion: 2024,
 			sourceType: 'module',
 		},
 		rules: {

@@ -8,7 +8,7 @@ A powerful, e-commerce web component for automatic gift-with-purchase threshold 
 
 - 🎁 **Automatic Gift Management** - Adds/removes gifts based on cart thresholds using smart pricing logic
 - 🛒 **Shopify Integration** - Built-in Cart API support with proper line item properties
-- 📱 **Cart Panel Sync** - Automatically syncs with cart-dialog components using `calculated_subtotal`
+- 📱 **Cart Panel Sync** - Automatically syncs with cart-panel components using `calculated_subtotal`
 - 🎨 **Highly Customizable** - CSS custom properties and swappable content elements
 - ⚡ **Event-Driven** - Custom events for gift addition, removal, and errors
 - 🔧 **Flexible Content** - Data attributes for dynamic image, title, and variant updates
@@ -27,8 +27,9 @@ npm install @magic-spells/gift-with-purchase
 	threshold="75.00"
 	current="45.00"
 	variant-id="12345678"
+	money-format="${{amount}}"
 	message-above="🎉 Congratulations! You've qualified for your FREE gift!"
-	message-below="Add ${ amount } more to unlock your free gift! 🎁">
+	message-below="Add [amount] more to unlock your free gift! 🎁">
 	<div class="gwp-product">
 		<img src="gift-image.jpg" alt="Free Gift" />
 		<div class="gwp-content">
@@ -46,21 +47,22 @@ npm install @magic-spells/gift-with-purchase
 
 ## Cart Integration
 
-The component automatically listens for cart data changes when placed inside a `<cart-dialog>` component from the `@magic-spells/cart-panel` package:
+The component automatically listens for cart data changes when placed inside a `<cart-panel>` component from the `@magic-spells/cart-panel` package:
 
-```html
-<cart-dialog>
+```liquid
+<cart-panel>
 	<gift-with-purchase
 		threshold="75.00"
 		variant-id="12345678"
+		money-format={{ shop.money_format | json }}
 		message-above="🎉 Congratulations! You've qualified for your FREE gift!"
-		message-below="Add ${ amount } more to unlock your free gift! 🎁">
+		message-below="Add [amount] more to unlock your free gift! 🎁">
 		<!-- Gift content -->
 	</gift-with-purchase>
-</cart-dialog>
+</cart-panel>
 ```
 
-When the cart-dialog emits a `cart-dialog:data-changed` event (typically from Shopify cart updates), the gift component will automatically:
+When the cart-panel emits a `cart-panel:data-changed` event (typically from Shopify cart updates), the gift component will automatically:
 
 - Update the current cart amount using `calculated_subtotal` for accurate threshold calculation
 - Check if the threshold is met (excludes other gifts and honors pricing exclusions)
@@ -73,6 +75,7 @@ The component uses intelligent threshold calculation:
 - **Uses `calculated_subtotal`** from cart-panel which properly handles item exclusions
 - **Excludes gifts**: Other gifts with purchase won't count toward this threshold
 - **Includes bundle items**: Hidden bundle components that should count are included
+- **Multi-currency support**: Automatically converts threshold using `Shopify.currency.rate` for stores with multiple currencies
 - **Backwards compatible**: Falls back to `total_price` if `calculated_subtotal` unavailable
 
 ## JavaScript API
@@ -108,7 +111,8 @@ if (messageEl) {
 | `current`       | Current cart amount                                                  | `"45.00"`                                                    |
 | `variant-id`    | Shopify variant ID for the gift product                              | `"12345678"`                                                 |
 | `message-above` | Message shown when threshold is met                                  | `"🎉 Congratulations! You've qualified for your FREE gift!"` |
-| `message-below` | Message shown when below threshold (uses `{ amount }` placeholder) | `"Add ${ amount } more to unlock your free gift! 🎁"`      |
+| `message-below` | Message shown when below threshold (uses `[amount]` placeholder) | `"Add [amount] more to unlock your free gift! 🎁"`      |
+| `money-format`  | Shopify-style money format for currency display                      | `"${{amount}}"`                                              |
 
 ## Message Element
 
@@ -125,6 +129,62 @@ The component requires a message element to display threshold messages:
 	<!-- Required: Element where messages will be injected -->
 	<p data-content-gwp-message class="bg-green-100 p-2 rounded"></p>
 </gift-with-purchase>
+```
+
+## Currency Formatting
+
+Use the `money-format` attribute to format amounts with the correct currency symbol and formatting:
+
+```html
+<gift-with-purchase
+	threshold="75.00"
+	variant-id="12345678"
+	money-format="${{amount}}"
+	message-below="Add [amount] more to unlock your free gift!">
+	<!-- Gift content -->
+</gift-with-purchase>
+```
+
+In Shopify themes, you can pass the shop's money format using the `json` filter:
+
+```liquid
+<gift-with-purchase
+	threshold="75.00"
+	variant-id="12345678"
+	money-format={{ shop.money_format | json }}
+	message-below="Add [amount] more to unlock your free gift!">
+	<!-- Gift content -->
+</gift-with-purchase>
+```
+
+Available Shopify money formats:
+- `shop.money_format` - Basic format (e.g., `${{amount}}`)
+- `shop.money_with_currency_format` - With currency code (e.g., `${{amount}} USD`)
+
+### Supported Format Placeholders
+
+| Placeholder | Output | Example |
+| ----------- | ------ | ------- |
+| `{{amount}}` | Amount with decimals | `19.99` |
+| `{{amount_no_decimals}}` | Rounded whole number | `20` |
+| `{{amount_with_comma_separator}}` | Comma as decimal | `19,99` |
+| `{{amount_no_decimals_with_comma_separator}}` | Whole with comma thousands | `1,000` |
+
+### Examples by Currency
+
+```html
+<!-- USD -->
+money-format="${{amount}}"         <!-- $30.00 -->
+
+<!-- EUR -->
+money-format="€{{amount}}"         <!-- €30.00 -->
+money-format="{{amount}} €"        <!-- 30.00 € -->
+
+<!-- GBP -->
+money-format="£{{amount}}"         <!-- £30.00 -->
+
+<!-- JPY (no decimals) -->
+money-format="¥{{amount_no_decimals}}"  <!-- ¥3000 -->
 ```
 
 ## Events
@@ -248,7 +308,7 @@ In your Shopify cart template, you can identify and handle gift items:
 	threshold="50.00"
 	variant-id="111111"
 	message-above="🎉 You've unlocked a free tote bag!"
-	message-below="Add ${ amount } more for a free tote bag! 👜">
+	message-below="Add [amount] more for a free tote bag! 👜">
 	<div class="gwp-product">
 		<img src="tote-bag.jpg" alt="Free Tote Bag" />
 		<h4 class="gwp-title">Free Tote Bag</h4>
@@ -261,7 +321,7 @@ In your Shopify cart template, you can identify and handle gift items:
 	threshold="100.00"
 	variant-id="222222"
 	message-above="✨ Amazing! You've earned our premium gift set!"
-	message-below="Spend ${ amount } more for our exclusive premium gift set! ✨">
+	message-below="Spend [amount] more for our exclusive premium gift set! ✨">
 	<div class="gwp-product">
 		<img src="gift-set.jpg" alt="Premium Gift Set" />
 		<h4 class="gwp-title">Premium Gift Set</h4>
