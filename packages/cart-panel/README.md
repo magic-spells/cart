@@ -1,20 +1,19 @@
 # Cart Panel Web Component
 
-A professional, highly-customizable modal shopping cart dialog built with Web Components. Features accessible modal interactions, smooth slide-in animations, real-time cart synchronization, and seamless integration with Shopify and other e-commerce platforms.
+A professional, highly-customizable shopping cart component built with Web Components. Features smooth animations, real-time cart synchronization, and seamless integration with Shopify and other e-commerce platforms.
 
 [**Live Demo**](https://magic-spells.github.io/cart-panel/demo/)
 
 ## Features
 
-- 🛒 **Complete cart modal** - Slide-in panel with overlay and focus management
-- ♿ **Accessibility-first** - ARIA attributes, focus trapping, and keyboard navigation
-- 🔄 **Real-time sync** - Automatic cart updates via `/cart.json` and `/cart/change.json` APIs
-- 📡 **Event-driven architecture** - Rich event system with custom event emitter
-- 🎬 **Smooth animations** - CSS transitions with customizable timing and effects
-- 🔒 **Body scroll locking** - Prevents background scrolling when modal is open
-- 🎛️ **Highly customizable** - CSS custom properties and SCSS variables
-- 📱 **Framework agnostic** - Pure Web Components work with any framework
-- 🛒 **Shopify-ready** - Built specifically for Shopify cart integrations
+- **Complete cart management** - Handles cart data, AJAX requests, and item rendering
+- **Delegates modal to dialog-panel** - Works with `@magic-spells/dialog-panel` for accessible modal behavior
+- **Real-time sync** - Automatic cart updates via `/cart.json` and `/cart/change.json` APIs
+- **Event-driven architecture** - Rich event system with custom event emitter
+- **Smooth animations** - CSS transitions for processing, appearing, and destroying states
+- **Highly customizable** - CSS custom properties and template system
+- **Framework agnostic** - Pure Web Components work with any framework
+- **Shopify-ready** - Built specifically for Shopify cart integrations
 
 ## Installation
 
@@ -39,439 +38,314 @@ Or include directly in your HTML:
 
 ## Usage
 
+The cart-panel component delegates modal behavior to a `<dialog-panel>` ancestor. It finds its nearest `<dialog-panel>` and calls `show()`/`hide()` on it.
+
 ```html
+<!-- Cart with dialog-panel wrapper -->
+<dialog-panel id="cart-dialog">
+  <dialog aria-labelledby="cart-title">
+    <cart-panel manual>
+      <div class="cart-header">
+        <h2 id="cart-title">Shopping Cart</h2>
+        <button aria-label="Close cart" class="close-button" data-action-hide-cart>
+          &times;
+        </button>
+      </div>
+      <div class="cart-body">
+        <!-- Cart has items section -->
+        <div data-cart-has-items>
+          <div class="cart-items" data-content-cart-items>
+            <!-- Cart items rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Cart is empty section -->
+        <div data-cart-is-empty>
+          <div class="empty-cart">
+            <p>Your cart is empty</p>
+            <p>Add some items to get started!</p>
+          </div>
+        </div>
+      </div>
+      <div class="cart-footer">
+        <div class="cart-total">
+          Subtotal: <span data-content-cart-subtotal>$0.00</span>
+        </div>
+        <button class="checkout-button">Proceed to Checkout</button>
+      </div>
+    </cart-panel>
+  </dialog>
+</dialog-panel>
+
 <!-- Trigger button -->
-<button aria-haspopup="dialog" aria-controls="my-cart" aria-expanded="false">
-  Open Cart (3 items)
+<button onclick="document.querySelector('cart-panel').show()">
+  Open Cart
 </button>
-
-<!-- Cart modal dialog -->
-<cart-dialog id="my-cart" aria-labelledby="cart-title">
-  <cart-panel>
-    <div class="cart-header">
-      <h2 id="cart-title">Shopping Cart</h2>
-      <button data-action-hide-cart aria-label="Close cart">&times;</button>
-    </div>
-
-    <div class="cart-body">
-      <!-- Cart items using @magic-spells/cart-item -->
-      <cart-item data-key="shopify-line-item-123">
-        <cart-item-content>
-          <div class="product-info">
-            <img src="product.jpg" alt="Product" />
-            <div>
-              <h4>Awesome T-Shirt</h4>
-              <div class="price">$29.99</div>
-            </div>
-          </div>
-          <div class="quantity-controls">
-            <input type="number" data-cart-quantity value="1" min="1" />
-            <button data-action-remove-item>Remove</button>
-          </div>
-        </cart-item-content>
-        <cart-item-processing>
-          <div>Processing...</div>
-        </cart-item-processing>
-      </cart-item>
-    </div>
-
-    <div class="cart-footer">
-      <div class="cart-total">Total: $29.99</div>
-      <button class="checkout-btn">Checkout</button>
-    </div>
-  </cart-panel>
-</cart-dialog>
 ```
 
 ## How It Works
 
-The cart panel component creates a complete modal cart experience with three main elements:
+The cart panel architecture consists of:
 
-- **cart-dialog**: Main container managing modal state, focus trapping, and scroll locking
-- **cart-overlay**: Clickable backdrop that closes the modal when clicked
-- **cart-panel**: Sliding content area that contains the actual cart items and controls
+- **cart-panel**: Main component managing cart data, AJAX requests, and rendering
+- **cart-item**: Individual cart item with state management and animations
+- **cart-item-content**: Content wrapper inside cart-item
+- **cart-item-processing**: Processing overlay with loader
 
 The component automatically handles:
 
-- Opening when trigger buttons with `aria-controls` are clicked
-- Closing via close buttons, escape key, or overlay clicks
 - Fetching cart data from `/cart.json` on show
 - Updating cart items via `/cart/change.json` API calls
-- Managing cart item states and animations through integrated `@magic-spells/cart-item`
-- Filtering out cart items with `_hidden` property from display and calculations
+- Smart rendering with add/update/remove animations
+- Filtering out cart items with `_hide_in_cart` property from display and calculations
 - Emitting events for cart updates and state changes
+
+### Key Architecture Decisions
+
+1. **Delegates modal to dialog-panel**: CartPanel finds its nearest `<dialog-panel>` ancestor and calls `show()`/`hide()` on it. No modal management code in cart-panel.
+
+2. **Native dialog features**: Focus trap, escape key, backdrop click are all handled by `<dialog-panel>` which wraps native `<dialog>`.
+
+3. **Event-driven items**: CartItem emits `cart-item:remove` and `cart-item:quantity-change` events that bubble up to CartPanel.
 
 ## Configuration
 
-### Cart Dialog Attributes
+### CartPanel Attributes
 
-| Attribute         | Description                                     | Required    |
-| ----------------- | ----------------------------------------------- | ----------- |
-| `id`              | Unique identifier referenced by trigger buttons | Yes         |
-| `aria-labelledby` | References the cart title element               | Recommended |
-| `aria-modal`      | Set to "true" for proper modal semantics        | Recommended |
+| Attribute | Type    | Description                                            |
+| --------- | ------- | ------------------------------------------------------ |
+| `manual`  | Boolean | Skip auto-refresh on connect, require explicit refreshCart() |
+| `state`   | String  | Reflected attribute: 'has-items' or 'empty'            |
 
 ### Required HTML Structure
 
-| Element          | Description                                  | Required |
-| ---------------- | -------------------------------------------- | -------- |
-| `<cart-dialog>`  | Main modal container                         | Yes      |
-| `<cart-panel>`   | Sliding content area                         | Yes      |
-| `<cart-overlay>` | Background overlay (auto-created if missing) | No       |
+| Selector                    | Description                              | Required |
+| --------------------------- | ---------------------------------------- | -------- |
+| `[data-content-cart-items]` | Container where cart-item elements render | Yes      |
+| `[data-cart-has-items]`     | Section shown when cart has visible items | No       |
+| `[data-cart-is-empty]`      | Section shown when cart is empty          | No       |
+| `[data-action-hide-cart]`   | Close buttons (click triggers hide())     | No       |
+| `[data-content-cart-count]` | Elements updated with visible item count  | No       |
+| `[data-content-cart-subtotal]` | Elements updated with formatted subtotal | No       |
 
-### Interactive Elements
+### CartItem Child Elements
 
-| Selector                    | Description                         | Event Triggered             |
-| --------------------------- | ----------------------------------- | --------------------------- |
-| `[aria-controls="cart-id"]` | Trigger buttons to open cart        | Opens modal                 |
-| `[data-action-hide-cart]`   | Close buttons inside modal          | Closes modal                |
-| `[data-action-remove-item]` | Remove item buttons (via cart-item) | `cart-item:remove`          |
-| `[data-cart-quantity]`      | Quantity inputs (via cart-item)     | `cart-item:quantity-change` |
+| Selector                    | Description                                    |
+| --------------------------- | ---------------------------------------------- |
+| `[data-action-remove-item]` | Remove button (triggers cart-item:remove)      |
+| `[data-cart-quantity]`      | Quantity input field                           |
+| `[data-content-line-price]` | Line price display (auto-formatted)            |
 
-Example:
+## JavaScript API
 
-```html
-<!-- Minimal cart modal -->
-<cart-dialog id="simple-cart">
-  <cart-panel>
-    <h2>Cart</h2>
-    <button data-action-hide-cart>Close</button>
-    <!-- Cart content here -->
-  </cart-panel>
-</cart-dialog>
-
-<!-- Complete cart with all features -->
-<cart-dialog id="full-cart" aria-modal="true" aria-labelledby="cart-heading">
-  <cart-overlay></cart-overlay>
-  <cart-panel>
-    <header class="cart-header">
-      <h2 id="cart-heading">Shopping Cart</h2>
-      <button data-action-hide-cart aria-label="Close cart">×</button>
-    </header>
-    <div class="cart-content">
-      <!-- Cart items will be rendered here -->
-    </div>
-    <footer class="cart-footer">
-      <button class="checkout-btn">Checkout</button>
-    </footer>
-  </cart-panel>
-</cart-dialog>
-```
-
-## Customization
-
-### Styling
-
-The component provides complete styling control through CSS custom properties and SCSS variables. Customize the modal appearance to match your design:
-
-```css
-/* Customize modal positioning and sizing */
-cart-dialog {
-  --cart-panel-width: min(500px, 95vw);
-  --cart-panel-z-index: 9999;
-  --cart-overlay-z-index: 9998;
-}
-
-/* Customize overlay appearance */
-cart-overlay {
-  --cart-overlay-background: rgba(0, 0, 0, 0.3);
-  --cart-overlay-backdrop-filter: blur(8px);
-}
-
-/* Customize panel styling */
-cart-panel {
-  --cart-panel-background: #ffffff;
-  --cart-panel-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
-  --cart-panel-border-radius: 12px 0 0 12px;
-}
-
-/* Customize animations */
-cart-dialog {
-  --cart-transition-duration: 400ms;
-  --cart-transition-timing: cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-/* Style your cart content layout */
-cart-panel {
-  display: flex;
-  flex-direction: column;
-}
-
-.cart-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #eee;
-  background: #f8f9fa;
-}
-
-.cart-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
-}
-
-.cart-footer {
-  padding: 1.5rem;
-  border-top: 1px solid #eee;
-  background: #f8f9fa;
-}
-```
-
-### CSS Variables & SCSS Variables
-
-The component supports both CSS custom properties and SCSS variables for maximum flexibility:
-
-| CSS Variable                     | SCSS Variable                   | Description                  | Default                      |
-| -------------------------------- | ------------------------------- | ---------------------------- | ---------------------------- |
-| `--cart-dialog-z-index`          | `$cart-dialog-z-index`          | Base z-index for modal       | 1000                         |
-| `--cart-overlay-z-index`         | `$cart-overlay-z-index`         | Overlay layer z-index        | 1000                         |
-| `--cart-panel-z-index`           | `$cart-panel-z-index`           | Panel layer z-index          | 1001                         |
-| `--cart-panel-width`             | `$cart-panel-width`             | Width of the sliding panel   | min(400px, 90vw)             |
-| `--cart-overlay-background`      | `$cart-overlay-background`      | Overlay background color     | rgba(0, 0, 0, 0.15)          |
-| `--cart-overlay-backdrop-filter` | `$cart-overlay-backdrop-filter` | Overlay backdrop blur effect | blur(4px)                    |
-| `--cart-panel-background`        | `$cart-panel-background`        | Panel background color       | #ffffff                      |
-| `--cart-panel-shadow`            | `$cart-panel-shadow`            | Panel box shadow             | -5px 0 25px rgba(0,0,0,0.15) |
-| `--cart-panel-border-radius`     | `$cart-panel-border-radius`     | Panel border radius          | 0                            |
-| `--cart-transition-duration`     | `$cart-transition-duration`     | Animation duration           | 350ms                        |
-| `--cart-transition-timing`       | `$cart-transition-timing`       | Animation timing function    | cubic-bezier(0.4, 0, 0.2, 1) |
-
-#### CSS Override Examples:
-
-```css
-/* Dramatic slide-in effect */
-.dramatic-cart {
-  --cart-transition-duration: 600ms;
-  --cart-transition-timing: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  --cart-overlay-background: rgba(0, 0, 0, 0.4);
-  --cart-overlay-backdrop-filter: blur(10px);
-}
-
-/* Subtle minimal styling */
-.minimal-cart {
-  --cart-panel-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --cart-panel-border-radius: 8px;
-  --cart-transition-duration: 200ms;
-  --cart-overlay-background: rgba(0, 0, 0, 0.05);
-}
-
-/* Mobile-optimized full-width */
-@media (max-width: 768px) {
-  .mobile-cart {
-    --cart-panel-width: 100vw;
-    --cart-panel-border-radius: 0;
-  }
-}
-```
-
-#### SCSS Override Examples:
-
-```scss
-// Override SCSS variables before importing
-$cart-panel-width: min(500px, 95vw);
-$cart-transition-duration: 400ms;
-$cart-overlay-background: rgba(0, 0, 0, 0.25);
-
-// Import the component styles
-@import '@magic-spells/cart-panel/scss';
-
-// Or import the CSS and override with CSS custom properties
-@import '@magic-spells/cart-panel/css';
-
-.my-store cart-dialog {
-  --cart-transition-duration: 400ms;
-  --cart-panel-background: #f8f9fa;
-}
-```
-
-### JavaScript API
-
-#### Methods
-
-- `show(triggerElement)`: Open the cart modal and focus the first interactive element
-- `hide()`: Close the cart modal and restore focus to trigger element
-- `getCart()`: Fetch current cart data from `/cart.json`
-- `updateCartItem(key, quantity)`: Update cart item quantity via `/cart/change.json`
-- `refreshCart()`: Refresh cart data and update UI components
-- `on(eventName, callback)`: Add event listener using the event emitter
-- `off(eventName, callback)`: Remove event listener
-
-#### Events
-
-The component emits custom events for cart state changes and data updates:
-
-**Modal Events:**
-
-- `cart-dialog:show` - Modal has opened
-- `cart-dialog:hide` - Modal has started closing
-- `cart-dialog:afterHide` - Modal has finished closing animation
-
-**Cart Data Events:**
-
-- `cart-dialog:updated` - Cart data updated after item change
-- `cart-dialog:refreshed` - Cart data refreshed from server
-- `cart-dialog:data-changed` - Any cart data change (unified event)
-
-**Cart Item Events (bubbled from cart-item components):**
-
-- `cart-item:remove` - Remove button clicked: `{ cartKey, element }`
-- `cart-item:quantity-change` - Quantity changed: `{ cartKey, quantity, element }`
-
-#### Programmatic Control
+### CartPanel Methods
 
 ```javascript
-const cartDialog = document.querySelector('cart-dialog');
+const cartPanel = document.querySelector('cart-panel');
 
-// Open/close cart
-cartDialog.show(); // Open modal
-cartDialog.hide(); // Close modal
+// Dialog Control
+cartPanel.show(triggerEl?, cartObj?)  // Open modal and refresh cart
+cartPanel.hide()                       // Close modal
 
-// Cart data operations
-const cartData = await cartDialog.getCart();
-const updatedCart = await cartDialog.updateCartItem('item-key', 2);
-await cartDialog.refreshCart();
+// Cart Data
+cartPanel.getCart()                    // Fetch from /cart.json
+cartPanel.updateCartItem(key, quantity) // POST to /cart/change.json
+cartPanel.refreshCart(cartObj?)        // Update display with cart data
 
-// Event emitter pattern (recommended)
-cartDialog
-  .on('cart-dialog:show', (e) => {
-    console.log('Cart opened by:', e.detail.triggerElement);
-  })
-  .on('cart-dialog:data-changed', (cartData) => {
-    console.log('Cart updated:', cartData);
-    // Update header cart count, etc.
-  });
+// Templates
+cartPanel.setCartItemTemplate(name, fn)       // Set template function
+cartPanel.setCartItemProcessingTemplate(fn)   // Set processing overlay template
 
-// Traditional event listeners (also supported)
-cartDialog.addEventListener('cart-item:remove', (e) => {
-  console.log('Remove requested:', e.detail.cartKey);
-
-  // The component handles the API calls automatically
-  // Just listen for the data changes
-});
-
-cartDialog.addEventListener('cart-item:quantity-change', (e) => {
-  console.log('Quantity changed:', e.detail.quantity);
-  // Component automatically syncs with Shopify
-});
-
-// Listen for all cart changes
-cartDialog.on('cart-dialog:data-changed', (cartData) => {
-  // Update your UI when cart changes
-  updateCartBadge(cartData.item_count);
-  updateCartTotal(cartData.total_price);
-});
+// Event Subscription (chainable)
+cartPanel.on(eventName, callback)      // Add event listener
+cartPanel.off(eventName, callback)     // Remove event listener
 ```
 
-#### Performance & Architecture
+### CartPanel Events
 
-The component is optimized for:
+| Event                  | Detail                                              | Description              |
+| ---------------------- | --------------------------------------------------- | ------------------------ |
+| `cart-panel:show`      | `{ triggerElement }`                                | When show() called       |
+| `cart-panel:hide`      | `{}`                                                | When hide() called       |
+| `cart-panel:refreshed` | `{ cart }`                                          | After cart data refreshed |
+| `cart-panel:updated`   | `{ cart }`                                          | After item quantity/remove |
+| `cart-panel:data-changed` | `{ calculated_count, calculated_subtotal, ... }` | Any cart change          |
 
-- **Smooth animations**: CSS transforms and transitions for slide-in effects
-- **Focus management**: Automatic focus trapping with `@magic-spells/focus-trap`
-- **Memory management**: Proper event listener cleanup on disconnect
-- **Scroll lock**: Body scroll prevention with position restoration
-- **API efficiency**: Smart cart data fetching and caching
-- **Event system**: Centralized event handling with custom event emitter
-- **Accessibility**: Full ARIA support and keyboard navigation
+### CartItem Events (bubbled)
 
-## Integration Examples
+| Event                     | Detail                             | Description           |
+| ------------------------- | ---------------------------------- | --------------------- |
+| `cart-item:remove`        | `{ cartKey, element }`             | Remove button clicked |
+| `cart-item:quantity-change` | `{ cartKey, quantity, element }` | Quantity changed      |
 
-### Line Item Properties
+### CartItem States
 
-The cart panel supports several Shopify line item properties for enhanced functionality:
+| State        | Description                                    |
+| ------------ | ---------------------------------------------- |
+| `ready`      | Interactive state, content visible             |
+| `processing` | During AJAX calls, blur/scale effects, loader visible |
+| `destroying` | Removal animation (height collapses)           |
+| `appearing`  | Entry animation (height expands from 0)        |
 
-#### Cart Item Filtering (`_hide_in_cart`)
-
-Cart items can be hidden from display by setting the `_hide_in_cart` property. Hidden items are excluded from:
-
-- Cart item display and rendering
-- Cart count calculations
-- Subtotal calculations
-
-```javascript
-// Example: Hide a cart item from display
-{
-  "items": [
-    {
-      "key": "item-123",
-      "properties": {
-        "_hide_in_cart": "true"  // Hide from cart display
-      }
-    }
-  ]
-}
-```
-
-#### Custom Templates (`_cart_template`)
-
-Different cart item templates can be specified using the `_cart_template` property:
-
-```javascript
-// Example: Use different templates for different item types
-{
-  "items": [
-    {
-      "key": "subscription-item",
-      "properties": {
-        "_cart_template": "subscription"  // Use subscription template
-      }
-    },
-    {
-      "key": "bundle-item",
-      "properties": {
-        "_cart_template": "bundle"  // Use bundle template
-      }
-    }
-  ]
-}
-```
-
-Then set up custom templates in JavaScript:
+### CartItem Static Methods
 
 ```javascript
 import { CartItem } from '@magic-spells/cart-panel';
 
-// Set up different templates
-CartItem.setTemplate('subscription', (itemData, cartData) => {
-  return `
-    <div class="subscription-item">
-      <div class="recurring-badge">🔄 Subscription</div>
-      <h4>${itemData.product_title}</h4>
-      <div class="price">$${(itemData.price / 100).toFixed(2)} every month</div>
-      <quantity-modifier value="${itemData.quantity}"></quantity-modifier>
-    </div>
-  `;
-});
+// Set template globally
+CartItem.setTemplate(name, templateFn)
 
-CartItem.setTemplate('bundle', (itemData, cartData) => {
-  return `
-    <div class="bundle-item">
-      <div class="bundle-badge">📦 Bundle Deal</div>
-      <h4>${itemData.product_title}</h4>
-      <div class="savings">Save 20%!</div>
-      <div class="price">$${(itemData.price / 100).toFixed(2)}</div>
-    </div>
-  `;
+// Set processing overlay template
+CartItem.setProcessingTemplate(templateFn)
+
+// Create with animation
+CartItem.createAnimated(itemData, cartData)
+```
+
+### Programmatic Control
+
+```javascript
+const cartPanel = document.querySelector('cart-panel');
+
+// Open/close cart
+cartPanel.show();
+cartPanel.hide();
+
+// Cart data operations
+const cartData = await cartPanel.getCart();
+const updatedCart = await cartPanel.updateCartItem('item-key', 2);
+await cartPanel.refreshCart();
+
+// Event emitter pattern (chainable)
+cartPanel
+  .on('cart-panel:show', (e) => {
+    console.log('Cart opened by:', e.detail.triggerElement);
+  })
+  .on('cart-panel:data-changed', (e) => {
+    console.log('Cart updated:', e.detail);
+    // Update header cart count, etc.
+  });
+
+// Traditional event listeners also work
+cartPanel.addEventListener('cart-item:remove', (e) => {
+  console.log('Remove requested:', e.detail.cartKey);
 });
 ```
 
-#### Item Grouping (`_group_id` and `_group_role`)
+## Template System
 
-Items can be grouped together using `_group_id` and `_group_role` properties. This is commonly used for bundle products where multiple items should be displayed as a single unit.
+Set up custom templates to control how cart items render:
 
-**Use Cases:**
-- Bundle products (main product + accessories)
-- Gift with purchase promotions
-- Subscription boxes with multiple items
-- Product kits and sets
-
-**How it works:**
-1. All items in a group share the same `_group_id` (a unique identifier like a UUID)
-2. One item has `_group_role: "parent"` (typically with `_cart_template: "bundle"`)
-3. Other items have `_group_role: "child"` (typically with `_hide_in_cart: true`)
-4. The bundle template renders all grouped items together in one display
-
-**Example usage:**
 ```javascript
-// Bundle: T-shirt + Hat + Sticker (shown as one item in cart)
+const cartPanel = document.querySelector('cart-panel');
+
+// Default template
+cartPanel.setCartItemTemplate('default', (itemData, cartData) => {
+  return `
+    <div class="cart-item">
+      <img src="${itemData.image}" alt="${itemData.product_title}" />
+      <div class="cart-item-info">
+        <h4>${itemData.product_title}</h4>
+        <div class="variant">${itemData.variant_title || ''}</div>
+      </div>
+      <quantity-input value="${itemData.quantity}" min="1"></quantity-input>
+      <button data-action-remove-item>Remove</button>
+      <span data-content-line-price></span>
+    </div>
+  `;
+});
+
+// Custom template for subscriptions
+cartPanel.setCartItemTemplate('subscription', (itemData, cartData) => {
+  return `
+    <div class="subscription-item">
+      <div class="recurring-badge">Subscription</div>
+      <h4>${itemData.product_title}</h4>
+      <div class="price">$${(itemData.price / 100).toFixed(2)}/month</div>
+    </div>
+  `;
+});
+
+// Custom processing overlay
+cartPanel.setCartItemProcessingTemplate(() => {
+  return `<div class="custom-loader">Updating...</div>`;
+});
+```
+
+## Customization
+
+### CSS Custom Properties
+
+```css
+cart-item {
+  /* Animation durations */
+  --cart-item-processing-duration: 250ms;
+  --cart-item-destroying-duration: 600ms;
+  --cart-item-appearing-duration: 400ms;
+
+  /* Colors */
+  --cart-item-shadow-color: rgba(0, 0, 0, 0.15);
+  --cart-item-shadow-color-strong: rgba(0, 0, 0, 0.5);
+  --cart-item-destroying-bg: rgba(0, 0, 0, 0.1);
+
+  /* Scale transforms */
+  --cart-item-processing-scale: 0.98;
+  --cart-item-destroying-scale: 0.85;
+  --cart-item-appearing-scale: 0.9;
+
+  /* Blur effects */
+  --cart-item-processing-blur: 1px;
+  --cart-item-destroying-blur: 10px;
+  --cart-item-appearing-blur: 2px;
+
+  /* Opacity and filters */
+  --cart-item-destroying-opacity: 0.2;
+  --cart-item-appearing-opacity: 0.5;
+  --cart-item-destroying-brightness: 0.6;
+  --cart-item-destroying-saturate: 0.3;
+}
+```
+
+## Line Item Properties
+
+The cart-panel supports Shopify line item properties for enhanced functionality:
+
+| Property                    | Purpose                                |
+| --------------------------- | -------------------------------------- |
+| `_hide_in_cart`             | Hide item from display (still in cart) |
+| `_ignore_price_in_subtotal` | Exclude from subtotal calculation      |
+| `_cart_template`            | Use specific template name for rendering |
+| `_group_id`                 | Group items together (bundles)         |
+| `_group_role`               | Role within a group: "parent" or "child" |
+
+### Hidden Items (`_hide_in_cart`)
+
+```javascript
+// Item hidden from display but stays in actual cart
+{
+  "key": "item-123",
+  "properties": {
+    "_hide_in_cart": "true"
+  }
+}
+```
+
+### Custom Templates (`_cart_template`)
+
+```javascript
+// Use subscription template for this item
+{
+  "key": "subscription-item",
+  "properties": {
+    "_cart_template": "subscription"
+  }
+}
+```
+
+### Bundle Grouping (`_group_id` / `_group_role`)
+
+```javascript
+// Bundle: Parent shows, children hidden
 {
   "items": [
     {
@@ -485,16 +359,8 @@ Items can be grouped together using `_group_id` and `_group_role` properties. Th
     {
       "key": "bundle-child-1",
       "properties": {
-        "_group_id": "Q6RT1B48", 
-        "_group_role": "child",
-        "_hide_in_cart": "true"
-      }
-    },
-    {
-      "key": "bundle-child-2", 
-      "properties": {
         "_group_id": "Q6RT1B48",
-        "_group_role": "child", 
+        "_group_role": "child",
         "_hide_in_cart": "true"
       }
     }
@@ -502,45 +368,10 @@ Items can be grouped together using `_group_id` and `_group_role` properties. Th
 }
 ```
 
-**Bundle template example:**
+### Subtotal Exclusion (`_ignore_price_in_subtotal`)
+
 ```javascript
-CartItem.setTemplate('bundle', (itemData, cartData) => {
-  // Find all items in this group
-  const groupId = itemData.properties._group_id;
-  const groupItems = cartData.items.filter(item => 
-    item.properties?._group_id === groupId
-  );
-  
-  return `
-    <div class="bundle-item">
-      <div class="bundle-badge">📦 Bundle Deal</div>
-      <h4>${itemData.product_title}</h4>
-      <div class="bundle-contents">
-        ${groupItems.map(item => `
-          <div class="bundle-item-detail">
-            • ${item.product_title} (${item.quantity})
-          </div>
-        `).join('')}
-      </div>
-      <div class="bundle-price">$${(groupItems.reduce((sum, item) => sum + item.line_price, 0) / 100).toFixed(2)}</div>
-    </div>
-  `;
-});
-```
-
-#### Subtotal Exclusion (`_ignore_price_in_subtotal`)
-
-Items can be excluded from subtotal calculations using the `_ignore_price_in_subtotal` property. This is useful for promotional items that receive automatic discounts at checkout.
-
-**Use Cases:**
-- Gift with purchase items (free items that show $0 at checkout)
-- Promotional items with automatic discounts applied later
-- Service fees handled by other systems
-- Items with complex pricing logic
-
-**Usage:**
-```javascript
-// Gift with purchase item - shows in cart but excluded from subtotal
+// Gift item excluded from subtotal calculation
 {
   "key": "gift-item",
   "properties": {
@@ -549,135 +380,52 @@ Items can be excluded from subtotal calculations using the `_ignore_price_in_sub
 }
 ```
 
-**Implementation:**
-The cart panel automatically excludes these items when calculating visible subtotals, but they remain in the cart for Shopify's checkout process where discounts are applied.
-
-#### Supported Properties
-
-| Property                   | Purpose                                       | Example Values                         |
-| -------------------------- | --------------------------------------------- | -------------------------------------- |
-| `_hide_in_cart`            | Hide items from cart display                 | `"true"`, `true`                       |
-| `_cart_template`           | Specify custom template for rendering        | `"subscription"`, `"bundle"`, `"gift"` |
-| `_group_id`                | Group items together with shared UUID        | `"Q6RT1B48"`, `"ABC123XYZ"`            |
-| `_group_role`              | Role within a group                          | `"parent"`, `"child"`                  |
-| `_ignore_price_in_subtotal` | Exclude from subtotal calculations          | `"true"`, `true`                       |
-
-These properties follow Shopify's line item properties pattern and are commonly used for gift-with-purchase items, subscription products, bundles, and other special cart items.
-
-### Shopify Integration
-
-The cart panel automatically integrates with Shopify's AJAX Cart API. Simply add the component to your theme and it handles all cart operations:
+## Shopify Integration
 
 ```html
-<!-- In your Shopify theme layout -->
-<button
-  aria-haspopup="dialog"
-  aria-controls="shopify-cart"
-  aria-expanded="false"
-  class="cart-trigger">
-  Cart ({{ cart.item_count }})
-</button>
-
-<cart-dialog id="shopify-cart" aria-labelledby="cart-heading">
-  <cart-panel>
-    <header class="cart-header">
-      <h2 id="cart-heading">Your Cart</h2>
-      <button data-action-hide-cart aria-label="hide cart">X</button>
-    </header>
-
-    <div class="cart-content">
-      <!-- Cart items will be populated automatically in javascript -->
-    </div>
-
-    <footer class="cart-footer">
-      <div class="cart-total"></div>
-      <a href="/checkout" class="button"> Checkout </a>
-    </footer>
-  </cart-panel>
-</cart-dialog>
+<!-- Cart with dialog-panel wrapper -->
+<dialog-panel id="cart-dialog">
+  <dialog aria-labelledby="cart-title">
+    <cart-panel>
+      <div class="cart-header">
+        <h2 id="cart-title">Your Cart</h2>
+        <button aria-label="Close cart" data-action-hide-cart>&times;</button>
+      </div>
+      <div class="cart-body">
+        <div data-cart-has-items>
+          <div class="cart-items" data-content-cart-items></div>
+        </div>
+        <div data-cart-is-empty>
+          <p>Your cart is empty</p>
+        </div>
+      </div>
+      <footer class="cart-footer">
+        <div class="cart-summary">
+          <span data-content-cart-count></span> items |
+          <span data-content-cart-subtotal></span>
+        </div>
+        <a href="/checkout" class="checkout-button">Checkout</a>
+      </footer>
+    </cart-panel>
+  </dialog>
+</dialog-panel>
 
 <script>
-  // Optional: Listen for cart updates to sync with other UI elements
-  document.querySelector('cart-dialog').on('cart-dialog:data-changed', (cartData) => {
-    // Update cart count in header
-    document.querySelector('.cart-trigger').textContent = `Cart (${cartData.item_count})`;
+  const cartPanel = document.querySelector('cart-panel');
 
-    // Update cart total
-    document.querySelector('[data-cart-total]').textContent = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(cartData.total_price / 100);
+  // Update header cart count on changes
+  cartPanel.on('cart-panel:data-changed', (e) => {
+    document.querySelector('.header-cart-count').textContent =
+      e.detail.calculated_count;
   });
 </script>
 ```
 
-### Vanilla JavaScript Integration
+## Dependencies
 
-```javascript
-// Example for non-Shopify platforms
-class CustomCartManager {
-  constructor() {
-    this.cartDialog = document.querySelector('cart-dialog');
-    this.setupEventListeners();
-  }
-
-  setupEventListeners() {
-    // Listen for cart data changes
-    this.cartDialog.on('cart-dialog:data-changed', (cartData) => {
-      this.updateCartUI(cartData);
-    });
-
-    // Override default cart operations for custom API
-    this.cartDialog.getCart = this.customGetCart.bind(this);
-    this.cartDialog.updateCartItem = this.customUpdateCartItem.bind(this);
-  }
-
-  async customGetCart() {
-    try {
-      const response = await fetch('/api/cart');
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to fetch cart:', error);
-      return { error: true, message: error.message };
-    }
-  }
-
-  async customUpdateCartItem(itemId, quantity) {
-    try {
-      const response = await fetch('/api/cart/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId, quantity }),
-      });
-
-      if (!response.ok) throw new Error(response.statusText);
-
-      // Return updated cart data
-      return this.customGetCart();
-    } catch (error) {
-      console.error('Failed to update cart:', error);
-      return { error: true, message: error.message };
-    }
-  }
-
-  updateCartUI(cartData) {
-    // Update cart count in navigation
-    const cartCount = document.querySelector('.cart-count');
-    if (cartCount) {
-      cartCount.textContent = cartData.items?.length || 0;
-    }
-
-    // Update cart total display
-    const cartTotal = document.querySelector('.cart-total-display');
-    if (cartTotal && cartData.total) {
-      cartTotal.textContent = cartData.total;
-    }
-  }
-}
-
-// Initialize
-new CustomCartManager();
-```
+- `@magic-spells/event-emitter` - Event system (bundled)
+- `@magic-spells/dialog-panel` - Modal behavior (peer dependency, optional)
+- `@magic-spells/quantity-input` - Quantity controls (optional, for templates)
 
 ## Browser Support
 

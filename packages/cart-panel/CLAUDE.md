@@ -34,15 +34,25 @@ This is a web component library for Shopify shopping carts. It provides two main
 
 ```html
 <dialog-panel id="cart-dialog">
-  <dialog>
-    <cart-panel>
-      <div data-cart-has-items>
-        <div data-content-cart-items></div>
+  <dialog aria-labelledby="cart-title">
+    <cart-panel manual>
+      <div class="cart-header">
+        <h2 id="cart-title">Shopping Cart</h2>
+        <button aria-label="Close cart" data-action-hide-cart>&times;</button>
       </div>
-      <div data-cart-is-empty>Empty cart message</div>
-      <button data-action-hide-cart>Close</button>
-      <span data-content-cart-count></span>
-      <span data-content-cart-subtotal></span>
+      <div class="cart-body">
+        <div data-cart-has-items>
+          <div class="cart-items" data-content-cart-items></div>
+        </div>
+        <div data-cart-is-empty>
+          <p>Your cart is empty</p>
+        </div>
+      </div>
+      <div class="cart-footer">
+        <span data-content-cart-count></span> items
+        <span data-content-cart-subtotal></span>
+        <button class="checkout-button">Checkout</button>
+      </div>
     </cart-panel>
   </dialog>
 </dialog-panel>
@@ -50,27 +60,46 @@ This is a web component library for Shopify shopping carts. It provides two main
 
 ### Public API
 
+**CartPanel Attributes:**
+- `manual` - Skip auto-refresh on connect, require explicit `refreshCart()` call
+- `state` - Reflected attribute: 'has-items' or 'empty'
+
 **CartPanel Methods:**
-- `show(triggerEl?)` - Find dialog-panel ancestor and open it
+- `show(triggerEl?, cartObj?)` - Find dialog-panel ancestor and open it
 - `hide()` - Find dialog-panel ancestor and close it
 - `getCart()` - Fetch from `/cart.json`
 - `updateCartItem(key, quantity)` - POST to `/cart/change.json`
 - `refreshCart(cartObj?)` - Update display with provided or fetched cart
 - `setCartItemTemplate(name, fn)` - Set template for cart items
-- `on(event, callback)` / `off(event, callback)` - Event subscription
+- `setCartItemProcessingTemplate(fn)` - Set processing overlay template
+- `on(event, callback)` / `off(event, callback)` - Event subscription (chainable)
 
-**Events:**
-- `cart-panel:show` - When show() is called
+**CartPanel Events:**
+- `cart-panel:show` - When show() is called (`{ triggerElement }`)
 - `cart-panel:hide` - When hide() is called
-- `cart-panel:refreshed` - After cart data refreshed
-- `cart-panel:updated` - After item quantity changed
+- `cart-panel:refreshed` - After cart data refreshed (`{ cart }`)
+- `cart-panel:updated` - After item quantity changed (`{ cart }`)
 - `cart-panel:data-changed` - Any cart change (includes `calculated_count`, `calculated_subtotal`)
+
+**CartItem Static Methods:**
+- `CartItem.setTemplate(name, fn)` - Set template globally
+- `CartItem.setProcessingTemplate(fn)` - Set processing overlay template
+- `CartItem.createAnimated(itemData, cartData)` - Create with appearing animation
+
+**CartItem Instance Methods:**
+- `setState(state)` - Set 'ready'|'processing'|'destroying'|'appearing'
+- `setData(itemData, cartData)` - Update item with new data
+- `destroyYourself()` - Animate and remove from DOM
 
 **CartItem States:**
 - `ready` - Default interactive state
 - `processing` - During AJAX calls (blur, scale, loader visible)
 - `destroying` - Removal animation (height collapses)
 - `appearing` - Entry animation (height expands)
+
+**CartItem Events (bubbled):**
+- `cart-item:remove` - Remove button clicked (`{ cartKey, element }`)
+- `cart-item:quantity-change` - Quantity changed (`{ cartKey, quantity, element }`)
 
 ### Dependencies
 
@@ -95,6 +124,36 @@ The cart-panel supports Shopify line item properties:
 - `_cart_template` - Use a specific template name for this item
 - `_group_id` / `_group_role` - For bundle grouping
 
+### HTML Selectors
+
+**CartPanel selectors:**
+- `[data-content-cart-items]` - Container where cart-item elements render
+- `[data-cart-has-items]` - Section shown when cart has visible items
+- `[data-cart-is-empty]` - Section shown when cart is empty
+- `[data-action-hide-cart]` - Close buttons (click triggers hide())
+- `[data-content-cart-count]` - Elements updated with visible item count
+- `[data-content-cart-subtotal]` - Elements updated with formatted subtotal
+
+**CartItem selectors (inside templates):**
+- `[data-action-remove-item]` - Remove button (triggers cart-item:remove)
+- `[data-cart-quantity]` - Quantity input field
+- `[data-content-line-price]` - Line price display (auto-formatted)
+
+### CSS Custom Properties
+
+```css
+cart-item {
+  --cart-item-processing-duration: 250ms;
+  --cart-item-destroying-duration: 600ms;
+  --cart-item-appearing-duration: 400ms;
+  --cart-item-shadow-color: rgba(0, 0, 0, 0.15);
+  --cart-item-processing-scale: 0.98;
+  --cart-item-destroying-scale: 0.85;
+  --cart-item-processing-blur: 1px;
+  --cart-item-destroying-blur: 10px;
+}
+```
+
 ### Template System
 
 ```javascript
@@ -110,5 +169,10 @@ cartPanel.setCartItemTemplate('default', (itemData, cartData) => {
       <span data-content-line-price></span>
     </div>
   `;
+});
+
+// Custom processing overlay
+cartPanel.setCartItemProcessingTemplate(() => {
+  return `<div class="custom-loader">Updating...</div>`;
 });
 ```
