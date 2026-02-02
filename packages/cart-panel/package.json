@@ -1,6 +1,6 @@
 {
 	"name": "@magic-spells/cart-panel",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Shopping cart panel web component for Shopify. Manages cart data and AJAX, delegates modal behavior to dialog-panel.",
 	"author": "Cory Schulz",
 	"license": "MIT",
