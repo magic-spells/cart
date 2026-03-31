@@ -471,11 +471,9 @@
          Cart progress bar dark overrides
       ------------------------------------------------ */
       cart-progress-bar {
-        --cart-progress-section-color: var(--text);
         --cart-progress-bar-bg: var(--surface-raised);
         --cart-progress-bar-fill-before: var(--accent);
         --cart-progress-bar-fill-after: var(--teal);
-        --cart-progress-bar-shadow: none;
       }
 
       /* Theme: Minimal */
@@ -484,7 +482,6 @@
         --cart-progress-bar-bg: var(--border);
         --cart-progress-bar-fill-before: var(--teal);
         --cart-progress-bar-fill-after: #3db8a4;
-        --cart-progress-section-color: var(--text-dim);
       }
 
       /* Theme: Bold */
@@ -494,7 +491,6 @@
         --cart-progress-bar-bg: var(--border);
         --cart-progress-bar-fill-before: var(--coral);
         --cart-progress-bar-fill-after: #d76b58;
-        --cart-progress-section-color: var(--text);
       }
 
       /* Theme: Neon */
@@ -503,7 +499,6 @@
         --cart-progress-bar-bg: #1a1a2e;
         --cart-progress-bar-fill-before: #00d4ff;
         --cart-progress-bar-fill-after: #00ff88;
-        --cart-progress-section-color: white;
       }
 
       .theme-neon-surface {
@@ -836,9 +831,7 @@ console.<span class="hl-fn">log</span>(info.percent, info.isComplete, info.thres
 
         <h3>Custom Styling</h3>
         <div class="code-block"><code><span class="hl-selector">cart-progress-bar</span> {
-  <span class="hl-comment">/* Core color customization */</span>
-  <span class="hl-prop">--cart-progress-section-bg</span>: <span class="hl-value">#f8f9fa</span>;
-  <span class="hl-prop">--cart-progress-section-color</span>: <span class="hl-value">#495057</span>;
+  <span class="hl-comment">/* Colors */</span>
   <span class="hl-prop">--cart-progress-bar-bg</span>: <span class="hl-value">#e9ecef</span>;
   <span class="hl-prop">--cart-progress-bar-fill-before</span>: <span class="hl-value">#28a745</span>;
   <span class="hl-prop">--cart-progress-bar-fill-after</span>: <span class="hl-value">#007bff</span>;

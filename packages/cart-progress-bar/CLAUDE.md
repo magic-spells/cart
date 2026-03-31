@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-This is a web component library for e-commerce cart progress bars that show free shipping thresholds. The component is built as a vanilla JavaScript Custom Element with SCSS styling, distributed as ESM, CommonJS, and UMD modules.
+This is a web component library for e-commerce cart progress bars that show free shipping thresholds. The component is built as a vanilla JavaScript Custom Element with plain CSS styling, distributed as ESM, CommonJS, and UMD modules.
 
 ## Build and Development Commands
 
@@ -21,7 +21,7 @@ This is a web component library for e-commerce cart progress bars that show free
 ### Core Components
 - **CartProgressBar** (`src/cart-progress-bar.js`): Main web component class that manages progress calculation, message templating, and cart integration
 - **ProgressBar** (`src/cart-progress-bar.js`): Helper component for the visual progress bar element
-- **SCSS** (`src/cart-progress-bar.scss`): Styling with CSS custom properties for theming
+- **CSS** (`src/cart-progress-bar.css`): Styling with CSS custom properties for theming
 
 ### Web Component API
 The component exposes a JavaScript API:
@@ -38,20 +38,18 @@ Uses Rollup to generate multiple distribution formats:
 - UMD: `dist/cart-progress-bar.js` (includes CSS extraction)
 - Minified UMD: `dist/cart-progress-bar.min.js` (includes minified CSS)
 - CSS: `dist/cart-progress-bar.css` (from ESM/CommonJS/UMD builds) and `dist/cart-progress-bar.min.css` (from minified build)
-- SCSS Source: `dist/cart-progress-bar.scss` (copy of source file)
 
 ### Cart Integration
-The component automatically integrates with a parent `<cart-dialog>` component (from `@magic-spells/cart-panel`) by listening for `cart-dialog:data-changed` events to update progress when cart totals change. The cart-dialog component provides cart management functionality including Shopify API integration, and emits data change events that the progress bar automatically responds to.
+The component integrates with a parent element by listening for data-change events. By default it uses `closest('cart-panel')` and listens for `'cart-panel:data-changed'`, but both are configurable via attributes:
+- `listen-selector`: CSS selector for `closest()` to find the target element (default: `'cart-panel'`)
+- `listen-event`: event name to listen for on that element (default: `'cart-panel:data-changed'`)
 
 **Smart Pricing Logic**: The progress bar uses `calculated_subtotal` when available, which properly excludes items with the `_ignore_price_in_subtotal` property (such as gifts with purchase). Falls back to `total_price` for backwards compatibility. This ensures that:
 - Bundle items that are hidden (`_hide_in_cart`) but should count toward free shipping are included
 - Gift items with `_ignore_price_in_subtotal` are excluded from the progress calculation
 
 ### Message Templating
-Uses flexible placeholder formats in message templates. Users include currency symbols directly in their messages. Supports multiple placeholder formats:
-- `{ amount }` - with spaces around amount
-- `{amount}` - no spaces
-- `[amount]` - square brackets (with or without spaces)
+Uses `[amount]` placeholders in message templates (with or without spaces, e.g. `[ amount ]`). Users include currency symbols directly in their messages.
 
 Shows different messages based on completion status:
 - `message-below`: Shown when cart total is below threshold (e.g., "Add ${ amount } more for free shipping!")
@@ -68,10 +66,7 @@ There are no automated tests configured. The demo at `demo/index.html` serves as
 Uses CSS custom properties for theming:
 - `--cart-progress-bar-height`
 - `--cart-progress-bar-border-radius`
-- `--cart-progress-bar-shadow`
 - `--cart-progress-bar-transition-duration`
-- `--cart-progress-section-bg`
-- `--cart-progress-section-color`
 - `--cart-progress-bar-bg`
 - `--cart-progress-bar-fill-before`
 - `--cart-progress-bar-fill-after`

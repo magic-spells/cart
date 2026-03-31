@@ -186,3 +186,9 @@ These attributes are used internally to switch between the "before" and "after" 
 ## License
 
 MIT License - see LICENSE file for details.
+
+---
+
+<p align="center">
+  Made by <a href="https://github.com/coryschulz">Cory Schulz</a>
+</p>

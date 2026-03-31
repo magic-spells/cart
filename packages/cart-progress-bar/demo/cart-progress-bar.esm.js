@@ -36,9 +36,13 @@ class CartProgressBar extends HTMLElement {
 	#msgEl = null;
 	#moneyFmt = null;
 	#debounce = null;
+	#listenSelector = 'cart-panel';
+	#listenEvent = 'cart-panel:data-changed';
+	#listenTarget = null;
+	#listenHandler = null;
 
 	static get observedAttributes() {
-		return ['threshold', 'current', 'message-above', 'message-below', 'money-format'];
+		return ['threshold', 'current', 'message-above', 'message-below', 'money-format', 'listen-selector', 'listen-event'];
 	}
 
 	constructor() {
@@ -49,6 +53,8 @@ class CartProgressBar extends HTMLElement {
 		_.#msgAbove = _.getAttribute('message-above') || '';
 		_.#msgBelow = _.getAttribute('message-below') || '';
 		_.#moneyFmt = _.getAttribute('money-format');
+		_.#listenSelector = _.getAttribute('listen-selector') || 'cart-panel';
+		_.#listenEvent = _.getAttribute('listen-event') || 'cart-panel:data-changed';
 	}
 
 	async connectedCallback() {
@@ -60,6 +66,7 @@ class CartProgressBar extends HTMLElement {
 
 	disconnectedCallback() {
 		if (this.#debounce) clearTimeout(this.#debounce);
+		this.#detachListeners();
 	}
 
 	attributeChangedCallback(name, oldVal, newVal) {
@@ -86,6 +93,16 @@ class CartProgressBar extends HTMLElement {
 			case 'money-format':
 				_.#moneyFmt = newVal;
 				_.#updateMessages();
+				break;
+			case 'listen-selector':
+				_.#listenSelector = newVal || 'cart-panel';
+				_.#detachListeners();
+				_.#attachListeners();
+				break;
+			case 'listen-event':
+				_.#listenEvent = newVal || 'cart-panel:data-changed';
+				_.#detachListeners();
+				_.#attachListeners();
 				break;
 		}
 	}
@@ -120,9 +137,20 @@ class CartProgressBar extends HTMLElement {
 
 	#attachListeners() {
 		const _ = this;
-		const panel = _.closest('cart-panel');
-		if (panel) {
-			panel.addEventListener('cart-panel:data-changed', (e) => _.#onCartChange(e));
+		const target = _.closest(_.#listenSelector);
+		if (target) {
+			_.#listenHandler = (e) => _.#onCartChange(e);
+			_.#listenTarget = target;
+			target.addEventListener(_.#listenEvent, _.#listenHandler);
+		}
+	}
+
+	#detachListeners() {
+		const _ = this;
+		if (_.#listenTarget && _.#listenHandler) {
+			_.#listenTarget.removeEventListener(_.#listenEvent, _.#listenHandler);
+			_.#listenTarget = null;
+			_.#listenHandler = null;
 		}
 	}
 

@@ -9,7 +9,6 @@
 	"module": "dist/cart-progress-bar.esm.js",
 	"unpkg": "dist/cart-progress-bar.min.js",
 	"style": "dist/cart-progress-bar.min.css",
-	"sass": "dist/cart-progress-bar.scss",
 	"exports": {
 		".": {
 			"import": "./dist/cart-progress-bar.esm.js",
@@ -17,8 +16,7 @@
 			"default": "./dist/cart-progress-bar.esm.js"
 		},
 		"./css": "./dist/cart-progress-bar.css",
-		"./css/min": "./dist/cart-progress-bar.min.css",
-		"./scss": "./dist/cart-progress-bar.scss"
+		"./css/min": "./dist/cart-progress-bar.min.css"
 	},
 	"sideEffects": true,
 	"repository": {
@@ -69,7 +67,6 @@
 		"rollup": "^3.0.0",
 		"rollup-plugin-copy": "^3.5.0",
 		"rollup-plugin-postcss": "^4.0.2",
-		"rollup-plugin-serve": "^1.1.1",
-		"sass": "^1.86.3"
+		"rollup-plugin-serve": "^1.1.1"
 	}
 }
