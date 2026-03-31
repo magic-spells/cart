@@ -1,471 +1,978 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Cart Progress Bar Demo - @magic-spells/cart-progress-bar</title>
-		<link rel="stylesheet" href="cart-progress-bar.min.css" />
-		<style>
-			* {
-				margin: 0;
-				padding: 0;
-				box-sizing: border-box;
-			}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cart Progress Bar -- @magic-spells</title>
+    <link rel="stylesheet" href="cart-progress-bar.min.css" />
 
-			body {
-				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-				line-height: 1.6;
-				color: #333;
-				background: #f8f9fa;
-				padding: 2rem 1rem;
-			}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300;1,9..40,400&family=DM+Mono:wght@300;400&display=swap"
+      rel="stylesheet" />
 
-			.container {
-				max-width: 1000px;
-				margin: 0 auto;
-			}
+    <style>
+      /* ------------------------------------------------
+         Base & Variables
+      ------------------------------------------------ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-			h1 {
-				text-align: center;
-				margin-bottom: 2rem;
-				color: #2c3e50;
-				font-size: 2.5rem;
-				font-weight: 300;
-			}
+      :root {
+        --bg: #0c0c0d;
+        --surface: #161618;
+        --surface-raised: #1e1e21;
+        --border: #2a2a2e;
+        --border-accent: #3a3a3f;
+        --text: #e8e4de;
+        --text-dim: #8a8680;
+        --accent: #d4a24e;
+        --accent-glow: rgba(212, 162, 78, 0.15);
+        --coral: #c75d4a;
+        --teal: #4a9e8e;
+        --lavender: #8b7ec8;
+        --font-display: 'Instrument Serif', Georgia, serif;
+        --font-body: 'DM Sans', system-ui, sans-serif;
+        --font-mono: 'DM Mono', 'SF Mono', monospace;
+        --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      }
 
-			.demo-section {
-				background: white;
-				border-radius: 12px;
-				padding: 2rem;
-				margin-bottom: 2rem;
-				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-			}
+      html {
+        font-size: 16px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
 
-			.demo-section h2 {
-				margin-bottom: 1rem;
-				color: #34495e;
-				font-size: 1.5rem;
-				font-weight: 400;
-			}
+      body {
+        font-family: var(--font-body);
+        font-weight: 300;
+        color: var(--text);
+        background: var(--bg);
+        line-height: 1.6;
+        min-height: 100vh;
+      }
 
-			.demo-section p {
-				margin-bottom: 1.5rem;
-				color: #666;
-			}
+      /* Grain overlay */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        pointer-events: none;
+        opacity: 0.03;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        background-repeat: repeat;
+        background-size: 200px;
+      }
 
-			.controls {
-				display: grid;
-				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-				gap: 1rem;
-				margin: 1.5rem 0;
-				padding: 1rem;
-				background: #f8f9fa;
-				border-radius: 8px;
-			}
+      /* ------------------------------------------------
+         Layout
+      ------------------------------------------------ */
+      .page {
+        max-width: 840px;
+        margin: 0 auto;
+        padding: 2rem 2rem 6rem;
+      }
 
-			.control-group {
-				display: flex;
-				flex-direction: column;
-				gap: 0.5rem;
-			}
+      /* ------------------------------------------------
+         Hero
+      ------------------------------------------------ */
+      .hero {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 4rem 2rem 2rem;
+        animation: fadeUp 0.8s var(--ease-out) both;
+      }
 
-			.control-group label {
-				font-weight: 600;
-				color: #495057;
-				font-size: 0.9rem;
-			}
+      .hero::before {
+        content: '';
+        position: absolute;
+        top: -40%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 900px;
+        height: 900px;
+        background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
+        pointer-events: none;
+      }
 
-			.control-group input,
-			.control-group select,
-			.control-group button {
-				padding: 0.5rem;
-				border: 1px solid #ced4da;
-				border-radius: 4px;
-				font-size: 0.9rem;
-			}
+      .hero-badge {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 400;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        border-radius: 100px;
+        padding: 0.3rem 1rem;
+        margin-bottom: 1.5rem;
+        background: var(--accent-glow);
+        text-decoration: none;
+        transition: border-color 0.3s ease, color 0.3s ease;
+      }
 
-			.control-group button {
-				background: #007bff;
-				color: white;
-				border-color: #007bff;
-				cursor: pointer;
-				font-weight: 600;
-			}
+      .hero-badge:hover {
+        border-color: var(--accent);
+        color: var(--text);
+      }
 
-			.control-group button:hover {
-				background: #0056b3;
-				border-color: #0056b3;
-			}
+      .hero h1 {
+        font-family: var(--font-display);
+        font-size: clamp(2.8rem, 6vw, 4.2rem);
+        font-weight: 400;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin-bottom: 1.25rem;
+      }
 
-			.control-group button.secondary {
-				background: #6c757d;
-				border-color: #6c757d;
-			}
+      .hero h1 em {
+        font-style: italic;
+        color: var(--accent);
+      }
 
-			.control-group button.secondary:hover {
-				background: #545b62;
-				border-color: #545b62;
-			}
+      .hero p {
+        font-size: 1.1rem;
+        color: var(--text-dim);
+        max-width: 540px;
+        line-height: 1.7;
+      }
 
-			/* Demo progress bar containers */
-			.progress-demo {
-				margin: 2rem 0;
-				padding: 1.5rem;
-				border: 1px solid #dee2e6;
-				border-radius: 8px;
-				background: #ffffff;
-			}
+      .hero-line {
+        width: 1px;
+        height: 80px;
+        background: linear-gradient(to bottom, var(--accent), transparent);
+        margin-top: 3rem;
+        opacity: 0;
+        animation: fadeUp 1s var(--ease-out) 0.6s both;
+      }
 
-			.progress-demo h3 {
-				margin-bottom: 1rem;
-				color: #495057;
-				font-size: 1.1rem;
-			}
+      /* ------------------------------------------------
+         Install Banner
+      ------------------------------------------------ */
+      .install-banner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 2.5rem;
+        padding: 1.25rem 2rem;
+        margin-bottom: 3rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        animation: fadeUp 0.8s var(--ease-out) 0.2s backwards;
+      }
 
-			/* Default styles for cart progress bar messages to make demo look good */
-			cart-progress-bar p[data-content-cart-progress-message] {
-				font-size: 0.875rem;
-				margin: 0.5rem 0;
-			}
+      .install-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
 
-			/* Custom themed progress bars */
-			.theme-minimal {
-				--cart-progress-bar-height: 8px;
-				--cart-progress-bar-bg: #f1f3f4;
-				--cart-progress-bar-fill-before: #1a73e8;
-				--cart-progress-bar-fill-after: #0d47a1;
-			}
+      .install-label {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 400;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
 
-			.theme-bold {
-				--cart-progress-bar-height: 16px;
-				--cart-progress-bar-border-radius: 8px;
-				--cart-progress-bar-fill-before: #ff6b6b;
-				--cart-progress-bar-fill-after: #e74c3c;
-				--cart-progress-section-color: #2c3e50;
-			}
+      .install-value {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--text);
+        cursor: copy;
+        padding: 0.3rem 0.75rem;
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        transition: border-color 0.2s;
+      }
 
-			.theme-neon {
-				--cart-progress-bar-height: 14px;
-				--cart-progress-bar-bg: #1a1a2e;
-				--cart-progress-bar-fill-before: #00d4ff;
-				--cart-progress-bar-fill-after: #00ff88;
-				--cart-progress-section-color: white;
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				border-radius: 12px;
-			}
+      .install-value:hover {
+        border-color: var(--accent);
+      }
 
-			.theme-neon h3 {
-				color: white;
-			}
+      .install-size {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        font-weight: 400;
+        color: var(--accent);
+      }
 
-			.code-block {
-				background: #2d3748;
-				color: #e2e8f0;
-				padding: 1rem;
-				border-radius: 6px;
-				margin: 1rem 0;
-				overflow-x: auto;
-				font-family:
-					'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-				font-size: 0.9rem;
-			}
+      /* ------------------------------------------------
+         Code Example (top-level)
+      ------------------------------------------------ */
+      .code-example {
+        max-width: 680px;
+        margin: 0 auto 4rem;
+        padding: 0 1.5rem;
+        opacity: 0;
+        animation: fadeUp 0.8s var(--ease-out) 0.4s both;
+      }
 
-			.features-grid {
-				display: grid;
-				grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-				gap: 1rem;
-				margin: 2rem 0;
-			}
+      .code-example pre {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.75rem 2rem;
+        overflow-x: auto;
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+        font-weight: 300;
+        line-height: 1.7;
+        color: var(--text-dim);
+      }
 
-			.feature {
-				background: #f8f9fa;
-				padding: 1.5rem;
-				border-radius: 8px;
-				border-left: 4px solid #007bff;
-			}
+      /* ------------------------------------------------
+         Sections
+      ------------------------------------------------ */
+      .example {
+        margin-bottom: 5rem;
+        animation: fadeUp 0.8s var(--ease-out) backwards;
+      }
 
-			.feature h3 {
-				color: #2c3e50;
-				margin-bottom: 0.5rem;
-				font-size: 1.1rem;
-			}
+      .example-label {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 400;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: 0.5rem;
+      }
 
-			.feature p {
-				color: #666;
-				margin: 0;
-				font-size: 0.9rem;
-			}
+      .example h2 {
+        font-family: var(--font-display);
+        font-size: 1.8rem;
+        font-weight: 400;
+        margin-bottom: 0.5rem;
+      }
 
-			@media (max-width: 768px) {
-				body {
-					padding: 1rem 0.5rem;
-				}
+      .example > p {
+        color: var(--text-dim);
+        font-size: 0.95rem;
+        margin-bottom: 2rem;
+        max-width: 520px;
+      }
 
-				h1 {
-					font-size: 2rem;
-				}
+      .example h3 {
+        font-family: var(--font-display);
+        font-size: 1.3rem;
+        font-weight: 400;
+        color: var(--text);
+        margin-top: 2.5rem;
+        margin-bottom: 0.75rem;
+      }
 
-				.demo-section {
-					padding: 1rem;
-				}
+      code {
+        font-family: var(--font-mono);
+        font-size: 0.82em;
+        color: var(--accent);
+      }
 
-				.controls {
-					grid-template-columns: 1fr;
-				}
-			}
-		</style>
-	</head>
-	<body>
-		<div class="container">
-			<h1>Cart Progress Bar Demo</h1>
+      /* ------------------------------------------------
+         Code blocks (in-section)
+      ------------------------------------------------ */
+      .code-block {
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1.25rem 1.5rem;
+        overflow-x: auto;
+        margin-top: 1rem;
+      }
 
-			<section class="demo-section">
-				<h2>Interactive Demo</h2>
-				<p>
-					Control the cart progress bar in real-time. Adjust the cart amount and minimum threshold
-					to see how the progress bar and messages update.
-				</p>
+      .code-block code {
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        font-weight: 300;
+        line-height: 1.8;
+        color: var(--text-dim);
+        white-space: pre;
+      }
 
-				<div class="controls">
-					<div class="control-group">
-						<label for="cartAmount">Current Cart Amount ($)</label>
-						<input type="number" id="cartAmount" value="25.50" step="0.01" min="0" />
-					</div>
-					<div class="control-group">
-						<label for="thresholdAmount">Free Shipping Threshold ($)</label>
-						<input type="number" id="thresholdAmount" value="75.00" step="0.01" min="0" />
-					</div>
-					<div class="control-group">
-						<label for="percentInput">Set Progress Percent</label>
-						<input type="range" id="percentInput" min="0" max="100" value="34" />
-						<span id="percentDisplay">34%</span>
-					</div>
-					<div class="control-group">
-						<label>Quick Actions</label>
-						<button onclick="setProgress(0)">0%</button>
-						<button onclick="setProgress(50)" class="secondary">50%</button>
-						<button onclick="setProgress(100)">Complete</button>
-					</div>
-				</div>
+      /* Syntax highlighting */
+      .hl-tag { color: var(--accent); }
+      .hl-attr { color: var(--lavender); }
+      .hl-value { color: var(--coral); }
+      .hl-comment { color: #555; font-style: italic; }
+      .hl-kw { color: var(--accent); }
+      .hl-str { color: var(--teal); }
+      .hl-fn { color: var(--lavender); }
+      .hl-selector { color: var(--accent); }
+      .hl-prop { color: var(--teal); }
+      .hl-num { color: var(--coral); }
 
-				<div class="progress-demo">
-					<h3>Main Demo</h3>
-					<cart-progress-bar
-						id="mainDemo"
-						threshold="75.00"
-						current="25.50"
-						money-format="${{amount}}"
-						message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-						message-below="Add [amount] more to get FREE shipping! 🚚">
-						<p data-content-cart-progress-message>Add [amount] more to get FREE shipping! 🚚</p>
-						<progress-bar></progress-bar>
-					</cart-progress-bar>
-				</div>
-			</section>
+      /* ------------------------------------------------
+         Demo surfaces
+      ------------------------------------------------ */
+      .demo-surface {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 2rem;
+        position: relative;
+      }
 
-			<section class="demo-section">
-				<h2>Different Themes</h2>
-				<p>Examples of different visual themes you can create with CSS custom properties.</p>
+      .demo-surface-label {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        font-weight: 400;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: 1.25rem;
+      }
 
-				<div class="progress-demo">
-					<h3>Minimal Theme</h3>
-					<cart-progress-bar
-						class="theme-minimal"
-						threshold="50.00"
-						current="32.50"
-						money-format="${{amount}}"
-						message-below="[amount] away from free delivery">
-						<p data-content-cart-progress-message>[amount] away from free delivery</p>
-						<progress-bar></progress-bar>
-					</cart-progress-bar>
-				</div>
+      /* ------------------------------------------------
+         Buttons
+      ------------------------------------------------ */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.6rem 1.25rem;
+        font-family: var(--font-body);
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: var(--bg);
+        background: var(--accent);
+        border: none;
+        border-radius: 100px;
+        cursor: pointer;
+        transition: all 0.25s var(--ease-out);
+      }
 
-				<div class="progress-demo">
-					<h3>Bold Theme</h3>
-					<cart-progress-bar
-						class="theme-bold"
-						threshold="100.00"
-						current="78.90"
-						money-format="${{amount}}"
-						message-above="🎉 FREE shipping unlocked!"
-						message-below="🎯 [amount] more for FREE shipping!">
-						<p data-content-cart-progress-message>🎯 [amount] more for FREE shipping!</p>
-						<progress-bar></progress-bar>
-					</cart-progress-bar>
-				</div>
+      .btn:hover {
+        background: #e0b05e;
+        box-shadow: 0 2px 12px rgba(212, 162, 78, 0.3);
+      }
 
-				<div class="progress-demo theme-neon">
-					<h3>Neon Theme</h3>
-					<cart-progress-bar
-						class="theme-neon"
-						threshold="150.00"
-						current="120.00"
-						money-format="${{amount}}"
-						message-above="⚡ TURBO shipping activated!"
-						message-below="⚡ Only [amount] until TURBO shipping!">
-						<progress-bar></progress-bar>
-						<p data-content-cart-progress-message>⚡ Only [amount] until TURBO shipping!</p>
-					</cart-progress-bar>
-				</div>
-			</section>
+      .btn-ghost {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.6rem 1.25rem;
+        font-family: var(--font-body);
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: var(--text-dim);
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 100px;
+        cursor: pointer;
+        transition: all 0.25s var(--ease-out);
+      }
 
-			<section class="demo-section">
-				<h2>Usage Examples</h2>
+      .btn-ghost:hover {
+        color: var(--text);
+        border-color: var(--border-accent);
+        background: rgba(255, 255, 255, 0.03);
+      }
 
-				<h3>Basic Setup</h3>
-				<pre class="code-block"><code>&lt;cart-progress-bar
-  threshold="75.00"
-  current="25.50"
-  money-format="${{amount}}"
-  message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-  message-below="Add [amount] more for FREE shipping!"&gt;
-  &lt;p data-content-cart-progress-message&gt;&lt;/p&gt;
-  &lt;progress-bar&gt;&lt;/progress-bar&gt;
-&lt;/cart-progress-bar&gt;</code></pre>
+      .btn-row {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
 
-				<h3>Currency Formatting</h3>
-				<pre class="code-block"><code>&lt;!-- US Dollars --&gt;
-&lt;cart-progress-bar money-format="${{amount}}" ...&gt;
+      /* ------------------------------------------------
+         Interactive controls
+      ------------------------------------------------ */
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+      }
 
-&lt;!-- Euros with comma separator --&gt;
-&lt;cart-progress-bar money-format="{{amount_with_comma_separator}} EUR" ...&gt;
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
 
-&lt;!-- No decimals --&gt;
-&lt;cart-progress-bar money-format="${{amount_no_decimals}}" ...&gt;
+      .control-group label {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 400;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
 
-&lt;!-- Shopify Liquid integration --&gt;
-&lt;cart-progress-bar money-format="{{ shop.money_format }}" ...&gt;</code></pre>
+      .control-group input[type='number'] {
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        padding: 0.55rem 0.75rem;
+        outline: none;
+        transition: border-color 0.2s;
+      }
 
-				<h3>JavaScript API</h3>
-				<pre
-					class="code-block"><code>const progressBar = document.querySelector('cart-progress-bar');
+      .control-group input[type='number']:focus {
+        border-color: var(--accent);
+      }
 
-// Set progress percentage directly
-progressBar.setPercent(67);
+      .control-group input[type='range'] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 6px;
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        outline: none;
+        cursor: pointer;
+      }
 
-// Update cart amount
-progressBar.setCurrentAmount(45.50);
+      .control-group input[type='range']::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--bg);
+        cursor: pointer;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      }
 
-// Change threshold
-progressBar.setThresholdAmount(100.00);
+      .control-group input[type='range']::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--bg);
+        cursor: pointer;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      }
 
-// Get current progress info
-const info = progressBar.getProgress();
-console.log(info.percent, info.isComplete, info.thresholdAmount);</code></pre>
+      #percentDisplay {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--accent);
+      }
 
-				<h3>Custom Styling</h3>
-				<pre class="code-block"><code>cart-progress-bar {
-  /* Core color customization */
-  --cart-progress-section-bg: #f8f9fa;
-  --cart-progress-section-color: #495057;
-  --cart-progress-bar-bg: #e9ecef;
-  --cart-progress-bar-fill-before: #28a745;
-  --cart-progress-bar-fill-after: #007bff;
-  
-  /* Structure (optional) */
-  --cart-progress-bar-height: 16px;
-  --cart-progress-bar-border-radius: 8px;
-}</code></pre>
-			</section>
+      /* ------------------------------------------------
+         Cart progress bar dark overrides
+      ------------------------------------------------ */
+      cart-progress-bar {
+        --cart-progress-section-color: var(--text);
+        --cart-progress-bar-bg: var(--surface-raised);
+        --cart-progress-bar-fill-before: var(--accent);
+        --cart-progress-bar-fill-after: var(--teal);
+        --cart-progress-bar-shadow: none;
+      }
 
-			<section class="demo-section">
-				<h2>Features</h2>
-				<div class="features-grid">
-					<div class="feature">
-						<h3>🎯 Smart Messaging</h3>
-						<p>
-							Template-based messages with [amount] placeholders. Supports Shopify money formats
-							and multi-currency conversion.
-						</p>
-					</div>
-					<div class="feature">
-						<h3>🎨 Highly Customizable</h3>
-						<p>
-							CSS custom properties for colors, sizing, fonts, and spacing. Easy theming support.
-						</p>
-					</div>
-					<div class="feature">
-						<h3>📱 Responsive</h3>
-						<p>Mobile-optimized with responsive breakpoints and touch-friendly interactions.</p>
-					</div>
-					<div class="feature">
-						<h3>⚡ Smooth Animations</h3>
-						<p>
-							Buttery smooth transitions with completion shine effects and progress level
-							indicators.
-						</p>
-					</div>
-					<div class="feature">
-						<h3>🔧 Easy Integration</h3>
-						<p>
-							Drop-in web component that works with any framework. Clean JavaScript API for dynamic
-							updates.
-						</p>
-					</div>
-				</div>
-			</section>
-		</div>
+      /* Theme: Minimal */
+      .theme-minimal {
+        --cart-progress-bar-height: 8px;
+        --cart-progress-bar-bg: var(--border);
+        --cart-progress-bar-fill-before: var(--teal);
+        --cart-progress-bar-fill-after: #3db8a4;
+        --cart-progress-section-color: var(--text-dim);
+      }
 
-		<script type="module" src="./cart-progress-bar.esm.js"></script>
-		<script>
-			// Demo functionality
-			document.addEventListener('DOMContentLoaded', function () {
-				const mainDemo = document.getElementById('mainDemo');
-				const cartAmountInput = document.getElementById('cartAmount');
-				const thresholdAmountInput = document.getElementById('thresholdAmount');
-				const percentInput = document.getElementById('percentInput');
-				const percentDisplay = document.getElementById('percentDisplay');
+      /* Theme: Bold */
+      .theme-bold {
+        --cart-progress-bar-height: 16px;
+        --cart-progress-bar-border-radius: 8px;
+        --cart-progress-bar-bg: var(--border);
+        --cart-progress-bar-fill-before: var(--coral);
+        --cart-progress-bar-fill-after: #d76b58;
+        --cart-progress-section-color: var(--text);
+      }
 
-				// Update main demo when inputs change
-				cartAmountInput.addEventListener('input', function () {
-					const amount = parseFloat(this.value) || 0;
-					mainDemo.setCurrentAmount(amount);
-					updatePercentSlider();
-				});
+      /* Theme: Neon */
+      .theme-neon {
+        --cart-progress-bar-height: 14px;
+        --cart-progress-bar-bg: #1a1a2e;
+        --cart-progress-bar-fill-before: #00d4ff;
+        --cart-progress-bar-fill-after: #00ff88;
+        --cart-progress-section-color: white;
+      }
 
-				thresholdAmountInput.addEventListener('input', function () {
-					const amount = parseFloat(this.value) || 0;
-					mainDemo.setThresholdAmount(amount);
-					updatePercentSlider();
-				});
+      .theme-neon-surface {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: rgba(255, 255, 255, 0.1);
+      }
 
-				percentInput.addEventListener('input', function () {
-					const percent = parseInt(this.value);
-					percentDisplay.textContent = percent + '%';
-					mainDemo.setPercent(percent);
-					updateAmountInputs();
-				});
+      .theme-neon-surface .demo-surface-label {
+        color: rgba(255, 255, 255, 0.5);
+      }
 
-				function updatePercentSlider() {
-					const progress = mainDemo.getProgress();
-					percentInput.value = Math.round(progress.percent);
-					percentDisplay.textContent = Math.round(progress.percent) + '%';
-				}
+      /* ------------------------------------------------
+         Feature grid
+      ------------------------------------------------ */
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
 
-				function updateAmountInputs() {
-					const progress = mainDemo.getProgress();
-					cartAmountInput.value = progress.currentAmount.toFixed(2);
-				}
+      .feature-card {
+        padding: 1.25rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        transition: border-color 0.3s;
+      }
 
-				// Global function for quick actions
-				window.setProgress = function (percent) {
-					percentInput.value = percent;
-					percentDisplay.textContent = percent + '%';
-					mainDemo.setPercent(percent);
-					updateAmountInputs();
-				};
+      .feature-card:hover {
+        border-color: var(--border-accent);
+      }
 
-				// Demonstrate API usage
-				console.log('Cart Progress Bar Demo loaded!');
-				console.log('Try the following in the console:');
-				console.log('mainDemo.setPercent(75)');
-				console.log('mainDemo.getProgress()');
-				console.log('mainDemo.setThresholdAmount(100)');
-				console.log('mainDemo.setMessages(null, "Only [amount] left to save!")');
+      .feature-card-title {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 400;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+      }
 
-				// Make mainDemo globally accessible for console testing
-				window.mainDemo = mainDemo;
-			});
-		</script>
-	</body>
+      .feature-card p {
+        font-size: 0.82rem;
+        color: var(--text-dim);
+        line-height: 1.6;
+      }
+
+      /* ------------------------------------------------
+         Footer
+      ------------------------------------------------ */
+      footer {
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--border);
+        animation: fadeUp 0.8s var(--ease-out) 0.5s backwards;
+      }
+
+      footer p {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--text-dim);
+        letter-spacing: 0.04em;
+      }
+
+      footer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        color: var(--text);
+      }
+
+      /* ------------------------------------------------
+         Animations
+      ------------------------------------------------ */
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ------------------------------------------------
+         Responsive
+      ------------------------------------------------ */
+      @media (max-width: 600px) {
+        .page {
+          padding: 1.5rem 1.25rem 4rem;
+        }
+
+        .hero {
+          padding: 2.5rem 1.25rem 1.5rem;
+        }
+
+        .install-banner {
+          flex-direction: column;
+          gap: 1rem;
+          text-align: center;
+          padding: 1rem;
+        }
+
+        .install-item {
+          flex-direction: column;
+          gap: 0.4rem;
+        }
+
+        .code-example pre {
+          padding: 1.25rem 1rem;
+          font-size: 0.75rem;
+        }
+
+        .example {
+          margin-bottom: 3.5rem;
+        }
+
+        .demo-surface {
+          padding: 1.25rem;
+        }
+
+        .controls {
+          grid-template-columns: 1fr;
+        }
+
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <a
+        class="hero-badge"
+        href="https://github.com/magic-spells/cart-progress-bar"
+        target="_blank"
+        rel="noopener"
+        >@magic-spells/cart-progress-bar</a
+      >
+      <h1>Cart Progress<br /><em>Bar</em></h1>
+      <p>
+        A drop-in web component that shows customers how close they are to free
+        shipping. Smart messaging, smooth animations, and Shopify-ready money
+        formatting &mdash; no dependencies.
+      </p>
+      <div class="hero-line"></div>
+    </header>
+
+    <div class="install-banner">
+      <div class="install-item">
+        <span class="install-label">Install</span>
+        <code class="install-value">npm i @magic-spells/cart-progress-bar</code>
+      </div>
+      <div class="install-item">
+        <span class="install-label">Size (gzip)</span>
+        <span class="install-size">~2.2 KB</span>
+      </div>
+    </div>
+
+    <div class="code-example">
+      <pre><span class="hl-tag">&lt;cart-progress-bar</span>
+  <span class="hl-attr">threshold</span>=<span class="hl-value">"75.00"</span>
+  <span class="hl-attr">current</span>=<span class="hl-value">"25.50"</span>
+  <span class="hl-attr">money-format</span>=<span class="hl-value">"$&#123;&#123;amount&#125;&#125;"</span>
+  <span class="hl-attr">message-below</span>=<span class="hl-value">"Add [amount] more for FREE shipping!"</span><span class="hl-tag">&gt;</span>
+  <span class="hl-tag">&lt;p</span> <span class="hl-attr">data-content-cart-progress-message</span><span class="hl-tag">&gt;&lt;/p&gt;</span>
+  <span class="hl-tag">&lt;progress-bar&gt;&lt;/progress-bar&gt;</span>
+<span class="hl-tag">&lt;/cart-progress-bar&gt;</span></pre>
+    </div>
+
+    <main class="page">
+      <!-- ======== Interactive Demo ======== -->
+      <section class="example">
+        <div class="example-label">Interactive Demo</div>
+        <h2>Try it live</h2>
+        <p>
+          Control the progress bar in real-time. Adjust the cart amount and
+          threshold to see messages and animations update instantly.
+        </p>
+
+        <div class="demo-surface">
+          <div class="demo-surface-label">Controls</div>
+          <div class="controls">
+            <div class="control-group">
+              <label for="cartAmount">Current Cart Amount ($)</label>
+              <input type="number" id="cartAmount" value="25.50" step="0.01" min="0" />
+            </div>
+            <div class="control-group">
+              <label for="thresholdAmount">Free Shipping Threshold ($)</label>
+              <input type="number" id="thresholdAmount" value="75.00" step="0.01" min="0" />
+            </div>
+            <div class="control-group">
+              <label for="percentInput">Set Progress Percent</label>
+              <input type="range" id="percentInput" min="0" max="100" value="34" />
+              <span id="percentDisplay">34%</span>
+            </div>
+            <div class="control-group">
+              <label>Quick Actions</label>
+              <div class="btn-row">
+                <button class="btn-ghost" onclick="setProgress(0)">0%</button>
+                <button class="btn-ghost" onclick="setProgress(50)">50%</button>
+                <button class="btn" onclick="setProgress(100)">Complete</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-surface-label">Result</div>
+          <cart-progress-bar
+            id="mainDemo"
+            threshold="75.00"
+            current="25.50"
+            money-format="${{amount}}"
+            message-above="&#127881; Congratulations! You've qualified for FREE shipping!"
+            message-below="Add [amount] more to get FREE shipping! &#128666;"
+          >
+            <p data-content-cart-progress-message>Add [amount] more to get FREE shipping! &#128666;</p>
+            <progress-bar></progress-bar>
+          </cart-progress-bar>
+        </div>
+      </section>
+
+      <!-- ======== Theme Demos ======== -->
+      <section class="example">
+        <div class="example-label">Themes</div>
+        <h2>Different Themes</h2>
+        <p>
+          CSS custom properties make it easy to create any visual style. Here
+          are three approaches.
+        </p>
+
+        <div class="demo-surface" style="margin-bottom: 1.5rem">
+          <div class="demo-surface-label">Minimal</div>
+          <cart-progress-bar
+            class="theme-minimal"
+            threshold="50.00"
+            current="32.50"
+            money-format="${{amount}}"
+            message-below="[amount] away from free delivery"
+          >
+            <p data-content-cart-progress-message>[amount] away from free delivery</p>
+            <progress-bar></progress-bar>
+          </cart-progress-bar>
+        </div>
+
+        <div class="demo-surface" style="margin-bottom: 1.5rem">
+          <div class="demo-surface-label">Bold</div>
+          <cart-progress-bar
+            class="theme-bold"
+            threshold="100.00"
+            current="78.90"
+            money-format="${{amount}}"
+            message-above="&#127881; FREE shipping unlocked!"
+            message-below="&#127919; [amount] more for FREE shipping!"
+          >
+            <p data-content-cart-progress-message>&#127919; [amount] more for FREE shipping!</p>
+            <progress-bar></progress-bar>
+          </cart-progress-bar>
+        </div>
+
+        <div class="demo-surface theme-neon-surface">
+          <div class="demo-surface-label">Neon</div>
+          <cart-progress-bar
+            class="theme-neon"
+            threshold="150.00"
+            current="120.00"
+            money-format="${{amount}}"
+            message-above="&#9889; TURBO shipping activated!"
+            message-below="&#9889; Only [amount] until TURBO shipping!"
+          >
+            <progress-bar></progress-bar>
+            <p data-content-cart-progress-message>&#9889; Only [amount] until TURBO shipping!</p>
+          </cart-progress-bar>
+        </div>
+      </section>
+
+      <!-- ======== Usage Examples ======== -->
+      <section class="example">
+        <div class="example-label">Usage</div>
+        <h2>Getting Started</h2>
+        <p>
+          Simple HTML setup with full customization through attributes and
+          JavaScript.
+        </p>
+
+        <h3>Basic Setup</h3>
+        <div class="code-block"><code><span class="hl-tag">&lt;cart-progress-bar</span>
+  <span class="hl-attr">threshold</span>=<span class="hl-value">"75.00"</span>
+  <span class="hl-attr">current</span>=<span class="hl-value">"25.50"</span>
+  <span class="hl-attr">money-format</span>=<span class="hl-value">"$&#123;&#123;amount&#125;&#125;"</span>
+  <span class="hl-attr">message-above</span>=<span class="hl-value">"Congratulations! FREE shipping!"</span>
+  <span class="hl-attr">message-below</span>=<span class="hl-value">"Add [amount] more for FREE shipping!"</span><span class="hl-tag">&gt;</span>
+  <span class="hl-tag">&lt;p</span> <span class="hl-attr">data-content-cart-progress-message</span><span class="hl-tag">&gt;&lt;/p&gt;</span>
+  <span class="hl-tag">&lt;progress-bar&gt;&lt;/progress-bar&gt;</span>
+<span class="hl-tag">&lt;/cart-progress-bar&gt;</span></code></div>
+
+        <h3>Currency Formatting</h3>
+        <div class="code-block"><code><span class="hl-comment">&lt;!-- US Dollars --&gt;</span>
+<span class="hl-tag">&lt;cart-progress-bar</span> <span class="hl-attr">money-format</span>=<span class="hl-value">"$&#123;&#123;amount&#125;&#125;"</span> <span class="hl-tag">...&gt;</span>
+
+<span class="hl-comment">&lt;!-- Euros with comma separator --&gt;</span>
+<span class="hl-tag">&lt;cart-progress-bar</span> <span class="hl-attr">money-format</span>=<span class="hl-value">"&#123;&#123;amount_with_comma_separator&#125;&#125; EUR"</span> <span class="hl-tag">...&gt;</span>
+
+<span class="hl-comment">&lt;!-- No decimals --&gt;</span>
+<span class="hl-tag">&lt;cart-progress-bar</span> <span class="hl-attr">money-format</span>=<span class="hl-value">"$&#123;&#123;amount_no_decimals&#125;&#125;"</span> <span class="hl-tag">...&gt;</span>
+
+<span class="hl-comment">&lt;!-- Shopify Liquid integration --&gt;</span>
+<span class="hl-tag">&lt;cart-progress-bar</span> <span class="hl-attr">money-format</span>=<span class="hl-value">"&#123;&#123; shop.money_format &#125;&#125;"</span> <span class="hl-tag">...&gt;</span></code></div>
+
+        <h3>JavaScript API</h3>
+        <div class="code-block"><code><span class="hl-kw">const</span> progressBar = document.<span class="hl-fn">querySelector</span>(<span class="hl-str">'cart-progress-bar'</span>);
+
+<span class="hl-comment">// Set progress percentage directly</span>
+progressBar.<span class="hl-fn">setPercent</span>(<span class="hl-num">67</span>);
+
+<span class="hl-comment">// Update cart amount</span>
+progressBar.<span class="hl-fn">setCurrentAmount</span>(<span class="hl-num">45.50</span>);
+
+<span class="hl-comment">// Change threshold</span>
+progressBar.<span class="hl-fn">setThresholdAmount</span>(<span class="hl-num">100.00</span>);
+
+<span class="hl-comment">// Get current progress info</span>
+<span class="hl-kw">const</span> info = progressBar.<span class="hl-fn">getProgress</span>();
+console.<span class="hl-fn">log</span>(info.percent, info.isComplete, info.thresholdAmount);</code></div>
+
+        <h3>Custom Styling</h3>
+        <div class="code-block"><code><span class="hl-selector">cart-progress-bar</span> {
+  <span class="hl-comment">/* Core color customization */</span>
+  <span class="hl-prop">--cart-progress-section-bg</span>: <span class="hl-value">#f8f9fa</span>;
+  <span class="hl-prop">--cart-progress-section-color</span>: <span class="hl-value">#495057</span>;
+  <span class="hl-prop">--cart-progress-bar-bg</span>: <span class="hl-value">#e9ecef</span>;
+  <span class="hl-prop">--cart-progress-bar-fill-before</span>: <span class="hl-value">#28a745</span>;
+  <span class="hl-prop">--cart-progress-bar-fill-after</span>: <span class="hl-value">#007bff</span>;
+
+  <span class="hl-comment">/* Structure (optional) */</span>
+  <span class="hl-prop">--cart-progress-bar-height</span>: <span class="hl-value">16px</span>;
+  <span class="hl-prop">--cart-progress-bar-border-radius</span>: <span class="hl-value">8px</span>;
+}</code></div>
+      </section>
+
+      <!-- ======== Features ======== -->
+      <section class="example">
+        <div class="example-label">Features</div>
+        <h2>What you get</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-card-title">Smart Messaging</div>
+            <p>
+              Template-based messages with [amount] placeholders. Supports
+              Shopify money formats and multi-currency.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-card-title">Customizable</div>
+            <p>
+              CSS custom properties for colors, sizing, fonts, and spacing. Easy
+              theming support.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-card-title">Responsive</div>
+            <p>
+              Mobile-optimized with responsive breakpoints and touch-friendly
+              interactions.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-card-title">Smooth Animations</div>
+            <p>
+              Buttery smooth transitions with completion shine effects and
+              progress level indicators.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-card-title">Easy Integration</div>
+            <p>
+              Drop-in web component that works with any framework. Clean
+              JavaScript API for dynamic updates.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <p>
+          <a
+            href="https://github.com/magic-spells/cart-progress-bar"
+            target="_blank"
+            rel="noopener"
+            >GitHub</a
+          >
+          &nbsp;&middot;&nbsp;
+          <a
+            href="https://www.npmjs.com/package/@magic-spells/cart-progress-bar"
+            target="_blank"
+            rel="noopener"
+            >npm</a
+          >
+          &nbsp;&middot;&nbsp; MIT License
+        </p>
+      </footer>
+    </main>
+
+    <script type="module" src="./cart-progress-bar.esm.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var mainDemo = document.getElementById('mainDemo');
+        var cartAmountInput = document.getElementById('cartAmount');
+        var thresholdAmountInput = document.getElementById('thresholdAmount');
+        var percentInput = document.getElementById('percentInput');
+        var percentDisplay = document.getElementById('percentDisplay');
+
+        cartAmountInput.addEventListener('input', function () {
+          var amount = parseFloat(this.value) || 0;
+          mainDemo.setCurrentAmount(amount);
+          updatePercentSlider();
+        });
+
+        thresholdAmountInput.addEventListener('input', function () {
+          var amount = parseFloat(this.value) || 0;
+          mainDemo.setThresholdAmount(amount);
+          updatePercentSlider();
+        });
+
+        percentInput.addEventListener('input', function () {
+          var percent = parseInt(this.value);
+          percentDisplay.textContent = percent + '%';
+          mainDemo.setPercent(percent);
+          updateAmountInputs();
+        });
+
+        function updatePercentSlider() {
+          var progress = mainDemo.getProgress();
+          percentInput.value = Math.round(progress.percent);
+          percentDisplay.textContent = Math.round(progress.percent) + '%';
+        }
+
+        function updateAmountInputs() {
+          var progress = mainDemo.getProgress();
+          cartAmountInput.value = progress.currentAmount.toFixed(2);
+        }
+
+        window.setProgress = function (percent) {
+          percentInput.value = percent;
+          percentDisplay.textContent = percent + '%';
+          mainDemo.setPercent(percent);
+          updateAmountInputs();
+        };
+
+        window.mainDemo = mainDemo;
+
+        // Click-to-copy for install command
+        document.addEventListener('click', function (e) {
+          var el = e.target.closest('.install-value');
+          if (!el) return;
+          navigator.clipboard.writeText(el.textContent).then(function () {
+            var original = el.textContent;
+            el.textContent = 'copied!';
+            setTimeout(function () {
+              el.textContent = original;
+            }, 1200);
+          });
+        });
+      });
+    </script>
+  </body>
 </html>
