@@ -1,6 +1,35 @@
 import './cart-panel.css';
 import EventEmitter from '@magic-spells/event-emitter';
-import { CartItem, CartItemContent, CartItemProcessing } from './cart-item.js';
+
+// =============================================================================
+// Cart Item Resolution
+//
+// cart-panel does not bundle cart-item. The <cart-item> element is resolved
+// from the custom element registry at render time, so consumers opt in with
+// `import '@magic-spells/cart-panel/cart-item'` or register their own element.
+// =============================================================================
+
+let hasWarnedAboutMissingCartItem = false;
+
+/**
+ * Resolve the registered <cart-item> constructor, warning once if it is missing
+ * @returns {Function|null} Registered cart-item constructor, or null
+ */
+function resolveCartItemElement() {
+	const CartItemElement = customElements.get('cart-item');
+	if (CartItemElement) return CartItemElement;
+
+	if (!hasWarnedAboutMissingCartItem) {
+		hasWarnedAboutMissingCartItem = true;
+		console.warn(
+			'cart-panel: no <cart-item> element is registered, so cart items cannot be rendered. ' +
+				"Add `import '@magic-spells/cart-panel/cart-item';` to opt in, " +
+				"or register your own element with customElements.define('cart-item', ...)."
+		);
+	}
+
+	return null;
+}
 
 // =============================================================================
 // CartPanel Component
@@ -78,7 +107,9 @@ class CartPanel extends HTMLElement {
 			_.refreshCart(cartObj);
 			_.#emit('cart-panel:show', { triggerElement: triggerEl });
 		} else {
-			console.warn('cart-panel: No dialog-panel ancestor found. Cart panel is visible but not in a modal.');
+			console.warn(
+				'cart-panel: No dialog-panel ancestor found. Cart panel is visible but not in a modal.'
+			);
 		}
 	}
 
@@ -174,19 +205,25 @@ class CartPanel extends HTMLElement {
 
 	/**
 	 * Set the template function for cart items
+	 * Delegates to the registered <cart-item> element class
 	 * @param {string} templateName - Name of the template
 	 * @param {Function} templateFn - Function that takes (itemData, cartData) and returns HTML string
 	 */
 	setCartItemTemplate(templateName, templateFn) {
-		CartItem.setTemplate(templateName, templateFn);
+		const CartItemElement = resolveCartItemElement();
+		if (typeof CartItemElement?.setTemplate !== 'function') return;
+		CartItemElement.setTemplate(templateName, templateFn);
 	}
 
 	/**
 	 * Set the processing template function for cart items
+	 * Delegates to the registered <cart-item> element class
 	 * @param {Function} templateFn - Function that returns HTML string for processing state
 	 */
 	setCartItemProcessingTemplate(templateFn) {
-		CartItem.setProcessingTemplate(templateFn);
+		const CartItemElement = resolveCartItemElement();
+		if (typeof CartItemElement?.setProcessingTemplate !== 'function') return;
+		CartItemElement.setProcessingTemplate(templateFn);
 	}
 
 	// =========================================================================
@@ -381,13 +418,17 @@ class CartPanel extends HTMLElement {
 
 		if (!itemsContainer || !cartData || !cartData.items) return;
 
+		// Bail out if no cart-item element is registered - warns once
+		const CartItemElement = resolveCartItemElement();
+		if (!CartItemElement) return;
+
 		const visibleItems = _.#getVisibleCartItems(cartData);
 
 		// Initial render - load all items without animation
 		if (_.#isInitialRender) {
 			itemsContainer.innerHTML = '';
 			visibleItems.forEach((itemData) => {
-				itemsContainer.appendChild(new CartItem(itemData, cartData));
+				itemsContainer.appendChild(new CartItemElement(itemData, cartData));
 			});
 			_.#isInitialRender = false;
 			return;
@@ -411,7 +452,7 @@ class CartPanel extends HTMLElement {
 		const itemsToAdd = visibleItems.filter(
 			(itemData) => !currentKeys.has(itemData.key || itemData.id)
 		);
-		_.#addItemsToDOM(itemsContainer, itemsToAdd, newKeys, cartData);
+		_.#addItemsToDOM({ itemsContainer, itemsToAdd, newKeys, cartData, CartItemElement });
 	}
 
 	/**
@@ -444,12 +485,18 @@ class CartPanel extends HTMLElement {
 
 	/**
 	 * Add new items to DOM with animation delay
+	 * @param {Object} options
+	 * @param {HTMLElement} options.itemsContainer - Container holding the cart-item elements
+	 * @param {Array} options.itemsToAdd - Item data objects that are not yet in the DOM
+	 * @param {Array} options.newKeys - Ordered cart keys for the full visible item list
+	 * @param {Object} options.cartData - Full Shopify cart object
+	 * @param {Function} options.CartItemElement - Registered cart-item constructor
 	 * @private
 	 */
-	#addItemsToDOM(itemsContainer, itemsToAdd, newKeys, cartData) {
+	#addItemsToDOM({ itemsContainer, itemsToAdd, newKeys, cartData, CartItemElement }) {
 		setTimeout(() => {
 			itemsToAdd.forEach((itemData) => {
-				const cartItem = CartItem.createAnimated(itemData, cartData);
+				const cartItem = CartItemElement.createAnimated(itemData, cartData);
 				const targetIndex = newKeys.indexOf(itemData.key || itemData.id);
 
 				if (targetIndex === 0) {
@@ -501,8 +548,13 @@ class CartPanel extends HTMLElement {
 		const visibleItems = this.#getVisibleCartItems(cartData);
 		const calculated_count = visibleItems.reduce((total, item) => total + item.quantity, 0);
 
-		const pricedItems = cartData.items.filter((item) => !item.properties?._ignore_price_in_subtotal);
-		const calculated_subtotal = pricedItems.reduce((total, item) => total + (item.line_price || 0), 0);
+		const pricedItems = cartData.items.filter(
+			(item) => !item.properties?._ignore_price_in_subtotal
+		);
+		const calculated_subtotal = pricedItems.reduce(
+			(total, item) => total + (item.line_price || 0),
+			0
+		);
 
 		return { ...cartData, calculated_count, calculated_subtotal };
 	}
@@ -516,5 +568,5 @@ if (!customElements.get('cart-panel')) {
 	customElements.define('cart-panel', CartPanel);
 }
 
-export { CartPanel, CartItem, CartItemContent, CartItemProcessing };
+export { CartPanel };
 export default CartPanel;

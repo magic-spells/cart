@@ -1,7 +1,7 @@
 {
 	"name": "@magic-spells/cart-panel",
-	"version": "1.0.1",
-	"description": "Shopping cart panel web component for Shopify. Manages cart data and AJAX, delegates modal behavior to dialog-panel.",
+	"version": "2.0.0",
+	"description": "Shopping cart panel web component for Shopify. Manages cart data and AJAX, delegates modal behavior to dialog-panel. Ships an opt-in cart-item component on a separate subpath export.",
 	"author": "Cory Schulz",
 	"license": "MIT",
 	"type": "module",
@@ -15,7 +15,13 @@
 			"require": "./dist/cart-panel.cjs.js",
 			"default": "./dist/cart-panel.esm.js"
 		},
-		"./css": "./dist/cart-panel.css"
+		"./css": "./dist/cart-panel.css",
+		"./cart-item": {
+			"import": "./dist/cart-item.esm.js",
+			"require": "./dist/cart-item.cjs.js",
+			"default": "./dist/cart-item.esm.js"
+		},
+		"./cart-item/css": "./dist/cart-item.css"
 	},
 	"sideEffects": true,
 	"repository": {
@@ -28,6 +34,7 @@
 	},
 	"keywords": [
 		"cart-panel",
+		"cart-item",
 		"web-components",
 		"e-commerce",
 		"shopping-cart",
