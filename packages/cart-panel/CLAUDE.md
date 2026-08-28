@@ -39,7 +39,9 @@ The panel never imports the item. Keep it that way: `src/cart-panel.js` must hav
 
 4. **Event-driven items**: CartItem emits `cart-item:remove` and `cart-item:quantity-change` events that bubble up to CartPanel.
 
-5. **Opt-in cart-item**: CartPanel resolves the item constructor with `customElements.get('cart-item')` at render time. If nothing is registered it warns once (module-scoped flag in `src/cart-panel.js`), skips item rendering, and leaves count/subtotal/state rendering intact. `setCartItemTemplate()` / `setCartItemProcessingTemplate()` delegate to the same lookup.
+5. **Opt-in cart-item**: CartPanel resolves the item constructor with `customElements.get('cart-item')` at render time. If nothing is registered it warns once on the render path (module-scoped flag in `src/cart-panel.js`), skips item rendering, and leaves count/subtotal/state rendering intact. It then waits on `customElements.whenDefined('cart-item')` and re-renders once the element shows up (guarded on the panel still being connected, having cart data, and not having rendered items already).
+
+6. **Order-independent templates**: `setCartItemTemplate()` / `setCartItemProcessingTemplate()` buffer their calls in a module-scoped queue when `<cart-item>` is not registered yet, then replay them on `whenDefined`. The buffered templates are always flushed before the late-registration re-render. The render-path warn-once flag is separate from the template path so a setter call can never swallow the render warning. A registered element that lacks the static method warns once per method name.
 
 ### Usage Structure
 
@@ -127,12 +129,15 @@ CartItem listens for both `quantity-input:change` and `quantity-modifier:change`
 Rollup builds the same four formats for each entry point via `buildsFor()` in `rollup.config.mjs`:
 - **ESM**: `dist/cart-panel.esm.js` / `dist/cart-item.esm.js`
 - **CommonJS**: `dist/cart-panel.cjs.js` / `dist/cart-item.cjs.js`
-- **UMD**: `dist/cart-panel.js` + `.min.js` (global `CartPanel`) / `dist/cart-item.js` + `.min.js` (global `CartItem`)
+- **UMD**: `dist/cart-panel.js` + `.min.js` (global `CartPanel`) / `dist/cart-item.js` + `.min.js`
+  (global `MagicSpellsCartItem` - namespaced so the UMD exports object does not clobber the
+  `window.CartItem` class global that `src/cart-item.js` sets for Shopify themes)
 - **CSS**: `dist/cart-panel.css` and `dist/cart-item.css`, extracted separately from
   `src/cart-panel.css` and `src/cart-item.css`
 
-`@magic-spells/event-emitter` stays external in ESM/CJS and is bundled into UMD. The watch-mode
-dev build copies both ESM bundles and both stylesheets into `demo/`.
+`@magic-spells/event-emitter` stays external in ESM/CJS and is bundled into UMD. Watch mode adds one
+dev config per entry point, each copying its own ESM bundle, sourcemap, and stylesheet into `demo/`,
+so edits to either source tree refresh the demo.
 
 ### Line Item Properties
 

@@ -99,18 +99,28 @@
   // `import '@magic-spells/cart-panel/cart-item'` or register their own element.
   // =============================================================================
 
-  let hasWarnedAboutMissingCartItem = false;
+  const CART_ITEM_TAG = 'cart-item';
+
+  // Warn-once flag for the render path only - never consumed by the template setters
+  let hasWarnedAboutMissingCartItemOnRender = false;
+
+  // Static template methods already reported as missing on a replacement element
+  const warnedMissingTemplateMethods = new Set();
+
+  // Template calls made before <cart-item> was registered, replayed on definition
+  const pendingCartItemTemplateCalls = [];
+  let isPendingTemplateFlushScheduled = false;
 
   /**
-   * Resolve the registered <cart-item> constructor, warning once if it is missing
+   * Resolve the registered <cart-item> constructor for rendering, warning once if it is missing
    * @returns {Function|null} Registered cart-item constructor, or null
    */
   function resolveCartItemElement() {
-  	const CartItemElement = customElements.get('cart-item');
+  	const CartItemElement = customElements.get(CART_ITEM_TAG);
   	if (CartItemElement) return CartItemElement;
 
-  	if (!hasWarnedAboutMissingCartItem) {
-  		hasWarnedAboutMissingCartItem = true;
+  	if (!hasWarnedAboutMissingCartItemOnRender) {
+  		hasWarnedAboutMissingCartItemOnRender = true;
   		console.warn(
   			'cart-panel: no <cart-item> element is registered, so cart items cannot be rendered. ' +
   				"Add `import '@magic-spells/cart-panel/cart-item';` to opt in, " +
@@ -119,6 +129,66 @@
   	}
 
   	return null;
+  }
+
+  /**
+   * Invoke a static template method on the registered cart-item class
+   * @param {Function} CartItemElement - Registered cart-item constructor
+   * @param {string} methodName - Static method name to call
+   * @param {Array} args - Arguments forwarded to the method
+   */
+  function invokeCartItemTemplateMethod(CartItemElement, methodName, args) {
+  	if (typeof CartItemElement[methodName] !== 'function') {
+  		if (!warnedMissingTemplateMethods.has(methodName)) {
+  			warnedMissingTemplateMethods.add(methodName);
+  			console.warn(
+  				`cart-panel: the registered <cart-item> element has no static ${methodName}() method, ` +
+  					'so the template was ignored. Replacement elements must implement ' +
+  					'static setTemplate(name, fn), static setProcessingTemplate(fn), and ' +
+  					'static createAnimated(itemData, cartData).'
+  			);
+  		}
+  		return;
+  	}
+
+  	CartItemElement[methodName](...args);
+  }
+
+  /**
+   * Replay template calls that were buffered before <cart-item> was registered
+   */
+  function flushPendingCartItemTemplates() {
+  	if (pendingCartItemTemplateCalls.length === 0) return;
+
+  	const CartItemElement = customElements.get(CART_ITEM_TAG);
+  	if (!CartItemElement) return;
+
+  	const bufferedCalls = pendingCartItemTemplateCalls.splice(0);
+  	bufferedCalls.forEach(({ methodName, args }) => {
+  		invokeCartItemTemplateMethod(CartItemElement, methodName, args);
+  	});
+  }
+
+  /**
+   * Call a static template method on <cart-item>, buffering it until the element
+   * is registered so templates can be set before the item component is imported
+   * @param {string} methodName - Static method name to call
+   * @param {Array} args - Arguments forwarded to the method
+   */
+  function callCartItemTemplateMethod(methodName, args) {
+  	const CartItemElement = customElements.get(CART_ITEM_TAG);
+
+  	if (CartItemElement) {
+  		invokeCartItemTemplateMethod(CartItemElement, methodName, args);
+  		return;
+  	}
+
+  	pendingCartItemTemplateCalls.push({ methodName, args });
+
+  	if (!isPendingTemplateFlushScheduled) {
+  		isPendingTemplateFlushScheduled = true;
+  		customElements.whenDefined(CART_ITEM_TAG).then(flushPendingCartItemTemplates);
+  	}
   }
 
   // =============================================================================
@@ -134,6 +204,8 @@
   	#currentCart = null;
   	#eventEmitter;
   	#isInitialRender = true;
+  	#hasRenderedCartItems = false;
+  	#isAwaitingCartItemDefinition = false;
 
   	constructor() {
   		super();
@@ -295,25 +367,23 @@
 
   	/**
   	 * Set the template function for cart items
-  	 * Delegates to the registered <cart-item> element class
+  	 * Delegates to the registered <cart-item> element class, buffering the call
+  	 * until the element is registered if it is not defined yet
   	 * @param {string} templateName - Name of the template
   	 * @param {Function} templateFn - Function that takes (itemData, cartData) and returns HTML string
   	 */
   	setCartItemTemplate(templateName, templateFn) {
-  		const CartItemElement = resolveCartItemElement();
-  		if (typeof CartItemElement?.setTemplate !== 'function') return;
-  		CartItemElement.setTemplate(templateName, templateFn);
+  		callCartItemTemplateMethod('setTemplate', [templateName, templateFn]);
   	}
 
   	/**
   	 * Set the processing template function for cart items
-  	 * Delegates to the registered <cart-item> element class
+  	 * Delegates to the registered <cart-item> element class, buffering the call
+  	 * until the element is registered if it is not defined yet
   	 * @param {Function} templateFn - Function that returns HTML string for processing state
   	 */
   	setCartItemProcessingTemplate(templateFn) {
-  		const CartItemElement = resolveCartItemElement();
-  		if (typeof CartItemElement?.setProcessingTemplate !== 'function') return;
-  		CartItemElement.setProcessingTemplate(templateFn);
+  		callCartItemTemplateMethod('setProcessingTemplate', [templateFn]);
   	}
 
   	// =========================================================================
@@ -508,10 +578,15 @@
 
   		if (!itemsContainer || !cartData || !cartData.items) return;
 
-  		// Bail out if no cart-item element is registered - warns once
+  		// Bail out if no cart-item element is registered - warns once, then waits
+  		// for a late registration so the panel can catch up on its own
   		const CartItemElement = resolveCartItemElement();
-  		if (!CartItemElement) return;
+  		if (!CartItemElement) {
+  			_.#watchForCartItemDefinition();
+  			return;
+  		}
 
+  		_.#hasRenderedCartItems = true;
   		const visibleItems = _.#getVisibleCartItems(cartData);
 
   		// Initial render - load all items without animation
@@ -543,6 +618,30 @@
   			(itemData) => !currentKeys.has(itemData.key || itemData.id)
   		);
   		_.#addItemsToDOM({ itemsContainer, itemsToAdd, newKeys, cartData, CartItemElement });
+  	}
+
+  	/**
+  	 * Wait for a late <cart-item> registration and render the current cart once
+  	 * it arrives, so import order does not require a manual refresh
+  	 * @private
+  	 */
+  	#watchForCartItemDefinition() {
+  		const _ = this;
+  		if (_.#isAwaitingCartItemDefinition) return;
+  		_.#isAwaitingCartItemDefinition = true;
+
+  		customElements.whenDefined(CART_ITEM_TAG).then(() => {
+  			_.#isAwaitingCartItemDefinition = false;
+
+  			// apply buffered templates before rendering so items are not blank
+  			flushPendingCartItemTemplates();
+
+  			// skip if a render already succeeded, the panel left the DOM,
+  			// or there is no cart data to render yet
+  			if (_.#hasRenderedCartItems || !_.isConnected || !_.#currentCart) return;
+
+  			_.#renderCartItems(_.#currentCart);
+  		});
   	}
 
   	/**

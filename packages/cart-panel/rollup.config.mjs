@@ -90,10 +90,27 @@ const buildsFor = ({ fileName, globalName }) => [
 	},
 ];
 
+/**
+ * Copy an entry point's demo assets into demo/ after each rebuild
+ * @param {string} fileName - Base file name of the entry point
+ * @returns {Object} Rollup copy plugin instance
+ */
+const demoCopyPlugin = (fileName) =>
+	copy({
+		targets: [
+			{ src: `dist/${fileName}.esm.js`, dest: 'demo' },
+			{ src: `dist/${fileName}.esm.js.map`, dest: 'demo' },
+			{ src: `dist/${fileName}.css`, dest: 'demo' },
+		],
+		hook: 'writeBundle',
+	});
+
 export default [
 	...buildsFor({ fileName: name, globalName: 'CartPanel' }),
-	...buildsFor({ fileName: itemName, globalName: 'CartItem' }),
-	// Development build
+	// cart-item sets window.CartItem to the class itself, so the UMD wrapper uses a
+	// namespaced global to avoid overwriting it with the exports object
+	...buildsFor({ fileName: itemName, globalName: 'MagicSpellsCartItem' }),
+	// Development builds - one per entry point so each watches its own source graph
 	...(dev
 		? [
 				{
@@ -111,18 +128,17 @@ export default [
 							open: true,
 							port: 3004,
 						}),
-						copy({
-							targets: [
-								{ src: `dist/${name}.esm.js`, dest: 'demo' },
-								{ src: `dist/${name}.esm.js.map`, dest: 'demo' },
-								{ src: `dist/${name}.css`, dest: 'demo' },
-								{ src: `dist/${itemName}.esm.js`, dest: 'demo' },
-								{ src: `dist/${itemName}.esm.js.map`, dest: 'demo' },
-								{ src: `dist/${itemName}.css`, dest: 'demo' },
-							],
-							hook: 'writeBundle',
-						}),
+						demoCopyPlugin(name),
 					],
+				},
+				{
+					input: `src/${itemName}.js`,
+					output: {
+						file: `dist/${itemName}.esm.js`,
+						format: 'es',
+						sourcemap: true,
+					},
+					plugins: [resolve(), cssPlugin(itemName), demoCopyPlugin(itemName)],
 				},
 			]
 		: []),

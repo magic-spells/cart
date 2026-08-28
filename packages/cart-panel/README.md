@@ -43,14 +43,20 @@ Or include directly in your HTML:
 <link rel="stylesheet" href="https://unpkg.com/@magic-spells/cart-panel/dist/cart-item.css" />
 ```
 
+The script builds register their elements on load. They also expose globals: `window.CartPanel` and
+`window.MagicSpellsCartItem` hold each build's exports, and `window.CartItem` is the `CartItem`
+class itself for Shopify themes that reference it directly.
+
 ### Entry Points
 
 | Import path                             | Registers                                                  | Contents                 |
 | --------------------------------------- | ---------------------------------------------------------- | ------------------------ |
 | `@magic-spells/cart-panel`              | `<cart-panel>`                                             | `CartPanel`              |
 | `@magic-spells/cart-panel/css`          | -                                                          | `cart-panel` styles      |
+| `@magic-spells/cart-panel/css/min`      | -                                                          | `cart-panel` styles (minified) |
 | `@magic-spells/cart-panel/cart-item`    | `<cart-item>`, `<cart-item-content>`, `<cart-item-processing>` | `CartItem`, `CartItemContent`, `CartItemProcessing` |
 | `@magic-spells/cart-panel/cart-item/css` | -                                                          | cart item styles         |
+| `@magic-spells/cart-panel/cart-item/css/min` | -                                                      | cart item styles (minified) |
 
 ### Opt-in cart items
 
@@ -60,18 +66,30 @@ with `customElements.get('cart-item')`:
 - **Registered** - the panel renders, updates, and animates items as usual.
 - **Not registered** - the panel logs a single warning, skips item rendering, and everything
   else (cart count, subtotal, `has-items`/`empty` state, events) keeps working.
-  `setCartItemTemplate()` and `setCartItemProcessingTemplate()` become no-ops with the same warning.
+
+Import order does not matter. `setCartItemTemplate()` and `setCartItemProcessingTemplate()` buffer
+their templates when `<cart-item>` is not registered yet and apply them as soon as it is, and the
+panel watches for a late registration with `customElements.whenDefined('cart-item')` so it renders
+the cart it already has without waiting for another `refreshCart()`.
 
 That means you can drop in your own item element instead of the built-in one:
 
 ```javascript
 import '@magic-spells/cart-panel';
 
-// your element must implement the CartItem API the panel calls:
-// static setTemplate / setProcessingTemplate / createAnimated,
-// and instance setData / setState / destroyYourself
 customElements.define('cart-item', MyCartItem);
 ```
+
+A replacement element has to satisfy the contract the panel calls into:
+
+- **Constructor** - `new El(itemData, cartData)`, since the panel constructs items directly.
+- **`key` attribute** - the element must set `key` to `item.key || item.id`. The panel diffs the
+  rendered items by that attribute, so an element that never sets it is destroyed and recreated on
+  every refresh.
+- **Static methods** - `setTemplate(name, fn)`, `setProcessingTemplate(fn)`,
+  `createAnimated(itemData, cartData)`. A missing static template method logs a warning and the
+  template is ignored.
+- **Instance methods** - `setData(itemData, cartData)`, `setState(state)`, `destroyYourself()`.
 
 ## Usage
 
@@ -474,7 +492,13 @@ subpath export. `@magic-spells/cart-item` is no longer published separately.
 - import '@magic-spells/cart-item/css';
 + import '@magic-spells/cart-panel/cart-item';
 + import '@magic-spells/cart-panel/cart-item/css';
++ import '@magic-spells/quantity-modifier';
 ```
+
+The standalone package side-effect-imported `@magic-spells/quantity-modifier`, which registered
+`<quantity-modifier>` for you. This one does not, so import it yourself if your templates use it.
+Its named `QuantityModifier` re-export is gone too - import it from `@magic-spells/quantity-modifier`
+directly.
 
 Then drop `@magic-spells/cart-item` from your `package.json`.
 
