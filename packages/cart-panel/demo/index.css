@@ -219,3 +219,19 @@ cart-item-processing .cart-item-loader {
 			100% 100%;
 	}
 }
+
+/* =============================================================================
+   Cart Panel Component
+
+   The panel's own styles, nothing else. Cart item styles live in cart-item.css.
+   @magic-spells/cart-panel/css ships both concatenated (it pairs with the root
+   import, which registers both elements); @magic-spells/cart-panel/panel/css
+   ships this file alone.
+   ============================================================================= */
+
+cart-panel {
+	display: block;
+	height: 100%;
+	overflow-y: auto;
+	overflow-x: hidden;
+}

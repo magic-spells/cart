@@ -1,8 +1,10 @@
 /* =============================================================================
    Cart Panel Component
 
-   Cart item styles ship separately with the opt-in cart-item entry point:
-   @magic-spells/cart-panel/cart-item and @magic-spells/cart-panel/cart-item/css
+   The panel's own styles, nothing else. Cart item styles live in cart-item.css.
+   @magic-spells/cart-panel/css ships both concatenated (it pairs with the root
+   import, which registers both elements); @magic-spells/cart-panel/panel/css
+   ships this file alone.
    ============================================================================= */
 
 cart-panel {

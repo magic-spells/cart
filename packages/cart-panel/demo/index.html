@@ -6,7 +6,7 @@
 		<title>Cart Panel — @magic-spells</title>
 		<meta
 			name="description"
-			content="A slide-out shopping cart web component for Shopify. Panel and cart item ship as separate entry points, 2.8 kB each, min + gzip." />
+			content="A slide-out shopping cart web component for Shopify. One import registers the panel and the cart item — 5.0 kB min + gzip. Each is also on its own subpath." />
 		<!-- Inlined as a data URI so the repo stays binary-free and the browser's
 		     automatic /favicon.ico request never 404s. A cart basket with its
 		     handle — the component's own silhouette. -->
@@ -39,8 +39,8 @@
 			href="https://unpkg.com/@magic-spells/gift-with-purchase@1.0.0/dist/gift-with-purchase.min.css" />
 
 		<!-- this package: two entry points, two stylesheets -->
-		<link rel="stylesheet" href="./cart-panel.css" />
-		<link rel="stylesheet" href="./cart-item.css" />
+		<!-- both stylesheets, the way @magic-spells/cart-panel/css ships them -->
+		<link rel="stylesheet" href="./index.css" />
 
 		<style>
 			:root {
@@ -883,10 +883,11 @@
 				<code class="install-value" id="install-value" title="Click to copy"
 					>npm install @magic-spells/cart-panel</code
 				>
-				<!-- Each entry point gzipped on its own, js + css, the way a CDN
-				     serves it. cart-item is opt-in, so a panel-only page pays 2.8 kB. -->
+				<!-- The root import gzipped the way a CDN serves it, js + css, both
+				     elements. A theme with its own item element can take the panel
+				     alone from the /panel subpath for 2.8 kB. -->
 				<div class="size-note">
-					<span class="size-value">2.8 kB panel · 2.8 kB cart-item</span>
+					<span class="size-value">5.0 kB · 2.8 kB panel alone</span>
 					<span class="size-label">min + gzip</span>
 				</div>
 			</div>
@@ -924,16 +925,19 @@
 			<!-- ---- Opt-in item ---- -->
 			<section class="demo-section">
 				<div class="spec"><span class="spec-key">Entry points</span></div>
-				<h2>Two imports, <em>not one</em>.</h2>
+				<h2>One line, <em>whole cart</em>.</h2>
 				<p class="demo-desc">
-					The panel never imports the item. Drop the second line and the panel still renders count,
-					subtotal and empty state — it just skips the items.
+					Panel and item are designed as a set, so the root import registers both. Take them à la
+					carte if you'd rather — the panel alone still renders count, subtotal and empty state, it
+					just skips the items.
 				</p>
 				<div class="code-aside">
-					<code><span class="cm">// registers &lt;cart-panel&gt;</span>
+					<code><span class="cm">// &lt;cart-panel&gt;, &lt;cart-item&gt;, &lt;cart-item-content&gt;, &lt;cart-item-processing&gt;</span>
 import <span class="str">'@magic-spells/cart-panel'</span>;
+import <span class="str">'@magic-spells/cart-panel/css'</span>;
 
-<span class="cm">// registers &lt;cart-item&gt;, &lt;cart-item-content&gt;, &lt;cart-item-processing&gt;</span>
+<span class="cm">// à la carte</span>
+import <span class="str">'@magic-spells/cart-panel/panel'</span>;
 import <span class="str">'@magic-spells/cart-panel/cart-item'</span>;</code>
 				</div>
 			</section>
@@ -950,7 +954,6 @@ import <span class="str">'@magic-spells/cart-panel/cart-item'</span>;</code>
 				</p>
 				<div class="code-aside">
 					<code>import <span class="str">'@magic-spells/cart-panel'</span>;
-import <span class="str">'@magic-spells/cart-panel/cart-item'</span>;
 import <span class="str">'@magic-spells/cart-progress-bar'</span>;
 import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 				</div>
@@ -1298,10 +1301,9 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 			import 'https://unpkg.com/@magic-spells/quantity-input@1.0.2/dist/quantity-input.esm.js';
 			import 'https://unpkg.com/@magic-spells/cart-progress-bar@1.0.0/dist/cart-progress-bar.esm.js';
 			import 'https://unpkg.com/@magic-spells/gift-with-purchase@1.0.0/dist/gift-with-purchase.esm.js';
-			// cart-panel does not register cart-item — opt in explicitly
-			// (published as '@magic-spells/cart-panel' and '@magic-spells/cart-panel/cart-item')
-			import './cart-item.esm.js';
-			import './cart-panel.esm.js';
+			// The root entry: registers <cart-panel> and <cart-item> in one import.
+			// Published, this line is `import '@magic-spells/cart-panel'`.
+			import './index.esm.js';
 
 			const $ = (selector, root = document) => root.querySelector(selector);
 
