@@ -15,9 +15,12 @@ dance with no single place to verify the result.
 
 | Package                            | Standalone repo                                    | Status                                   |
 | ---------------------------------- | -------------------------------------------------- | ---------------------------------------- |
-| `@magic-spells/cart-panel`         | `magic-spells/cart-panel` (absorbs `cart-item`)     | **Deferred** — see below                 |
+| `@magic-spells/cart-panel`         | `magic-spells/cart-panel` (absorbs `cart-item`)     | Imported from `release/2.0.0`            |
 | `@magic-spells/cart-progress-bar`  | `magic-spells/cart-progress-bar`                    | Imported from `main`                     |
 | `@magic-spells/gift-with-purchase` | `magic-spells/gift-with-purchase`                   | Imported from `release/1.0.1`            |
+
+All three packages are now in the repo. What is left before 2.0.0 ships is listed under
+[Remaining work](#remaining-work).
 
 ## Versioning: lockstep 2.0.0
 
@@ -43,25 +46,16 @@ git filter-repo --to-subdirectory-filter packages/<name>
 git fetch <rewritten> && git merge --allow-unrelated-histories
 ```
 
-Commit counts carried over: `cart-progress-bar` 13, `gift-with-purchase` 10.
+Commit counts carried over: `cart-progress-bar` 13, `gift-with-purchase` 10, `cart-panel` 40.
 
 `gift-with-purchase` was imported from its `release/1.0.1` tip rather than `main` — that branch
 carries the merged PR #1 fix that calls `cart-panel`'s `refreshCart()` instead of the
 long-removed `getCartAndRefresh()`, and `main` does not have it yet.
 
-### cart-panel is deferred
-
-`cart-panel` is intentionally **not** imported yet. It has an in-flight PR reworking its root
-entry point and the opt-in `cart-item` subpath, and importing mid-PR would either freeze a
-half-finished tree into the monorepo or force the PR to be re-targeted across repos. It gets the
-same `filter-repo` treatment once that PR merges.
-
-Until then:
-
-- `packages/cart-panel` is listed in the root `workspaces` array (npm ignores a workspace path
-  that does not exist yet) and has a `dev:panel` script waiting for it.
-- The root `build` script fans out over the two imported packages only. **Add
-  `-w @magic-spells/cart-panel` to it when the import lands.**
+`cart-panel` was imported from its `release/2.0.0` tip (`5c4b1c9`, the PR #5 merge) for the same
+reason: that PR is what makes the root entry register both `<cart-panel>` and `<cart-item>`, and it
+was the reason the import waited. The rewritten `packages/cart-panel` tree hashes identical to the
+source tip, and blame runs back to the June 2025 initial commit.
 
 ## Build tooling: one house pattern, no CJS, no sass
 
@@ -80,8 +74,8 @@ Family policy, applied to all packages including `cart-panel` when it arrives:
 - `npm run dev` writes its output into the package's `demo/dist/`, never into `dist/`.
 - No source maps in the published `dist/` (`sourcemap: isDev`). Rolldown inlines `sourcesContent`,
   which shipped the whole source tree twice in the tarball; `sheet` already made this call.
-- Each package keeps a fixed dev port: `cart-progress-bar` 3001, `gift-with-purchase` 3000,
-  `cart-panel` to be assigned on import.
+- Each package keeps a fixed dev port: `gift-with-purchase` 3000, `cart-progress-bar` 3001,
+  `cart-panel` 3002 (it was 3004 in the standalone repo; renumbered to close the run).
 
 Two things change relative to the standalone repos:
 
@@ -99,31 +93,80 @@ These build changes live in the 2.0.0 commits on `release/2.0.0` — deliberatel
 into the imported history, so the imported commits still describe what those packages actually
 were at the time.
 
-### Known follow-up: class names are mangled in `.min.js`
+### Fixed: class names were mangled in `.min.js`
 
 Rolldown rewrites `class Foo extends HTMLElement {}` into `var Foo = class extends HTMLElement {}`
 before Terser runs, so Terser's `mangle.keep_classnames: true` finds no named class to keep and
-the name is lost. The old rollup builds kept it.
+the name was lost. The old rollup builds kept it.
 
-Impact is cosmetic — devtools display and `constructor.name`. `customElements.define()` and the
-UMD named exports are unaffected, so nothing functional depends on it.
+**The fix is not `rolldownOptions.output.keepNames`,** which is what this document previously
+assumed. That option is real — rolldown 1.2.6 declares it on `OutputOptions` and forwards it into
+the input bindings — but Vite never delivers it. Vite calls `rolldown(inputOptions)` and only then
+`bundle.write(outputOptions)`, so at the moment rolldown reads `outputOptions.keepNames` to build
+its input options, there are no output options yet. Setting it through Vite is silently ignored;
+setting it at the input level is rejected as an unknown key. Verified empirically against
+vite 8.2.2 / rolldown 1.2.6.
 
-This is **not** specific to the cart packages: `sticky-header` has the same shape, which means the
-whole house build pattern has it. The fix is a one-line `rolldownOptions.output.keepNames` in the
-shared pattern, applied everywhere at once. Deliberately **not** patched here in isolation —
-diverging one repo from the house pattern costs more than the cosmetic name is worth.
+What works is reserving the names from Terser instead:
+
+```js
+mangle: { keep_classnames: true, keep_fnames: false, reserved: RESERVED_CLASS_NAMES }
+```
+
+`RESERVED_CLASS_NAMES` is scanned out of `src/*.js` at build time, so a class added later is
+covered without anyone updating a list. A reserved identifier is never renamed, so
+`var Foo = class` survives intact and JS name inference gives the class its name back. Cost is
+5–14 bytes gzipped per bundle.
+
+Rolldown's own minifier (`output.minify` with `mangle.keepNames`) also mostly works and is slightly
+smaller, but it cannot preserve `CartItem` — a class with `static #private` fields that reference
+the class binding from inside its own body — and adopting it would swap Terser out of the house
+pattern. The reserved-names approach keeps Terser and preserves every class name in all five
+bundles.
+
+This is **not** specific to the cart packages: `sticky-header` and `sheet` have the same shape, so
+the same three-line block belongs in the shared pattern everywhere.
+
+## The flagship demo
+
+`packages/cart-panel/demo` is the one page that drives all three packages together, so it is also
+the integration test. It loads `cart-progress-bar` and `gift-with-purchase` from their **workspace**
+builds, not from unpkg: `npm run dev` copies their committed `dist/` into
+`packages/cart-panel/demo/dist/vendor/` before starting the server. `dialog-panel`,
+`quantity-input` and `split-text` stay on pinned unpkg URLs — they are external packages, not
+siblings.
+
+The demo used to carry a one-line `cartPanel.getCartAndRefresh = () => cartPanel.refreshCart()`
+shim, because `gift-with-purchase@1.0.0` called a method the panel had removed. The 2.0.0 source in
+this repo calls `refreshCart()` and only falls back to `getCartAndRefresh()`, so the shim is gone.
 
 ## Branches
 
-- `main` — shipped trunk. Holds the skeleton commit and the two history-import merges.
+- `main` — shipped trunk. Holds the skeleton commit and the three history-import merges.
 - `release/2.0.0` — branched off `main`; carries the version bumps, the repository-field
   rewrites, the build-tooling migration and the single workspace lockfile.
 
 Release branches are never deleted; they are the rollback path to a prior version.
 
+## Remaining work
+
+Everything below is still open. Nothing in this repo has been pushed, tagged or published.
+
+1. **Upgrades work** — the substantive 2.0.0 feature and API changes across the three packages.
+   The migration so far is structural: history, build tooling and wiring, not behavior.
+2. **Fable review** — a full read of the merged result before it ships.
+3. **Push** — the `magic-spells/cart` remote does not exist yet. Creating it, pushing `main` and
+   `release/2.0.0`, and re-pointing the packages' `repository` fields' assumptions is a deliberate
+   later step; the fields already name `git+https://github.com/magic-spells/cart.git`.
+4. Propagate the Terser `reserved` fix above to `sticky-header`, `sheet` and anything else on the
+   house build pattern.
+
 ## After 2.0.0 ships
 
-1. Import `cart-panel` (see above) and add it to the root `build` fan-out.
-2. Archive the standalone `magic-spells/cart-panel`, `magic-spells/cart-progress-bar` and
+1. Archive the standalone `magic-spells/cart-panel`, `magic-spells/cart-progress-bar` and
    `magic-spells/gift-with-purchase` repos on GitHub.
-3. `npm deprecate @magic-spells/cart-item` pointing at `@magic-spells/cart-panel/cart-item`.
+2. `npm deprecate @magic-spells/cart-item` pointing at `@magic-spells/cart-panel/cart-item`.
+3. Rebuild the demo-hosting story — one GitHub Pages deploy covering `packages/*/demo`, replacing
+   the three standalone Pages sites. Until that exists, all three package READMEs still link their
+   **Live Demo** at the old standalone Pages URL (`magic-spells.github.io/<package>/demo/`), which
+   keeps working only while those repos stay unarchived. Re-point all three together.

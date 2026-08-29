@@ -6,7 +6,7 @@ A slide-out shopping cart web component. The panel owns the cart data, the Shopi
 
 ## Size & scope
 
-**5.0 kB** min + gzip for the whole cart (3.9 kB JS, 1.0 kB CSS) — panel and item, one import.
+**4.9 kB** min + gzip for the whole cart (3.9 kB JS, 1.0 kB CSS) — panel and item, one import.
 
 Both halves are also published on their own subpaths, so a page that brings its own item element takes the panel alone at **2.8 kB** (2.7 kB JS, 0.1 kB CSS), and a page that only wants the item takes it at **2.8 kB** (1.8 kB JS, 1.0 kB CSS).
 
