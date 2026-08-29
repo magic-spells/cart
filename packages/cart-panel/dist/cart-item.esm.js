@@ -163,15 +163,22 @@ var CartItem = class CartItem extends HTMLElement {
 	* cart ignoring you. Enter commits the typed value through the same path a
 	* change event takes.
 	*
-	* Skipped entirely when the input belongs to <quantity-input> or
-	* <quantity-modifier>: those components own their own commit logic and
-	* handle Enter themselves, so acting here would emit the event twice.
+	* An input owned by <quantity-input> or <quantity-modifier> is different:
+	* the component owns the commit. Enter still must not submit the form, so
+	* the submission is stopped here, but the value is left to the component's
+	* own change flow. A component version that handles Enter itself arrives
+	* here already defaultPrevented and is not touched at all - no double event.
 	*/
 	#handleKeydown(e) {
-		if (e.key !== "Enter" || e.isComposing) return;
-		const quantityInput = e.target.closest?.("[data-cart-quantity]");
+		if (e.key !== "Enter" || e.isComposing || e.defaultPrevented) return;
+		const input = e.target.closest?.("input");
+		if (!input) return;
+		if (input.closest("quantity-input, quantity-modifier")) {
+			e.preventDefault();
+			return;
+		}
+		const quantityInput = input.closest("[data-cart-quantity]");
 		if (!quantityInput) return;
-		if (quantityInput.closest("quantity-input, quantity-modifier")) return;
 		e.preventDefault();
 		this.#commitQuantityInput(quantityInput);
 	}

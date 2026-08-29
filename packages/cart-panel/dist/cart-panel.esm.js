@@ -298,6 +298,7 @@ var CartPanel = class extends HTMLElement {
 			return cartObj;
 		}
 		if (_.section && !cartObj.sections?.[_.section]) cartObj = _.#withSectionMarkup(cartObj, await _.getCartSection());
+		cartObj = _.#preserveInFlightLines(cartObj);
 		_.#currentCart = cartObj;
 		_.#renderCartItems(cartObj);
 		_.#renderCartPanel(cartObj);
