@@ -50,7 +50,7 @@ This is a **Web Components library** that provides a gift-with-purchase componen
 
 - **Vite (Rolldown) via JS API**: `scripts/build.mjs` is the config — `configFile: false`, no `vite.config.js`
 - **Lightning CSS**: Transforms and minifies the stylesheet; CSS is extracted, never injected
-- **Terser**: Minifies the UMD bundle with `keep_classnames` so the custom-element class survives
+- **Terser**: Minifies the UMD bundle. `keep_classnames` alone does not save the class name — Rolldown turns `class GiftWithPurchase extends HTMLElement {}` into `var GiftWithPurchase = class ...` first, leaving nothing named for Terser to keep. `RESERVED_CLASS_NAMES` (scanned out of `src/*.js` at the top of the build script) passes the names as `mangle.reserved`, which is what actually preserves them. `rolldownOptions.output.keepNames` is a dead end — Vite calls `rolldown(inputOptions)` before `bundle.write(outputOptions)`, so rolldown reads it before it exists.
 - **Sourcemaps**: Dev only — `dist/` ships no `.map` files
 - **Development Server**: Serves `demo/` on port 3000 with `@magic-spells/vite-plugin-live-reload` watching `demo/dist/`
 

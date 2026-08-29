@@ -1,10 +1,37 @@
 import { build, createServer } from 'vite';
 import { rm, mkdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import liveReload from '@magic-spells/vite-plugin-live-reload';
 
 const isDev = process.env.NODE_ENV === 'development';
 const outDir = isDev ? 'demo/dist' : 'dist';
+
+// Every class declared in src/, reserved so Terser cannot rename it.
+//
+// Rolldown rewrites `class Foo extends HTMLElement {}` into
+// `var Foo = class extends HTMLElement {}` before Terser runs. That leaves an
+// *anonymous* class expression, so Terser's `mangle.keep_classnames` has no
+// class name to keep and mangles the variable to a single letter — the name is
+// lost, and with it `constructor.name` and the devtools display. Reserving the
+// identifier is what survives the rewrite: a reserved name is never renamed, so
+// `var Foo = class` stays `var Foo = class` and JS name inference gives the
+// class its name back.
+//
+// Scanned rather than hard-coded so a class added to src/ is covered without
+// anyone remembering to update this list. Costs a handful of gzipped bytes.
+const RESERVED_CLASS_NAMES = [
+	...new Set(
+		readdirSync('src')
+			.filter((file) => file.endsWith('.js'))
+			.flatMap((file) =>
+				[
+					...readFileSync(`src/${file}`, 'utf8').matchAll(
+						/^\s*(?:export\s+)?class\s+([A-Za-z_$][\w$]*)/gm
+					),
+				].map((match) => match[1])
+			)
+	),
+];
 
 function sharedBuild(overrides = {}) {
 	return {
@@ -66,8 +93,10 @@ function umdMinConfig({ emitCss = false } = {}) {
 			},
 			minify: 'terser',
 			terserOptions: {
-				// custom-element class names are the public API — never mangle them
-				mangle: { keep_classnames: true, keep_fnames: false },
+				// custom-element class names are the public API — never mangle them.
+				// `keep_classnames` alone is not enough here; see
+				// RESERVED_CLASS_NAMES above.
+				mangle: { keep_classnames: true, keep_fnames: false, reserved: RESERVED_CLASS_NAMES },
 			},
 			cssMinify: emitCss ? 'lightningcss' : undefined,
 			rolldownOptions: {
