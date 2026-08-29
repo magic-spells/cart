@@ -6,7 +6,7 @@
 		<title>Cart Panel — @magic-spells</title>
 		<meta
 			name="description"
-			content="A slide-out shopping cart web component for Shopify. One import registers the panel and the cart item — 5.0 kB min + gzip. Each is also on its own subpath." />
+			content="A slide-out shopping cart web component for Shopify. One import registers the panel and the cart item — 4.9 kB min + gzip. Each is also on its own subpath." />
 		<!-- Inlined as a data URI so the repo stays binary-free and the browser's
 		     automatic /favicon.ico request never 404s. A cart basket with its
 		     handle — the component's own silhouette. -->
@@ -20,7 +20,7 @@
 			href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@200;300;400;500&display=swap"
 			rel="stylesheet" />
 
-		<!-- sibling packages, via published npm builds on the CDN -->
+		<!-- external packages, via published npm builds on the CDN -->
 		<link
 			rel="stylesheet"
 			href="https://unpkg.com/@magic-spells/split-text@0.2.0/dist/split-text.min.css" />
@@ -31,16 +31,15 @@
 		<link
 			rel="stylesheet"
 			href="https://unpkg.com/@magic-spells/quantity-input@1.0.2/dist/quantity-input.css" />
-		<link
-			rel="stylesheet"
-			href="https://unpkg.com/@magic-spells/cart-progress-bar@1.0.0/dist/cart-progress-bar.min.css" />
-		<link
-			rel="stylesheet"
-			href="https://unpkg.com/@magic-spells/gift-with-purchase@1.0.0/dist/gift-with-purchase.min.css" />
 
-		<!-- this package: two entry points, two stylesheets -->
-		<!-- both stylesheets, the way @magic-spells/cart-panel/css ships them -->
-		<link rel="stylesheet" href="./index.css" />
+		<!-- monorepo siblings, copied out of their workspace dist/ by `npm run dev`
+		     so this demo drives the versions in this repo, not the CDN's -->
+		<link rel="stylesheet" href="./dist/vendor/cart-progress-bar.min.css" />
+		<link rel="stylesheet" href="./dist/vendor/gift-with-purchase.min.css" />
+
+		<!-- this package: one root entry, both stylesheets concatenated,
+		     the way @magic-spells/cart-panel/css ships them -->
+		<link rel="stylesheet" href="./dist/index.css" />
 
 		<style>
 			:root {
@@ -887,7 +886,7 @@
 				     elements. A theme with its own item element can take the panel
 				     alone from the /panel subpath for 2.8 kB. -->
 				<div class="size-note">
-					<span class="size-value">5.0 kB · 2.8 kB panel alone</span>
+					<span class="size-value">4.9 kB · 2.8 kB panel alone</span>
 					<span class="size-label">min + gzip</span>
 				</div>
 			</div>
@@ -1299,11 +1298,12 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 		<script type="module">
 			import 'https://unpkg.com/@magic-spells/dialog-panel@2.0.1/dist/dialog-panel.esm.js';
 			import 'https://unpkg.com/@magic-spells/quantity-input@1.0.2/dist/quantity-input.esm.js';
-			import 'https://unpkg.com/@magic-spells/cart-progress-bar@1.0.0/dist/cart-progress-bar.esm.js';
-			import 'https://unpkg.com/@magic-spells/gift-with-purchase@1.0.0/dist/gift-with-purchase.esm.js';
+			// Monorepo siblings, from their workspace builds rather than the CDN.
+			import './dist/vendor/cart-progress-bar.esm.js';
+			import './dist/vendor/gift-with-purchase.esm.js';
 			// The root entry: registers <cart-panel> and <cart-item> in one import.
 			// Published, this line is `import '@magic-spells/cart-panel'`.
-			import './index.esm.js';
+			import './dist/index.esm.js';
 
 			const $ = (selector, root = document) => root.querySelector(selector);
 
@@ -1392,9 +1392,7 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 
 			// ---- Simulated Shopify Cart API ----
 			// gift-with-purchase POSTs to the real endpoints, so stand them up
-			// against the same cart object. It also calls getCartAndRefresh().
-			cartPanel.getCartAndRefresh = () => cartPanel.refreshCart();
-
+			// against the same cart object.
 			const nativeFetch = window.fetch.bind(window);
 			window.fetch = (input, init = {}) => {
 				const url = typeof input === 'string' ? input : input.url;

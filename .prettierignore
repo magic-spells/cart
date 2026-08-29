@@ -7,3 +7,7 @@ node_modules/
 # prose keeps its hand-written formatting
 *.md
 **/*.md
+
+# demo pages are hand-authored, and their `<code>` samples are styled
+# `white-space: pre` — Prettier's reflow turns them into one wrapped line
+**/demo/
