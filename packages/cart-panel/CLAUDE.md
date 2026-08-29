@@ -4,23 +4,34 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Development Commands
 
-- **Build**: `npm run build` - Creates dist files (ESM, CJS, UMD, minified)
+- **Build**: `npm run build` - Creates dist files (ESM, UMD, minified)
 - **Development**: `npm run dev` or `npm run serve` - Runs Rollup in watch mode with dev server on port 3004
 - **Linting**: `npm run lint` - Lints src/ and rollup.config.mjs with ESLint
 - **Formatting**: `npm run format` - Formats code with Prettier
 
 ## Architecture
 
-This is a web component library for Shopify shopping carts. It ships two independent entry points
-in one package.
+This is a web component library for Shopify shopping carts. It ships a root entry point that
+registers the whole set, plus a subpath entry for each half.
 
 ### Entry Points
 
-- `src/cart-panel.js` → `@magic-spells/cart-panel` - registers `<cart-panel>` only
+- `src/index.js` → `@magic-spells/cart-panel` - the root import and the documented default.
+  Registers `<cart-panel>`, `<cart-item>`, `<cart-item-content>`, `<cart-item-processing>`. Panel
+  and item are designed as a set; nobody ships the panel alone, so one import gives a working cart.
+- `src/cart-panel.js` → `@magic-spells/cart-panel/panel` - registers `<cart-panel>` only
 - `src/cart-item.js` → `@magic-spells/cart-panel/cart-item` - registers `<cart-item>`, `<cart-item-content>`, `<cart-item-processing>`
 
-The panel never imports the item. Keep it that way: `src/cart-panel.js` must have no import of
-`./cart-item.js`, or the item code lands back in the panel bundle.
+`src/index.js` imports `./cart-item.js` before `./cart-panel.js`, so the item is in the custom
+element registry before the panel is defined and the panel's late-registration path is never taken.
+
+**`src/cart-panel.js` must still have no import of `./cart-item.js`.** The composition lives in
+`src/index.js` and nowhere else. Break that and the item code lands back in the panel bundle, and
+`@magic-spells/cart-panel/panel` stops being panel-sized — which is the only reason that subpath
+is worth publishing.
+
+CSS follows the same shape: `@magic-spells/cart-panel/css` is both stylesheets concatenated
+(extracted from the root entry), while `panel/css` and `cart-item/css` are each half on its own.
 
 ### Core Components
 
@@ -39,7 +50,7 @@ The panel never imports the item. Keep it that way: `src/cart-panel.js` must hav
 
 4. **Event-driven items**: CartItem emits `cart-item:remove` and `cart-item:quantity-change` events that bubble up to CartPanel.
 
-5. **Opt-in cart-item**: CartPanel resolves the item constructor with `customElements.get('cart-item')` at render time. If nothing is registered it warns once on the render path (module-scoped flag in `src/cart-panel.js`), skips item rendering, and leaves count/subtotal/state rendering intact. It then waits on `customElements.whenDefined('cart-item')` and re-renders once the element shows up (guarded on the panel still being connected, having cart data, and not having rendered items already).
+5. **Runtime cart-item resolution**: the root entry registers `<cart-item>` for you, but the panel module still never imports it — CartPanel resolves the item constructor with `customElements.get('cart-item')` at render time. That is what keeps the item swappable and `@magic-spells/cart-panel/panel` workable. If nothing is registered it warns once on the render path (module-scoped flag in `src/cart-panel.js`), skips item rendering, and leaves count/subtotal/state rendering intact. It then waits on `customElements.whenDefined('cart-item')` and re-renders once the element shows up (guarded on the panel still being connected, having cart data, and not having rendered items already).
 
 6. **Order-independent templates**: `setCartItemTemplate()` / `setCartItemProcessingTemplate()` buffer their calls in a module-scoped queue when `<cart-item>` is not registered yet, then replay them on `whenDefined`. The buffered templates are always flushed before the late-registration re-render. The render-path warn-once flag is separate from the template path so a setter call can never swallow the render warning. A registered element that lacks the static method warns once per method name.
 
@@ -126,18 +137,24 @@ CartItem listens for both `quantity-input:change` and `quantity-modifier:change`
 
 ### Build System
 
-Rollup builds the same four formats for each entry point via `productionBuilds()` in `rollup.config.mjs`:
-- **ESM**: `dist/cart-panel.esm.js` / `dist/cart-item.esm.js`
-- **CommonJS**: `dist/cart-panel.cjs.js` / `dist/cart-item.cjs.js`
-- **UMD**: `dist/cart-panel.js` + `.min.js` (global `CartPanel`) / `dist/cart-item.js` + `.min.js`
-  (global `MagicSpellsCartItem` - namespaced so the UMD exports object does not clobber the
-  `window.CartItem` class global that `src/cart-item.js` sets for Shopify themes)
-- **CSS**: `dist/cart-panel.css` and `dist/cart-item.css`, extracted separately from
-  `src/cart-panel.css` and `src/cart-item.css`
+Rollup builds the same three formats for each of the three entry points via `productionBuilds()` in
+`rollup.config.mjs`:
+- **ESM**: `dist/index.esm.js` / `dist/cart-panel.esm.js` / `dist/cart-item.esm.js`
+- **UMD**: `dist/<name>.js` + `dist/<name>.min.js`, with globals `MagicSpellsCart` (root),
+  `CartPanel` (panel) and `MagicSpellsCartItem` (item). Two of the three are namespaced because the
+  obvious names are taken: `CartPanel` by the panel-only build's exports object, and
+  `window.CartItem` by the class itself, which `src/cart-item.js` sets for Shopify themes. A UMD
+  exports object must not clobber either.
+- **CSS**: `dist/index.css` (both stylesheets, extracted from the root entry), `dist/cart-panel.css`
+  and `dist/cart-item.css`, plus a `.min.css` alongside each.
 
-`@magic-spells/event-emitter` stays external in ESM/CJS and is bundled into UMD. ESM and CJS are
-never minified — they are inputs to a downstream bundler. The only minified JS this package ships is
-`*.min.js`, which is UMD-derived.
+**No CommonJS.** This package is ESM only — no `.cjs.js` outputs, and no `require` condition in the
+exports map. A `require()` consumer would be loading a browser custom element into a runtime with no
+DOM; the UMD `.min.js` covers plain `<script>` tags.
+
+`@magic-spells/event-emitter` stays external in ESM and is bundled into UMD. ESM is never minified —
+it is an input to a downstream bundler. The only minified JS this package ships is `*.min.js`, which
+is UMD-derived.
 
 **Watch mode never writes to `dist/`.** `rollup.config.mjs` exports *either* the production configs
 (output `dist/`) *or* the watch configs (output `demo/`) — never both — so a `npm run dev` run cannot
@@ -147,8 +164,11 @@ no import map, while the published copy leaves it external. When both wrote to `
 a race, and a dev-built `dist/cart-panel.esm.js` with the dependency inlined got committed twice.
 A guard at the bottom of the config throws if any watch-mode output ever resolves outside `demo/`.
 
-Watch mode writes `demo/{cart-panel,cart-item}.esm.js`, their sourcemaps, and their stylesheets
-directly to their final location (no copy step) and serves `demo/` on port 3004.
+Watch mode builds the root entry alone: `demo/index.esm.js`, its sourcemap and `demo/index.css`,
+written directly to their final location (no copy step), with the dev server on port 3004. The demo
+page loads that single bundle, which is also how it dogfoods the root import it documents. The two
+subpath entries are strict subsets of the root's module graph, so a break in either source file
+still fails `npm run dev` — building them too would only write `demo/` files nothing loads.
 
 ### Line Item Properties
 

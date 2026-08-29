@@ -21,10 +21,10 @@ const dev = !!process.env.ROLLUP_WATCH;
 // unrepresentable rather than merely unlikely.
 const OUT_DIR = dev ? 'demo' : 'dist';
 
-// Not bundled into ESM/CJS: the consuming app's module graph resolves it, so a
-// page with several @magic-spells components shares one emitter instance. The
-// UMD and minified-UMD builds deliberately omit this and bundle it, because a
-// plain <script> tag has no resolver.
+// Not bundled into the ESM build: the consuming app's module graph resolves it,
+// so a page with several @magic-spells components shares one emitter instance.
+// The UMD and minified-UMD builds deliberately omit this and bundle it, because
+// a plain <script> tag has no resolver.
 const external = ['@magic-spells/event-emitter'];
 
 const out = (file) => resolvePath(OUT_DIR, file);
@@ -44,9 +44,9 @@ const cssMinPlugin = (fileName) =>
 		minimize: true,
 	});
 
-// Minification applies to the browser-facing UMD bundle and to CSS only. ESM and
-// CJS outputs are never minified — they are inputs to somebody else's bundler,
-// which will do a better job with readable source and intact names.
+// Minification applies to the browser-facing UMD bundle and to CSS only. The ESM
+// output is never minified — it is an input to somebody else's bundler, which
+// will do a better job with readable source and intact names.
 const terserPlugin = terser({
 	keep_classnames: true,
 	format: {
@@ -55,7 +55,11 @@ const terserPlugin = terser({
 });
 
 /**
- * The four published outputs for one entry point, all into `dist/`.
+ * The three published outputs for one entry point, all into `dist/`.
+ *
+ * There is no CommonJS output. This package is ESM-only: modern bundlers and
+ * Node both read the `import` condition, and a `require()` consumer would be
+ * loading a browser custom element into a runtime that has no DOM anyway.
  * @param {Object} options
  * @param {string} options.fileName - Base file name used for the entry and its outputs
  * @param {string} options.globalName - UMD global name
@@ -70,18 +74,6 @@ const productionBuilds = ({ fileName, globalName }) => [
 			file: out(`${fileName}.esm.js`),
 			format: 'es',
 			sourcemap: true,
-		},
-		plugins: [resolve(), cssPlugin(fileName)],
-	},
-	// CommonJS — dependency left external, not minified
-	{
-		input: `src/${fileName}.js`,
-		external,
-		output: {
-			file: out(`${fileName}.cjs.js`),
-			format: 'cjs',
-			sourcemap: true,
-			exports: 'named',
 		},
 		plugins: [resolve(), cssPlugin(fileName)],
 	},
@@ -143,15 +135,28 @@ const developmentBuild = ({ fileName, withServer = false }) => ({
 	],
 });
 
+// The root entry composes the other two: src/index.js imports both, so the panel
+// and the item are registered by a single `import '@magic-spells/cart-panel'`.
+// Its UMD global is namespaced because both obvious names are already spoken
+// for — `CartPanel` by the panel-only UMD build, and `CartItem` by the class
+// that src/cart-item.js hangs on window for Shopify themes.
+const ROOT_ENTRY = { fileName: 'index', globalName: 'MagicSpellsCart' };
+
 const entries = [
+	ROOT_ENTRY,
 	{ fileName: 'cart-panel', globalName: 'CartPanel' },
 	// cart-item sets window.CartItem to the class itself, so the UMD wrapper uses a
 	// namespaced global to avoid overwriting it with the exports object
 	{ fileName: 'cart-item', globalName: 'MagicSpellsCartItem' },
 ];
 
+// Watch mode builds the root entry alone. The demo page loads one bundle and the
+// root entry registers everything it needs, and because the two subpath entries
+// are strict subsets of the root's module graph, a break in either source file
+// still fails the dev build. The subpath bundles only exist to be published, so
+// building them on every keystroke would write demo/ files nothing loads.
 const configs = dev
-	? entries.map((entry, index) => developmentBuild({ ...entry, withServer: index === 0 }))
+	? [developmentBuild({ ...ROOT_ENTRY, withServer: true })]
 	: entries.flatMap(productionBuilds);
 
 // Belt and braces. The mutually exclusive config sets above already guarantee

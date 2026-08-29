@@ -6,12 +6,15 @@ A slide-out shopping cart web component. The panel owns the cart data, the Shopi
 
 ## Size & scope
 
-**2.8 kB** min + gzip for the panel (2.7 kB JS, 0.1 kB CSS) · **2.8 kB** for the opt-in cart item (1.8 kB JS, 1.0 kB CSS). Two entry points, so a page that brings its own item element pays for the panel only.
+**5.0 kB** min + gzip for the whole cart (3.9 kB JS, 1.0 kB CSS) — panel and item, one import.
+
+Both halves are also published on their own subpaths, so a page that brings its own item element takes the panel alone at **2.8 kB** (2.7 kB JS, 0.1 kB CSS), and a page that only wants the item takes it at **2.8 kB** (1.8 kB JS, 1.0 kB CSS).
 
 ## Features
 
 - **Complete cart management** - Handles cart data, AJAX requests, and item rendering
-- **Opt-in cart-item** - `<cart-item>` ships in the same package on its own subpath export, so you only pay for it if you use it
+- **One import** - The root entry registers the panel and the item together; both are also on their own subpaths if you want only one
+- **Swappable item element** - The panel resolves `<cart-item>` from the custom element registry at render time, so you can substitute your own
 - **Delegates modal to dialog-panel** - Works with `@magic-spells/dialog-panel` for accessible modal behavior
 - **Real-time sync** - Automatic cart updates via `/cart.json` and `/cart/change.json` APIs
 - **Event-driven architecture** - Rich event system with custom event emitter
@@ -27,44 +30,65 @@ npm install @magic-spells/cart-panel
 ```
 
 ```javascript
-// The panel only - does NOT register <cart-item>
+// Registers <cart-panel>, <cart-item>, <cart-item-content> and <cart-item-processing>
 import '@magic-spells/cart-panel';
 import '@magic-spells/cart-panel/css';
-
-// Opt in to the built-in cart item component
-import '@magic-spells/cart-panel/cart-item';
-import '@magic-spells/cart-panel/cart-item/css';
 ```
+
+That is the whole install. The panel and the item are designed as a set, so the root import gives
+you a working cart.
 
 Or include directly in your HTML:
 
 ```html
 <script src="https://unpkg.com/@magic-spells/cart-panel"></script>
-<link rel="stylesheet" href="https://unpkg.com/@magic-spells/cart-panel/dist/cart-panel.css" />
-
-<!-- opt in to cart-item -->
-<script src="https://unpkg.com/@magic-spells/cart-panel/dist/cart-item.min.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/@magic-spells/cart-panel/dist/cart-item.css" />
+<link rel="stylesheet" href="https://unpkg.com/@magic-spells/cart-panel/dist/index.css" />
 ```
 
-The script builds register their elements on load. They also expose globals: `window.CartPanel` and
-`window.MagicSpellsCartItem` hold each build's exports, and `window.CartItem` is the `CartItem`
-class itself for Shopify themes that reference it directly.
+The script build registers both elements on load. It also exposes `window.MagicSpellsCart` with the
+bundle's exports, and `window.CartItem` — the `CartItem` class itself, for Shopify themes that
+reference it directly.
+
+### À la carte
+
+Each half is also published on its own subpath, for a page that only needs one of them:
+
+```javascript
+// The panel alone - does NOT register <cart-item>
+import '@magic-spells/cart-panel/panel';
+import '@magic-spells/cart-panel/panel/css';
+
+// The item alone
+import '@magic-spells/cart-panel/cart-item';
+import '@magic-spells/cart-panel/cart-item/css';
+```
+
+The subpath script builds expose `window.CartPanel` and `window.MagicSpellsCartItem` respectively.
+
+This package is ESM only. There is no CommonJS build — the `.min.js` UMD bundles are for plain
+`<script>` tags, and everything else resolves through the `import` condition.
 
 ### Entry Points
 
-| Import path                             | Registers                                                  | Contents                 |
-| --------------------------------------- | ---------------------------------------------------------- | ------------------------ |
-| `@magic-spells/cart-panel`              | `<cart-panel>`                                             | `CartPanel`              |
-| `@magic-spells/cart-panel/css`          | -                                                          | `cart-panel` styles      |
-| `@magic-spells/cart-panel/css/min`      | -                                                          | `cart-panel` styles (minified) |
-| `@magic-spells/cart-panel/cart-item`    | `<cart-item>`, `<cart-item-content>`, `<cart-item-processing>` | `CartItem`, `CartItemContent`, `CartItemProcessing` |
-| `@magic-spells/cart-panel/cart-item/css` | -                                                          | cart item styles         |
-| `@magic-spells/cart-panel/cart-item/css/min` | -                                                      | cart item styles (minified) |
+| Import path                                  | Registers                                                                     | Contents                                                          |
+| -------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `@magic-spells/cart-panel`                   | `<cart-panel>`, `<cart-item>`, `<cart-item-content>`, `<cart-item-processing>` | `CartPanel`, `CartItem`, `CartItemContent`, `CartItemProcessing`  |
+| `@magic-spells/cart-panel/css`               | -                                                                             | panel + cart item styles                                          |
+| `@magic-spells/cart-panel/css/min`           | -                                                                             | panel + cart item styles (minified)                               |
+| `@magic-spells/cart-panel/panel`             | `<cart-panel>`                                                                | `CartPanel`                                                       |
+| `@magic-spells/cart-panel/panel/css`         | -                                                                             | `cart-panel` styles                                               |
+| `@magic-spells/cart-panel/panel/css/min`     | -                                                                             | `cart-panel` styles (minified)                                    |
+| `@magic-spells/cart-panel/cart-item`         | `<cart-item>`, `<cart-item-content>`, `<cart-item-processing>`                 | `CartItem`, `CartItemContent`, `CartItemProcessing`               |
+| `@magic-spells/cart-panel/cart-item/css`     | -                                                                             | cart item styles                                                  |
+| `@magic-spells/cart-panel/cart-item/css/min` | -                                                                             | cart item styles (minified)                                       |
 
-### Opt-in cart items
+`@magic-spells/cart-panel/css` is the two stylesheets concatenated, so it pairs with the root
+import the same way `panel/css` pairs with `panel`.
 
-`cart-panel` does not bundle or register `<cart-item>`. At render time it looks the element up
+### Swapping the item element
+
+The panel module itself never imports the item. The root entry point composes the two, but the
+panel's own code only ever resolves `<cart-item>` from the custom element registry at render time,
 with `customElements.get('cart-item')`:
 
 - **Registered** - the panel renders, updates, and animates items as usual.
@@ -76,10 +100,10 @@ their templates when `<cart-item>` is not registered yet and apply them as soon 
 panel watches for a late registration with `customElements.whenDefined('cart-item')` so it renders
 the cart it already has without waiting for another `refreshCart()`.
 
-That means you can drop in your own item element instead of the built-in one:
+That is what makes the item swappable. Take the panel on its own and register your own element:
 
 ```javascript
-import '@magic-spells/cart-panel';
+import '@magic-spells/cart-panel/panel';
 
 customElements.define('cart-item', MyCartItem);
 ```
@@ -146,10 +170,12 @@ The cart-panel component delegates modal behavior to a `<dialog-panel>` ancestor
 
 The cart panel architecture consists of:
 
-- **cart-panel**: Main component managing cart data, AJAX requests, and rendering (`@magic-spells/cart-panel`)
-- **cart-item**: Individual cart item with state management and animations (`@magic-spells/cart-panel/cart-item`)
+- **cart-panel**: Main component managing cart data, AJAX requests, and rendering
+- **cart-item**: Individual cart item with state management and animations
 - **cart-item-content**: Content wrapper inside cart-item
 - **cart-item-processing**: Processing overlay with loader
+
+All four come from `import '@magic-spells/cart-panel'`.
 
 The component automatically handles:
 
@@ -167,7 +193,7 @@ The component automatically handles:
 
 3. **Event-driven items**: CartItem emits `cart-item:remove` and `cart-item:quantity-change` events that bubble up to CartPanel.
 
-4. **Runtime cart-item lookup**: CartPanel never imports CartItem. It resolves the element from the custom element registry, so the item component is opt-in and swappable.
+4. **Runtime cart-item lookup**: The CartPanel module never imports CartItem. It resolves the element from the custom element registry, so the item component is swappable and the panel can ship on its own subpath.
 
 ## Configuration
 
@@ -487,48 +513,38 @@ The cart-panel supports Shopify line item properties for enhanced functionality:
 
 ## Migrating from 1.x / standalone `@magic-spells/cart-item`
 
-Version 2.0 folds the standalone `@magic-spells/cart-item` package into this one as an opt-in
-subpath export. `@magic-spells/cart-item` is no longer published separately.
+Version 2.0 folds the standalone `@magic-spells/cart-item` package into this one.
+`@magic-spells/cart-item` is no longer published separately.
 
-**1. Change your cart-item imports**
+**1. Your cart-panel imports do not change**
+
+`import '@magic-spells/cart-panel'` still registers `<cart-panel>` and `<cart-item>`, and
+`@magic-spells/cart-panel/css` still carries both stylesheets. `CartItem` is still a named export of
+the root entry. If that is all your theme used, there is nothing to change.
+
+**2. Drop the standalone cart-item package**
 
 ```diff
+  import '@magic-spells/cart-panel';
+  import '@magic-spells/cart-panel/css';
 - import '@magic-spells/cart-item';
 - import '@magic-spells/cart-item/css';
-+ import '@magic-spells/cart-panel/cart-item';
-+ import '@magic-spells/cart-panel/cart-item/css';
 + import '@magic-spells/quantity-modifier';
 ```
 
-The standalone package side-effect-imported `@magic-spells/quantity-modifier`, which registered
-`<quantity-modifier>` for you. This one does not, so import it yourself if your templates use it.
-Its named `QuantityModifier` re-export is gone too - import it from `@magic-spells/quantity-modifier`
-directly.
+The item element now arrives with the panel, so the separate imports go away — swap the package
+name for nothing at all. Then drop `@magic-spells/cart-item` from your `package.json`.
 
-Then drop `@magic-spells/cart-item` from your `package.json`.
+The one thing you may need to add back: the standalone package side-effect-imported
+`@magic-spells/quantity-modifier`, which registered `<quantity-modifier>` for you. This one does
+not, so import it yourself if your templates use it. Its named `QuantityModifier` re-export is gone
+too - import it from `@magic-spells/quantity-modifier` directly.
 
-**2. Importing cart-panel no longer registers cart-item**
+**3. ESM only**
 
-In 1.x, `import '@magic-spells/cart-panel'` registered `<cart-item>` and `dist/cart-panel.css`
-carried the cart item styles. Both are now separate. If you use the built-in item component, add
-the opt-in imports:
-
-```javascript
-import '@magic-spells/cart-panel';
-import '@magic-spells/cart-panel/css';
-import '@magic-spells/cart-panel/cart-item'; // new in 2.0
-import '@magic-spells/cart-panel/cart-item/css'; // new in 2.0
-```
-
-Skip it and cart items silently stop rendering, with one console warning telling you what to import.
-
-**3. `CartItem` is no longer re-exported from the panel entry**
-
-```diff
-- import { CartPanel, CartItem } from '@magic-spells/cart-panel';
-+ import { CartPanel } from '@magic-spells/cart-panel';
-+ import { CartItem } from '@magic-spells/cart-panel/cart-item';
-```
+2.0 ships no CommonJS build. If you were pulling this package in with `require()`, switch to
+`import`. Plain `<script>` tags are unaffected — use the UMD bundle at
+`@magic-spells/cart-panel/dist/index.min.js`.
 
 **4. SCSS source is no longer shipped**
 

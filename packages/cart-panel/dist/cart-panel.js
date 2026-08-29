@@ -123,8 +123,9 @@
   		hasWarnedAboutMissingCartItemOnRender = true;
   		console.warn(
   			'cart-panel: no <cart-item> element is registered, so cart items cannot be rendered. ' +
-  				"Add `import '@magic-spells/cart-panel/cart-item';` to opt in, " +
-  				"or register your own element with customElements.define('cart-item', ...)."
+  				"Import '@magic-spells/cart-panel' for both elements, or " +
+  				"'@magic-spells/cart-panel/cart-item' on its own, or register your own with " +
+  				"customElements.define('cart-item', ...)."
   		);
   	}
 
