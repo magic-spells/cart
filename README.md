@@ -33,6 +33,10 @@ pays for the panel only.
 
 `<cart-item>` ships in this same package rather than as a standalone one.
 
+Line items render from a JS template by default, or from a Shopify section with
+`<cart-panel section="API-cart-items">` — the server renders content, JS renders behavior. Add
+`optimistic` and quantity changes land on the click rather than on the response.
+
 ```bash
 npm install @magic-spells/cart-panel
 ```

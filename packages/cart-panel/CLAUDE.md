@@ -59,6 +59,10 @@ CSS follows the same shape: `@magic-spells/cart-panel/css` is both stylesheets c
 
 6. **Order-independent templates**: `setCartItemTemplate()` / `setCartItemProcessingTemplate()` buffer their calls in a module-scoped queue when `<cart-item>` is not registered yet, then replay them on `whenDefined`. The buffered templates are always flushed before the late-registration re-render. The render-path warn-once flag is separate from the template path so a setter call can never swallow the render warning. A registered element that lacks the static method warns once per method name.
 
+7. **Two render modes, one behavior layer**: the `section` attribute picks who draws the line items — a JS template (default) or a Shopify section. The framing is *the server renders content, JS renders behavior*. Cart JSON always drives count, subtotal, `state` and every event; the section only ever supplies line-item markup. Progress bars and gift-with-purchase are always client-side and never touched by server HTML. Both modes bind the same three selectors, so event handling is mode-agnostic.
+
+8. **Optimistic updates are opt-in and never change the default path**: without the `optimistic` attribute the panel keeps its processing-state flow byte for byte, including the console messages. With it, mutations are projected locally and reconciled from the response.
+
 ### Usage Structure
 
 ```html
@@ -91,13 +95,17 @@ CSS follows the same shape: `@magic-spells/cart-panel/css` is both stylesheets c
 
 **CartPanel Attributes:**
 - `manual` - Skip auto-refresh on connect, require explicit `refreshCart()` call
+- `section` - Shopify section id that renders the line items; absent, JS templates render them. Reflected property, observed: changing it live clears the list and re-renders
+- `optimistic` - Apply quantity changes and removals locally before the server answers. Reflected property
+- `hide-count-when-empty` - Hide every `[data-content-cart-count]` element document-wide at zero. Reflected property `hideCountWhenEmpty`, observed
 - `state` - Reflected attribute: 'has-items' or 'empty'
 
 **CartPanel Methods:**
 - `show(triggerEl?, cartObj?)` - Find dialog-panel ancestor and open it
 - `hide()` - Find dialog-panel ancestor and close it
 - `getCart()` - Fetch from `/cart.json`
-- `updateCartItem(key, quantity)` - POST to `/cart/change.json`
+- `getCartSection()` - Fetch `/?sections=<id>` in section mode; resolves to null otherwise
+- `updateCartItem(key, quantity)` - POST to `/cart/change.json`, with `sections` in the body in section mode
 - `refreshCart(cartObj?)` - Update display with provided or fetched cart
 - `setCartItemTemplate(name, fn)` - Set template for cart items
 - `setCartItemProcessingTemplate(fn)` - Set processing overlay template
@@ -108,7 +116,8 @@ CSS follows the same shape: `@magic-spells/cart-panel/css` is both stylesheets c
 - `cart-panel:hide` - When hide() is called
 - `cart-panel:refreshed` - After cart data refreshed (`{ cart }`)
 - `cart-panel:updated` - After item quantity changed (`{ cart }`)
-- `cart-panel:data-changed` - Any cart change (includes `calculated_count`, `calculated_subtotal`)
+- `cart-panel:data-changed` - Any cart change (includes `calculated_count`, `calculated_subtotal`). In optimistic mode it fires on the local update, and again on reconcile only if the server disagreed
+- `cart-panel:error` - An optimistic mutation the server refused (`{ key, error }`), after server truth is back on screen. Optimistic-only: the default path still just console.errors
 
 **CartItem Static Methods:**
 - `CartItem.setTemplate(name, fn)` - Set template globally
@@ -118,6 +127,8 @@ CSS follows the same shape: `@magic-spells/cart-panel/css` is both stylesheets c
 **CartItem Instance Methods:**
 - `setState(state)` - Set 'ready'|'processing'|'destroying'|'appearing'
 - `setData(itemData, cartData)` - Update item with new data
+- `setContent(html)` - Swap in server-rendered markup, keeping element identity, state and focus. Required on any replacement element used with `section`
+- `applyItemData(itemData, cartData?)` - Move line price and quantity from cart JSON without redrawing the markup (the optimistic path in section mode)
 - `destroyYourself()` - Animate and remove from DOM
 
 **CartItem States:**
@@ -129,6 +140,47 @@ CSS follows the same shape: `@magic-spells/cart-panel/css` is both stylesheets c
 **CartItem Events (bubbled):**
 - `cart-item:remove` - Remove button clicked (`{ cartKey, element }`)
 - `cart-item:quantity-change` - Quantity changed (`{ cartKey, quantity, element }`)
+
+### Section Mode Internals
+
+`shopify/API-cart-items.liquid` is the reference section, shipped in the package `files` so
+consumers can copy it into their theme's `sections/`. It is documentation that runs: the contract
+is one `<cart-item key>` per line wrapping a `<cart-item-content>`, the three standard selectors
+inside, `_hide_in_cart` skipped, and no `<cart-item-processing>` — the overlay stays JS-injected in
+both modes so the states behave identically.
+
+Rendering path: `#renderCartItemsFromSection()` parses the markup with `DOMParser`, looks inside
+Shopify's `#shopify-section-<id>` wrapper (falling back to the body for unwrapped markup), and
+diffs a key-ordered `Map` against the live elements. Existing keys are swapped through
+`setContent()` so element identity survives; new keys animate in through the shared
+`#insertAtKeyOrder()` helper the JS path also uses; missing keys `destroyYourself()`.
+
+A cart object with no markup for the section — an optimistic projection is JSON-only, since
+`#projectCart()` deliberately drops the stale `sections` map — takes `#syncCartItemsFromData()`
+instead, which moves numbers on the lines already drawn and never touches their markup.
+
+`#getLiveCartItems()` filters out elements in the `destroying` state everywhere the render diff
+looks at the DOM. That is what lets a failed optimistic removal animate the same key back in while
+the old element is still collapsing.
+
+### Optimistic Race Machinery
+
+All of it lives in `#lineRequests`, one record per line key (`{ seq, inFlight, pending, removed }`):
+
+- **Coalescing** - at most one request in flight per key. A newer value replaces whatever is
+  `pending` (trailing edge) and is sent when the in-flight one settles.
+- **Sequence ids** - every queued value bumps `seq`; a response captures the `seq` it answers for
+  and is applied only when that is still current. Stale answers are dropped, never rendered.
+- **Remove wins** - a removal sets `removed`, and quantity changes queued behind it are ignored
+  until the record settles. Records are deleted once idle, because Shopify reuses a line key when
+  the same variant is re-added.
+- **Cross-line protection** - `#preserveInFlightLines()` keeps the locally projected quantity of
+  any *other* key that still has a mutation in the air, so one line's response cannot flash
+  another line's old number back. Section mode does the same by skipping `setContent()` for keys
+  with a live mutation.
+
+`hide-count-when-empty` tracks the elements it hid in a per-instance `WeakSet`, so it only ever
+removes the inline `display` it set and never an author's.
 
 ### Dependencies
 
