@@ -1,6 +1,6 @@
 {
 	"name": "@magic-spells/gift-with-purchase",
-	"version": "1.0.1",
+	"version": "2.0.0",
 	"description": "Gift with purchase web component for e-commerce threshold promotions.",
 	"author": "Cory Schulz",
 	"license": "MIT",
@@ -23,11 +23,12 @@
 	"sideEffects": true,
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/magic-spells/gift-with-purchase"
+		"url": "git+https://github.com/magic-spells/cart.git",
+		"directory": "packages/gift-with-purchase"
 	},
-	"homepage": "https://github.com/magic-spells/gift-with-purchase#readme",
+	"homepage": "https://github.com/magic-spells/cart/tree/main/packages/gift-with-purchase#readme",
 	"bugs": {
-		"url": "https://github.com/magic-spells/gift-with-purchase/issues"
+		"url": "https://github.com/magic-spells/cart/issues"
 	},
 	"keywords": [
 		"gift-with-purchase",
