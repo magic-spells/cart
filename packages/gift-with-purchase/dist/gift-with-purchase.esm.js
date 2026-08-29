@@ -187,6 +187,20 @@ class GiftWithPurchase extends HTMLElement {
 		}
 	}
 
+	/**
+	 * Ask the parent cart-panel to re-fetch and re-render the cart.
+	 * refreshCart() is the public API across every published cart-panel (0.3.x - 2.x);
+	 * getCartAndRefresh() is only tried as a fallback for custom panels written against
+	 * the name earlier versions of this component mistakenly called. Missing methods are
+	 * ignored rather than thrown so a successful add/remove never reports a spurious error.
+	 */
+	#refreshCartPanel() {
+		const panel = this.#cartPanel;
+		if (!panel) return;
+		if (typeof panel.refreshCart === 'function') panel.refreshCart();
+		else if (typeof panel.getCartAndRefresh === 'function') panel.getCartAndRefresh();
+	}
+
 	#handleCartDataChange(event) {
 		const _ = this;
 		const cart = event.detail;
@@ -286,7 +300,7 @@ class GiftWithPurchase extends HTMLElement {
 			await res.json();
 			_.#isAdded = true;
 			_.dispatchEvent(new CustomEvent('gwp:added', { detail: { variantId: _.#variantId }, bubbles: true }));
-			_.#cartPanel?.getCartAndRefresh();
+			_.#refreshCartPanel();
 		} catch (err) {
 			console.error('giftwithpurchase: add error', err);
 			_.dispatchEvent(new CustomEvent('gwp:error', { detail: { action: 'add', error: err.message }, bubbles: true }));
@@ -350,7 +364,7 @@ class GiftWithPurchase extends HTMLElement {
 			);
 			_.#isAdded = false;
 			_.dispatchEvent(new CustomEvent('gwp:removed', { detail: { variantId: _.#variantId }, bubbles: true }));
-			_.#cartPanel?.getCartAndRefresh();
+			_.#refreshCartPanel();
 		} catch (err) {
 			console.error('giftwithpurchase: bulk remove error', err);
 			_.dispatchEvent(new CustomEvent('gwp:error', { detail: { action: 'remove', error: err.message }, bubbles: true }));
