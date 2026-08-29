@@ -150,6 +150,10 @@ class CartPanel extends HTMLElement {
 
 	#hasConnected = false;
 
+	// Count elements this panel hid, so it only ever removes its own inline
+	// display and never an author's
+	#hiddenCountElements = new WeakSet();
+
 	// One record per line key while a mutation is in flight or queued.
 	// { seq, inFlight, pending, removed } - see #queueLineMutation.
 	#lineRequests = new Map();
@@ -163,20 +167,28 @@ class CartPanel extends HTMLElement {
 	 * Attributes the panel reacts to after it is connected
 	 */
 	static get observedAttributes() {
-		return ['section'];
+		return ['section', 'hide-count-when-empty'];
 	}
 
 	/**
-	 * Switching render mode on a live panel starts the item list over: the two
-	 * modes build their elements differently, so nothing is worth carrying across
+	 * React to a live attribute change. Switching render mode starts the item
+	 * list over: the two modes build their elements differently, so nothing is
+	 * worth carrying across.
 	 */
 	attributeChangedCallback(name, oldValue, newValue) {
 		const _ = this;
-		if (name !== 'section' || oldValue === newValue) return;
+		if (oldValue === newValue) return;
 
 		// the initial value arrives before connectedCallback, which does the first
 		// render itself - or deliberately does not, in manual mode
 		if (!_.#hasConnected || !_.isConnected) return;
+
+		if (name === 'hide-count-when-empty') {
+			_.#renderCartCount(_.#currentCart);
+			return;
+		}
+
+		if (name !== 'section') return;
 
 		const itemsContainer = _.querySelector('[data-content-cart-items]');
 		if (itemsContainer) itemsContainer.innerHTML = '';
@@ -219,6 +231,23 @@ class CartPanel extends HTMLElement {
 	set optimistic(value) {
 		if (value) this.setAttribute('optimistic', '');
 		else this.removeAttribute('optimistic');
+	}
+
+	/**
+	 * Whether [data-content-cart-count] elements are hidden while the cart is
+	 * empty, page-wide
+	 * @returns {boolean}
+	 */
+	get hideCountWhenEmpty() {
+		return this.hasAttribute('hide-count-when-empty');
+	}
+
+	/**
+	 * @param {boolean} value - Hide the count elements at zero, or leave them
+	 */
+	set hideCountWhenEmpty(value) {
+		if (value) this.setAttribute('hide-count-when-empty', '');
+		else this.removeAttribute('hide-count-when-empty');
 	}
 
 	/**
@@ -850,14 +879,29 @@ class CartPanel extends HTMLElement {
 	 * @private
 	 */
 	#renderCartCount(cartData) {
+		const _ = this;
 		if (!cartData) return;
 
-		const visibleItems = this.#getVisibleCartItems(cartData);
+		const visibleItems = _.#getVisibleCartItems(cartData);
 		const visibleItemCount = visibleItems.reduce((total, item) => total + item.quantity, 0);
+		const hideWhenEmpty = _.hideCountWhenEmpty;
 
+		// Document-wide on purpose: the site header's cart badge lives outside
+		// the panel and still has to move with everything else
 		const cartCountElements = document.querySelectorAll('[data-content-cart-count]');
 		cartCountElements.forEach((element) => {
 			element.textContent = visibleItemCount;
+
+			if (hideWhenEmpty && visibleItemCount === 0) {
+				element.style.display = 'none';
+				_.#hiddenCountElements.add(element);
+				return;
+			}
+
+			// only ever undo our own inline display - an author's stays theirs
+			if (!_.#hiddenCountElements.has(element)) return;
+			element.style.removeProperty('display');
+			_.#hiddenCountElements.delete(element);
 		});
 	}
 

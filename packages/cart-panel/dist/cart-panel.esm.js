@@ -96,6 +96,7 @@ var CartPanel = class extends HTMLElement {
 	#hasRenderedCartItems = false;
 	#isAwaitingCartItemDefinition = false;
 	#hasConnected = false;
+	#hiddenCountElements = /* @__PURE__ */ new WeakSet();
 	#lineRequests = /* @__PURE__ */ new Map();
 	constructor() {
 		super();
@@ -105,16 +106,22 @@ var CartPanel = class extends HTMLElement {
 	* Attributes the panel reacts to after it is connected
 	*/
 	static get observedAttributes() {
-		return ["section"];
+		return ["section", "hide-count-when-empty"];
 	}
 	/**
-	* Switching render mode on a live panel starts the item list over: the two
-	* modes build their elements differently, so nothing is worth carrying across
+	* React to a live attribute change. Switching render mode starts the item
+	* list over: the two modes build their elements differently, so nothing is
+	* worth carrying across.
 	*/
 	attributeChangedCallback(name, oldValue, newValue) {
 		const _ = this;
-		if (name !== "section" || oldValue === newValue) return;
+		if (oldValue === newValue) return;
 		if (!_.#hasConnected || !_.isConnected) return;
+		if (name === "hide-count-when-empty") {
+			_.#renderCartCount(_.#currentCart);
+			return;
+		}
+		if (name !== "section") return;
 		const itemsContainer = _.querySelector("[data-content-cart-items]");
 		if (itemsContainer) itemsContainer.innerHTML = "";
 		_.#isInitialRender = true;
@@ -141,6 +148,21 @@ var CartPanel = class extends HTMLElement {
 	set optimistic(value) {
 		if (value) this.setAttribute("optimistic", "");
 		else this.removeAttribute("optimistic");
+	}
+	/**
+	* Whether [data-content-cart-count] elements are hidden while the cart is
+	* empty, page-wide
+	* @returns {boolean}
+	*/
+	get hideCountWhenEmpty() {
+		return this.hasAttribute("hide-count-when-empty");
+	}
+	/**
+	* @param {boolean} value - Hide the count elements at zero, or leave them
+	*/
+	set hideCountWhenEmpty(value) {
+		if (value) this.setAttribute("hide-count-when-empty", "");
+		else this.removeAttribute("hide-count-when-empty");
 	}
 	/**
 	* The Shopify section id that renders the line items, or null for JS templates
@@ -609,10 +631,20 @@ var CartPanel = class extends HTMLElement {
 	* @private
 	*/
 	#renderCartCount(cartData) {
+		const _ = this;
 		if (!cartData) return;
-		const visibleItemCount = this.#getVisibleCartItems(cartData).reduce((total, item) => total + item.quantity, 0);
+		const visibleItemCount = _.#getVisibleCartItems(cartData).reduce((total, item) => total + item.quantity, 0);
+		const hideWhenEmpty = _.hideCountWhenEmpty;
 		document.querySelectorAll("[data-content-cart-count]").forEach((element) => {
 			element.textContent = visibleItemCount;
+			if (hideWhenEmpty && visibleItemCount === 0) {
+				element.style.display = "none";
+				_.#hiddenCountElements.add(element);
+				return;
+			}
+			if (!_.#hiddenCountElements.has(element)) return;
+			element.style.removeProperty("display");
+			_.#hiddenCountElements.delete(element);
 		});
 	}
 	/**
