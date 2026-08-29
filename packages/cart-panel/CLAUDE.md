@@ -126,7 +126,7 @@ CartItem listens for both `quantity-input:change` and `quantity-modifier:change`
 
 ### Build System
 
-Rollup builds the same four formats for each entry point via `buildsFor()` in `rollup.config.mjs`:
+Rollup builds the same four formats for each entry point via `productionBuilds()` in `rollup.config.mjs`:
 - **ESM**: `dist/cart-panel.esm.js` / `dist/cart-item.esm.js`
 - **CommonJS**: `dist/cart-panel.cjs.js` / `dist/cart-item.cjs.js`
 - **UMD**: `dist/cart-panel.js` + `.min.js` (global `CartPanel`) / `dist/cart-item.js` + `.min.js`
@@ -135,9 +135,20 @@ Rollup builds the same four formats for each entry point via `buildsFor()` in `r
 - **CSS**: `dist/cart-panel.css` and `dist/cart-item.css`, extracted separately from
   `src/cart-panel.css` and `src/cart-item.css`
 
-`@magic-spells/event-emitter` stays external in ESM/CJS and is bundled into UMD. Watch mode adds one
-dev config per entry point, each copying its own ESM bundle, sourcemap, and stylesheet into `demo/`,
-so edits to either source tree refresh the demo.
+`@magic-spells/event-emitter` stays external in ESM/CJS and is bundled into UMD. ESM and CJS are
+never minified — they are inputs to a downstream bundler. The only minified JS this package ships is
+`*.min.js`, which is UMD-derived.
+
+**Watch mode never writes to `dist/`.** `rollup.config.mjs` exports *either* the production configs
+(output `dist/`) *or* the watch configs (output `demo/`) — never both — so a `npm run dev` run cannot
+touch a published artifact. This matters because the two ESM builds are legitimately different bytes:
+the demo's copy bundles `@magic-spells/event-emitter` so a plain `<script type="module">` loads with
+no import map, while the published copy leaves it external. When both wrote to `dist/` the result was
+a race, and a dev-built `dist/cart-panel.esm.js` with the dependency inlined got committed twice.
+A guard at the bottom of the config throws if any watch-mode output ever resolves outside `demo/`.
+
+Watch mode writes `demo/{cart-panel,cart-item}.esm.js`, their sourcemaps, and their stylesheets
+directly to their final location (no copy step) and serves `demo/` on port 3004.
 
 ### Line Item Properties
 
