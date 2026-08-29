@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
-- **Build**: `npm run build` - Builds all distribution files (ESM, CJS, UMD) using Rollup
-- **Development**: `npm run dev` or `npm run serve` - Starts development server with hot reload on port 3000
+- **Build**: `npm run build` - Builds the published `dist/` (ESM, minified UMD, CSS, minified CSS) via `scripts/build.mjs` (Vite JS API, no `vite.config.js`)
+- **Development**: `npm run dev` - Builds to `demo/dist/` in watch mode and serves `demo/` on port 3000
 - **Lint**: `npm run lint` - Lints JavaScript files using ESLint
 - **Format**: `npm run format` - Formats code using Prettier
 - **Pre-publish**: `npm run prepublishOnly` - Automatically runs build before publishing
@@ -17,16 +17,16 @@ This is a **Web Components library** that provides a gift-with-purchase componen
 ### Core Architecture
 
 - **Single Web Component**: `GiftWithPurchase` extends `HTMLElement` using native Custom Elements API
-- **No Framework Dependencies**: Pure JavaScript implementation with SCSS for styling
+- **No Framework Dependencies**: Pure JavaScript implementation with plain CSS for styling
 - **Shopify Integration**: Built-in Cart API integration (`/cart/add.js`, `/cart/change.js`, `/cart.js`)
 - **Event-Driven**: Uses CustomEvents for cart interactions and parent component communication
 
 ### Key Files
 
 - `src/gift-with-purchase.js` - Main component class with private fields pattern (#threshold, #currentAmount, etc.)
-- `src/gift-with-purchase.scss` - Comprehensive SCSS with CSS custom properties and responsive design
-- `rollup.config.mjs` - Multi-target build configuration (ESM, CJS, UMD, demo)
-- `demo/index.html` - Demo page served during development
+- `src/gift-with-purchase.css` - Flat CSS with the `--gwp-*` custom property API
+- `scripts/build.mjs` - Build script (ESM + minified UMD, prod to `dist/`, dev to `demo/dist/`)
+- `demo/index.html` - Demo page served during development; loads `dist/*` relative to `demo/`
 
 ### Component Features
 
@@ -48,19 +48,19 @@ This is a **Web Components library** that provides a gift-with-purchase componen
 
 ### Build System
 
-- **Rollup**: Creates multiple distribution formats with source maps
-- **PostCSS + Sass**: Processes SCSS to CSS with extraction and minification
-- **Development Server**: Auto-opens browser and serves demo on file changes
-- **Copy Plugin**: Copies source SCSS to dist for external consumption
+- **Vite (Rolldown) via JS API**: `scripts/build.mjs` is the config — `configFile: false`, no `vite.config.js`
+- **Lightning CSS**: Transforms and minifies the stylesheet; CSS is extracted, never injected
+- **Terser**: Minifies the UMD bundle. `keep_classnames` alone does not save the class name — Rolldown turns `class GiftWithPurchase extends HTMLElement {}` into `var GiftWithPurchase = class ...` first, leaving nothing named for Terser to keep. `RESERVED_CLASS_NAMES` (scanned out of `src/*.js` at the top of the build script) passes the names as `mangle.reserved`, which is what actually preserves them. `rolldownOptions.output.keepNames` is a dead end — Vite calls `rolldown(inputOptions)` before `bundle.write(outputOptions)`, so rolldown reads it before it exists.
+- **Sourcemaps**: Dev only — `dist/` ships no `.map` files
+- **Development Server**: Serves `demo/` on port 3000 with `@magic-spells/vite-plugin-live-reload` watching `demo/dist/`
 
 ### Package Distribution
 
-- **Main Entry**: `dist/gift-with-purchase.cjs.js` (CommonJS)
-- **Module Entry**: `dist/gift-with-purchase.esm.js` (ES Modules) 
-- **UMD Bundle**: `dist/gift-with-purchase.min.js` (Browser global)
-- **Styles**: Both regular and minified CSS, plus source SCSS
-- **Exports**: Configured for modern import patterns with CSS imports
-- **Files Published**: Both `src/` and `dist/` directories (see package.json files array)
+- **Module Entry**: `dist/gift-with-purchase.esm.js` (ES Modules) — the only JS entry for bundlers
+- **UMD Bundle**: `dist/gift-with-purchase.min.js` (browser global `GiftWithPurchase`)
+- **Styles**: `dist/gift-with-purchase.css` (`./css`) and `dist/gift-with-purchase.min.css` (`./css/min`)
+- **ESM only**: No CommonJS build and no `require` condition — `require()` fails at resolution
+- **Files Published**: `dist/` only (see package.json files array)
 
 ### Cart Integration & Pricing Logic
 
@@ -72,8 +72,6 @@ The component integrates seamlessly with `@magic-spells/cart-panel`:
 
 ### Styling Architecture
 
-- **CSS Custom Properties**: Extensive theming support with fallback SCSS variables
+- **CSS Custom Properties**: `--gwp-*` properties declared on the `gift-with-purchase` element itself, so they stay overridable per instance
 - **State Attribute**: `state="inactive|active|added|ended|disabled"` for CSS styling hooks (e.g., `gift-with-purchase[state="active"]`)
-- **Responsive Design**: Mobile-first with configurable breakpoints
-- **Accessibility**: High contrast, reduced motion, and dark mode support
-- **Print Styles**: Optimized for printed output
+- **Flat selectors**: No nesting, no `@layer`, no preprocessor — every rule is a full longhand selector

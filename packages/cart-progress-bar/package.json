@@ -1,18 +1,17 @@
 {
 	"name": "@magic-spells/cart-progress-bar",
-	"version": "1.0.0",
+	"version": "2.0.0",
 	"description": "Cart progress bar web component for free shipping thresholds.",
 	"author": "Cory Schulz",
 	"license": "MIT",
 	"type": "module",
-	"main": "dist/cart-progress-bar.cjs.js",
+	"main": "dist/cart-progress-bar.esm.js",
 	"module": "dist/cart-progress-bar.esm.js",
 	"unpkg": "dist/cart-progress-bar.min.js",
 	"style": "dist/cart-progress-bar.min.css",
 	"exports": {
 		".": {
 			"import": "./dist/cart-progress-bar.esm.js",
-			"require": "./dist/cart-progress-bar.cjs.js",
 			"default": "./dist/cart-progress-bar.esm.js"
 		},
 		"./css": "./dist/cart-progress-bar.css",
@@ -21,11 +20,12 @@
 	"sideEffects": true,
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/magic-spells/cart-progress-bar"
+		"url": "git+https://github.com/magic-spells/cart.git",
+		"directory": "packages/cart-progress-bar"
 	},
-	"homepage": "https://github.com/magic-spells/cart-progress-bar#readme",
+	"homepage": "https://github.com/magic-spells/cart/tree/main/packages/cart-progress-bar#readme",
 	"bugs": {
-		"url": "https://github.com/magic-spells/cart-progress-bar/issues"
+		"url": "https://github.com/magic-spells/cart/issues"
 	},
 	"keywords": [
 		"cart-progress-bar",
@@ -37,16 +37,14 @@
 		"cart-threshold"
 	],
 	"files": [
-		"dist/",
-		"src/"
+		"dist/"
 	],
 	"scripts": {
-		"build": "rollup -c",
-		"lint": "eslint src/ rollup.config.mjs",
+		"build": "NODE_ENV=production node scripts/build.mjs",
+		"dev": "NODE_ENV=development node scripts/build.mjs",
+		"lint": "eslint src/ scripts/",
 		"format": "prettier --write .",
-		"prepublishOnly": "npm run build",
-		"serve": "rollup -c --watch",
-		"dev": "rollup -c --watch"
+		"prepublishOnly": "npm run build"
 	},
 	"publishConfig": {
 		"access": "public",
@@ -59,14 +57,12 @@
 	],
 	"devDependencies": {
 		"@eslint/js": "^9.38.0",
-		"@rollup/plugin-node-resolve": "^15.2.3",
-		"@rollup/plugin-terser": "^0.4.4",
+		"@magic-spells/vite-plugin-live-reload": "^0.1.0",
 		"eslint": "^9.38.0",
 		"globals": "^15.15.0",
+		"lightningcss": "^1.29.3",
 		"prettier": "^3.3.3",
-		"rollup": "^3.0.0",
-		"rollup-plugin-copy": "^3.5.0",
-		"rollup-plugin-postcss": "^4.0.2",
-		"rollup-plugin-serve": "^1.1.1"
+		"terser": "^5.16.0",
+		"vite": "^8.0.10"
 	}
 }

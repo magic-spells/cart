@@ -6,7 +6,7 @@
 		<title>Cart Panel — @magic-spells</title>
 		<meta
 			name="description"
-			content="A slide-out shopping cart web component for Shopify. One import registers the panel and the cart item — 5.0 kB min + gzip. Each is also on its own subpath." />
+			content="A slide-out shopping cart web component for Shopify. One import registers the panel and the cart item — 4.9 kB min + gzip. Each is also on its own subpath." />
 		<!-- Inlined as a data URI so the repo stays binary-free and the browser's
 		     automatic /favicon.ico request never 404s. A cart basket with its
 		     handle — the component's own silhouette. -->
@@ -20,7 +20,7 @@
 			href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@200;300;400;500&display=swap"
 			rel="stylesheet" />
 
-		<!-- sibling packages, via published npm builds on the CDN -->
+		<!-- external packages, via published npm builds on the CDN -->
 		<link
 			rel="stylesheet"
 			href="https://unpkg.com/@magic-spells/split-text@0.2.0/dist/split-text.min.css" />
@@ -31,16 +31,15 @@
 		<link
 			rel="stylesheet"
 			href="https://unpkg.com/@magic-spells/quantity-input@1.0.2/dist/quantity-input.css" />
-		<link
-			rel="stylesheet"
-			href="https://unpkg.com/@magic-spells/cart-progress-bar@1.0.0/dist/cart-progress-bar.min.css" />
-		<link
-			rel="stylesheet"
-			href="https://unpkg.com/@magic-spells/gift-with-purchase@1.0.0/dist/gift-with-purchase.min.css" />
 
-		<!-- this package: two entry points, two stylesheets -->
-		<!-- both stylesheets, the way @magic-spells/cart-panel/css ships them -->
-		<link rel="stylesheet" href="./index.css" />
+		<!-- monorepo siblings, copied out of their workspace dist/ by `npm run dev`
+		     so this demo drives the versions in this repo, not the CDN's -->
+		<link rel="stylesheet" href="./dist/vendor/cart-progress-bar.min.css" />
+		<link rel="stylesheet" href="./dist/vendor/gift-with-purchase.min.css" />
+
+		<!-- this package: one root entry, both stylesheets concatenated,
+		     the way @magic-spells/cart-panel/css ships them -->
+		<link rel="stylesheet" href="./dist/index.css" />
 
 		<style>
 			:root {
@@ -360,7 +359,8 @@
 				transform: translateY(1px);
 			}
 
-			.btn-primary {
+			.btn-primary,
+			.btn[aria-pressed='true'] {
 				color: var(--jade-text);
 				border-color: var(--jade-dim);
 				background: rgba(63, 207, 142, 0.06);
@@ -491,6 +491,20 @@
 				font-weight: 400;
 			}
 
+			/* The brackets are drawn, not typed, so `hide-count-when-empty` takes
+			   them away with the number instead of leaving "Cart ()" behind. */
+			.cart-title-count {
+				color: var(--jade-text);
+			}
+
+			.cart-title-count::before {
+				content: '(';
+			}
+
+			.cart-title-count::after {
+				content: ')';
+			}
+
 			.cart-close {
 				width: 2rem;
 				height: 2rem;
@@ -582,7 +596,7 @@
 			/* ---- The line item skin ---- */
 			.line-item {
 				display: flex;
-				align-items: center;
+				align-items: flex-start;
 				gap: 0.9rem;
 				padding: 1.1rem 1.5rem;
 				border-bottom: 1px solid var(--border);
@@ -612,10 +626,14 @@
 				font-size: 0.95rem;
 			}
 
+			/* Spans the row so the remove sits at the top edge and the price at
+			   the bottom, whatever height the middle column runs to. */
 			.line-side {
 				display: flex;
 				flex-direction: column;
 				align-items: flex-end;
+				align-self: stretch;
+				justify-content: space-between;
 				gap: 0.75rem;
 			}
 
@@ -639,9 +657,12 @@
 				color: var(--jade-text);
 			}
 
+			/* The package fixes the control at 2.5rem tall; the children must fill
+			   it edge to edge or a gap shows above and below the buttons. */
 			quantity-input {
 				display: inline-flex;
-				align-items: center;
+				align-items: stretch;
+				height: 2.5rem;
 				border: 1px solid var(--border-accent);
 				border-radius: 6px;
 				overflow: hidden;
@@ -649,7 +670,7 @@
 
 			quantity-input button {
 				width: 1.9rem;
-				height: 1.9rem;
+				height: 100%;
 				color: var(--text-dim);
 				background: var(--bg-well);
 				border: none;
@@ -671,7 +692,7 @@
 
 			quantity-input input {
 				width: 2.4rem;
-				height: 1.9rem;
+				height: 100%;
 				color: var(--cream);
 				background: transparent;
 				border: none;
@@ -685,6 +706,20 @@
 			quantity-input input:focus-visible {
 				outline: 2px solid var(--jade-text);
 				outline-offset: -2px;
+			}
+
+			/* Section mode ships a bare number field instead — the same field the
+			   reference Liquid renders, and what the Enter guard is for. */
+			.line-qty {
+				width: 3.4rem;
+				padding: 0.35rem 0.5rem;
+				color: var(--cream);
+				background: var(--bg-well);
+				border: 1px solid var(--border-accent);
+				border-radius: 6px;
+				font-family: var(--font-mono);
+				font-size: 0.85rem;
+				text-align: center;
 			}
 
 			/* ---- The set: two sibling packages, skinned to the same palette ---- */
@@ -866,9 +901,7 @@
 	<body>
 		<!-- ======== HERO ======== -->
 		<header class="hero">
-			<a class="hero-badge" href="https://github.com/magic-spells/cart-panel"
-				>@magic-spells/cart-panel</a
-			>
+			<a class="hero-badge" href="https://github.com/magic-spells/cart">@magic-spells/cart</a>
 			<h1>
 				<split-text split="chars" trigger="load" stagger="26" duration="820">
 					A cart that <em>slides</em>
@@ -887,7 +920,7 @@
 				     elements. A theme with its own item element can take the panel
 				     alone from the /panel subpath for 2.8 kB. -->
 				<div class="size-note">
-					<span class="size-value">5.0 kB · 2.8 kB panel alone</span>
+					<span class="size-value">4.9 kB · 2.8 kB panel alone</span>
 					<span class="size-label">min + gzip</span>
 				</div>
 			</div>
@@ -920,6 +953,41 @@
 						<dd data-content-cart-subtotal>$0.00</dd>
 					</div>
 				</dl>
+			</section>
+
+			<!-- ---- Render modes ---- -->
+			<section class="demo-section">
+				<div class="spec"><span class="spec-key">Render modes</span></div>
+				<h2>Two ways to <em>draw a line</em>.</h2>
+				<p class="demo-desc">
+					By default the panel renders line items from a JS template. Point
+					<code>section</code> at a Shopify section and the server renders them instead — same
+					selectors, same events, same states, and the markup rides along in the mutation
+					response. Add <code>optimistic</code> and quantities move on the click, not on the
+					answer.
+				</p>
+				<div class="controls">
+					<button class="btn" id="toggle-section-btn" type="button" aria-pressed="false">
+						Section mode: off
+					</button>
+					<button class="btn" id="toggle-optimistic-btn" type="button" aria-pressed="false">
+						Optimistic: off
+					</button>
+				</div>
+				<dl class="readout">
+					<div>
+						<dt>Lines drawn by</dt>
+						<dd id="mode-readout">JS template</dd>
+					</div>
+					<div>
+						<dt>Requests in flight</dt>
+						<dd id="inflight-readout">0</dd>
+					</div>
+				</dl>
+				<div class="code-aside">
+					<code><span class="cm">&lt;!-- server renders content, JS renders behavior --&gt;</span>
+&lt;cart-panel section=<span class="str">"API-cart-items"</span> optimistic&gt;</code>
+				</div>
 			</section>
 
 			<!-- ---- Opt-in item ---- -->
@@ -984,6 +1052,29 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 						<div>Skip the refresh on connect. You call <code>refreshCart()</code> yourself.</div>
 					</div>
 					<div class="ref-row">
+						<div><code>section</code></div>
+						<div>absent</div>
+						<div>
+							Shopify section id that renders the line items. Absent, a JS template renders them.
+						</div>
+					</div>
+					<div class="ref-row">
+						<div><code>optimistic</code></div>
+						<div>absent</div>
+						<div>
+							Apply quantity changes and removals locally first, then send them. No processing
+							state.
+						</div>
+					</div>
+					<div class="ref-row">
+						<div><code>hide-count-when-empty</code></div>
+						<div>absent</div>
+						<div>
+							Hide every <code>[data-content-cart-count]</code> element, page-wide, while the cart
+							is empty.
+						</div>
+					</div>
+					<div class="ref-row">
 						<div><code>state</code></div>
 						<div>reflected</div>
 						<div>
@@ -1013,12 +1104,26 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 					<div class="ref-row">
 						<div><code>getCart()</code></div>
 						<div>Promise</div>
-						<div>Fetches <code>/cart.json</code>. Override it to fake the cart, as here.</div>
+						<div>
+							Fetches <code>/cart.json</code>. Override it to fake the cart — this demo fakes the
+							endpoint instead.
+						</div>
+					</div>
+					<div class="ref-row">
+						<div><code>getCartSection()</code></div>
+						<div>Promise</div>
+						<div>
+							Fetches <code>/?sections=&lt;id&gt;</code> in section mode. Resolves to
+							<code>null</code> without one.
+						</div>
 					</div>
 					<div class="ref-row">
 						<div><code>updateCartItem(key, qty)</code></div>
 						<div>Promise</div>
-						<div>POSTs <code>/cart/change.json</code>. <code>qty: 0</code> removes.</div>
+						<div>
+							POSTs <code>/cart/change.json</code>. <code>qty: 0</code> removes. In section mode it
+							asks for the markup too.
+						</div>
 					</div>
 					<div class="ref-row">
 						<div><code>refreshCart(cart?)</code></div>
@@ -1077,7 +1182,15 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 						<div>
 							cart + <code>calculated_count</code>, <code>calculated_subtotal</code>
 						</div>
-						<div>Any change. The one the progress bar and the gift listen to.</div>
+						<div>
+							Any change. The one the progress bar and the gift listen to. Optimistic updates fire
+							it on the click.
+						</div>
+					</div>
+					<div class="ref-row">
+						<div><code>cart-panel:error</code></div>
+						<div><code>{ key, error }</code></div>
+						<div>An optimistic change the server refused. Server truth is already back on screen.</div>
 					</div>
 				</div>
 
@@ -1118,8 +1231,11 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 								>[data-content-line-price]</code
 							>
 						</div>
-						<div>Item template</div>
-						<div>Remove button, quantity field, formatted line price.</div>
+						<div>Item template or section</div>
+						<div>
+							Remove button, quantity field, formatted line price. Both render modes bind to the
+							same three.
+						</div>
 					</div>
 				</div>
 
@@ -1173,6 +1289,16 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 						</div>
 						<div>Instance</div>
 						<div>Drive one line by hand.</div>
+					</div>
+					<div class="ref-row">
+						<div>
+							<code>setContent(html)</code><br /><code>applyItemData(item)</code>
+						</div>
+						<div>Instance</div>
+						<div>
+							Section mode: swap in server markup keeping identity and focus, or move the numbers
+							from JSON alone.
+						</div>
 					</div>
 					<div class="ref-row">
 						<div>
@@ -1239,16 +1365,20 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 
 		<footer class="site-foot">
 			Built for the last step before checkout ·
-			<a href="https://github.com/magic-spells/cart-panel">@magic-spells/cart-panel</a> · MIT License ·
-			Made by <a href="https://github.com/coryschulz">Cory Schulz</a>
+			<a href="https://github.com/magic-spells/cart/tree/main/packages/cart-panel"
+				>@magic-spells/cart-panel</a
+			>
+			· MIT License · Made by <a href="https://github.com/coryschulz">Cory Schulz</a>
 		</footer>
 
 		<!-- ======== THE PANEL ======== -->
 		<dialog-panel id="cart-dialog" position="right">
 			<dialog aria-labelledby="cart-title">
-				<cart-panel manual>
+				<cart-panel manual hide-count-when-empty>
 					<div class="cart-header">
-						<h2 id="cart-title">Cart</h2>
+						<h2 id="cart-title">
+							Cart <span class="cart-title-count" data-content-cart-count></span>
+						</h2>
 						<button class="cart-close" type="button" aria-label="Close cart" data-action-hide-cart>
 							&times;
 						</button>
@@ -1299,11 +1429,12 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 		<script type="module">
 			import 'https://unpkg.com/@magic-spells/dialog-panel@2.0.1/dist/dialog-panel.esm.js';
 			import 'https://unpkg.com/@magic-spells/quantity-input@1.0.2/dist/quantity-input.esm.js';
-			import 'https://unpkg.com/@magic-spells/cart-progress-bar@1.0.0/dist/cart-progress-bar.esm.js';
-			import 'https://unpkg.com/@magic-spells/gift-with-purchase@1.0.0/dist/gift-with-purchase.esm.js';
+			// Monorepo siblings, from their workspace builds rather than the CDN.
+			import './dist/vendor/cart-progress-bar.esm.js';
+			import './dist/vendor/gift-with-purchase.esm.js';
 			// The root entry: registers <cart-panel> and <cart-item> in one import.
 			// Published, this line is `import '@magic-spells/cart-panel'`.
-			import './index.esm.js';
+			import './dist/index.esm.js';
 
 			const $ = (selector, root = document) => root.querySelector(selector);
 
@@ -1344,6 +1475,9 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 			});
 
 			// ---- Simulated Shopify cart ----
+			const SECTION_ID = 'API-cart-items';
+			const LATENCY = 300;
+
 			let cart = {
 				item_count: 4,
 				items: [
@@ -1352,6 +1486,7 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 						id: '1',
 						product_title: 'Wireless Headphones',
 						quantity: 1,
+						price: 9999,
 						line_price: 9999,
 						properties: { emoji: '🎧' },
 					},
@@ -1360,7 +1495,8 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 						id: '2',
 						product_title: 'Smartphone Case',
 						quantity: 2,
-						line_price: 2499,
+						price: 2499,
+						line_price: 4998,
 						properties: { emoji: '📱' },
 					},
 					{
@@ -1368,62 +1504,136 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 						id: '3',
 						product_title: 'USB Cable',
 						quantity: 1,
+						price: 1299,
 						line_price: 1299,
 						properties: { emoji: '🔌' },
 					},
 				],
 			};
 
-			cartPanel.getCart = () => Promise.resolve(cart);
+			// ---- Simulated Shopify Cart API ----
+			// Every endpoint the panel and the gift talk to, answered against that
+			// one cart object: /cart.json, /cart/change.json with the rendered
+			// section riding along, /?sections=<id> on its own, and the two .js
+			// endpoints the gift POSTs to. Nothing about the panel is stubbed —
+			// the code answering these requests is the code that ships.
+			const money = (cents) => `$${(cents / 100).toFixed(2)}`;
+			const visibleItems = () => cart.items.filter((item) => !item.properties?._hide_in_cart);
+			const syncCount = () => {
+				cart.item_count = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+			};
 
-			cartPanel.updateCartItem = (key, quantity) =>
-				new Promise((resolve) => {
-					// stand in for the network round trip
-					setTimeout(() => {
-						const index = cart.items.findIndex((item) => (item.key || item.id) === key);
-						if (index !== -1) {
-							if (quantity === 0) cart.items.splice(index, 1);
-							else cart.items[index].quantity = quantity;
-						}
-						cart.item_count = cart.items.reduce((sum, item) => sum + item.quantity, 0);
-						resolve(cart);
-					}, 300);
+			const inflightReadout = $('#inflight-readout');
+			let inFlight = 0;
+
+			const trackInFlight = (delta) => {
+				inFlight += delta;
+				inflightReadout.textContent = inFlight;
+			};
+
+			// Stands in for sections/API-cart-items.liquid — a bare quantity input,
+			// the same one the reference section renders, wrapped the way Shopify
+			// wraps a rendered section.
+			const renderSection = () => {
+				const lines = visibleItems()
+					.map(
+						(item) => `
+							<cart-item key="${item.key}">
+								<cart-item-content>
+									<div class="line-item">
+										<div class="line-thumb" aria-hidden="true">${item.properties?.emoji || '📦'}</div>
+										<div class="line-body">
+											<div class="line-title">${item.product_title}</div>
+											<input class="line-qty" type="number" min="0" value="${item.quantity}" aria-label="Quantity" data-cart-quantity />
+										</div>
+										<div class="line-side">
+											<button class="line-remove" type="button" aria-label="Remove item" data-action-remove-item>&times;</button>
+											<div class="line-price" data-content-line-price>${money(item.line_price)}</div>
+										</div>
+									</div>
+								</cart-item-content>
+							</cart-item>`
+					)
+					.join('');
+
+				return `<div id="shopify-section-${SECTION_ID}">${lines}</div>`;
+			};
+
+			const cartPayload = (sections) => {
+				const payload = structuredClone(cart);
+				if (sections) payload.sections = { [SECTION_ID]: renderSection() };
+				return payload;
+			};
+
+			const jsonResponse = (payload) =>
+				new Response(JSON.stringify(payload), {
+					status: 200,
+					headers: { 'Content-Type': 'application/json' },
 				});
 
-			// ---- Simulated Shopify Cart API ----
-			// gift-with-purchase POSTs to the real endpoints, so stand them up
-			// against the same cart object. It also calls getCartAndRefresh().
-			cartPanel.getCartAndRefresh = () => cartPanel.refreshCart();
+			// stand in for the network round trip, and count what is in the air
+			const afterLatency = (buildPayload) =>
+				new Promise((resolve) => {
+					trackInFlight(1);
+					setTimeout(() => {
+						trackInFlight(-1);
+						resolve(jsonResponse(buildPayload()));
+					}, LATENCY);
+				});
+
+			const changeLine = (key, quantity) => {
+				const index = cart.items.findIndex((item) => (item.key || item.id) === key);
+				if (index === -1) return;
+
+				if (quantity === 0) {
+					cart.items.splice(index, 1);
+				} else {
+					const item = cart.items[index];
+					cart.items[index] = { ...item, quantity, line_price: (item.price ?? 0) * quantity };
+				}
+				syncCount();
+			};
 
 			const nativeFetch = window.fetch.bind(window);
 			window.fetch = (input, init = {}) => {
 				const url = typeof input === 'string' ? input : input.url;
 				const body = init.body ? JSON.parse(init.body) : {};
 
-				if (url === '/cart/add.js') {
-					body.items.forEach((line) => {
-						cart.items.push({
-							key: `gift-${line.id}`,
-							id: line.id,
-							variant_id: line.id,
-							product_title: 'Travel Candle',
-							quantity: line.quantity,
-							line_price: 0,
-							properties: { ...line.properties, emoji: '🎁' },
-						});
-					});
-				} else if (url === '/cart/change.js') {
-					const index = cart.items.findIndex((item) => item.key === body.id);
-					if (index !== -1) {
-						if (body.quantity === 0) cart.items.splice(index, 1);
-						else cart.items[index].quantity = body.quantity;
-					}
-				} else {
-					return nativeFetch(input, init);
+				if (url.startsWith('/?sections=')) {
+					return Promise.resolve(jsonResponse({ [SECTION_ID]: renderSection() }));
 				}
 
-				cart.item_count = cart.items.reduce((sum, item) => sum + item.quantity, 0);
-				return Promise.resolve(new Response(JSON.stringify(cart), { status: 200 }));
+				if (url === '/cart.json' || url === '/cart.js') {
+					return Promise.resolve(jsonResponse(cartPayload(false)));
+				}
+
+				if (url === '/cart/change.json' || url === '/cart/change.js') {
+					return afterLatency(() => {
+						changeLine(body.id, body.quantity);
+						return cartPayload(Boolean(body.sections));
+					});
+				}
+
+				if (url === '/cart/add.js') {
+					return afterLatency(() => {
+						body.items.forEach((line) => {
+							cart.items.push({
+								key: `gift-${line.id}`,
+								id: line.id,
+								variant_id: line.id,
+								product_title: 'Travel Candle',
+								quantity: line.quantity,
+								price: 0,
+								line_price: 0,
+								properties: { ...line.properties, emoji: '🎁' },
+							});
+						});
+						syncCount();
+						return cartPayload(Boolean(body.sections));
+					});
+				}
+
+				return nativeFetch(input, init);
 			};
 
 			cartPanel.refreshCart();
@@ -1440,6 +1650,7 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 					id: key,
 					product_title: pick.name,
 					quantity: 1,
+					price: Math.round(pick.price * 100),
 					line_price: Math.round(pick.price * 100),
 					properties: { emoji: pick.emoji },
 				});
@@ -1454,6 +1665,31 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 				cartPanel.refreshCart().then(() => logEvent('cart cleared'));
 			});
 
+			// ---- Render mode toggles ----
+			// Both are plain attributes on the panel, so the demo just flips them.
+			const sectionBtn = $('#toggle-section-btn');
+			const optimisticBtn = $('#toggle-optimistic-btn');
+			const modeReadout = $('#mode-readout');
+
+			sectionBtn.addEventListener('click', () => {
+				const on = !cartPanel.section;
+				cartPanel.section = on ? SECTION_ID : null;
+
+				sectionBtn.setAttribute('aria-pressed', String(on));
+				sectionBtn.textContent = `Section mode: ${on ? 'on' : 'off'}`;
+				modeReadout.textContent = on ? 'Shopify section' : 'JS template';
+				logEvent('section', on ? SECTION_ID : 'off');
+			});
+
+			optimisticBtn.addEventListener('click', () => {
+				const on = !cartPanel.optimistic;
+				cartPanel.optimistic = on;
+
+				optimisticBtn.setAttribute('aria-pressed', String(on));
+				optimisticBtn.textContent = `Optimistic: ${on ? 'on' : 'off'}`;
+				logEvent('optimistic', on ? 'on' : 'off');
+			});
+
 			// ---- Events ----
 			cartPanel
 				.on('cart-panel:show', () => logEvent('cart-panel:show'))
@@ -1462,7 +1698,8 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 				.on('cart-panel:updated', () => logEvent('cart-panel:updated'))
 				.on('cart-panel:data-changed', (data) =>
 					logEvent('cart-panel:data-changed', `count: ${data.calculated_count}`)
-				);
+				)
+				.on('cart-panel:error', (data) => logEvent('cart-panel:error', `key: ${data.key}`));
 
 			// the gift announces itself too — both events bubble
 			document.addEventListener('gwp:added', () => logEvent('gwp:added', 'Travel Candle'));

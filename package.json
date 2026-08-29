@@ -1,5 +1,5 @@
 {
-	"name": "@magic-spells/cart-monorepo",
+	"name": "@magic-spells/cart",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
@@ -13,7 +13,7 @@
 		"packages/gift-with-purchase"
 	],
 	"scripts": {
-		"build": "npm run build -w @magic-spells/cart-progress-bar -w @magic-spells/gift-with-purchase",
+		"build": "npm run build -w @magic-spells/cart-panel -w @magic-spells/cart-progress-bar -w @magic-spells/gift-with-purchase",
 		"dev:panel": "npm run dev -w @magic-spells/cart-panel",
 		"dev:progress": "npm run dev -w @magic-spells/cart-progress-bar",
 		"dev:gwp": "npm run dev -w @magic-spells/gift-with-purchase",

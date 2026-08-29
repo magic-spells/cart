@@ -1,4 +1,4 @@
-import './gift-with-purchase.scss';
+import './gift-with-purchase.css';
 
 /**
  * Gift With Purchase Component - automatically adds/removes gift when cart threshold is met

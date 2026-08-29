@@ -2,11 +2,11 @@
 
 A slide-out shopping cart web component. The panel owns the cart data, the Shopify AJAX and the item rendering; `@magic-spells/dialog-panel` owns the modal.
 
-[**Live Demo**](https://magic-spells.github.io/cart-panel/demo/)
+[**Live Demo**](https://magic-spells.github.io/cart/)
 
 ## Size & scope
 
-**5.0 kB** min + gzip for the whole cart (3.9 kB JS, 1.0 kB CSS) — panel and item, one import.
+**4.9 kB** min + gzip for the whole cart (3.9 kB JS, 1.0 kB CSS) — panel and item, one import.
 
 Both halves are also published on their own subpaths, so a page that brings its own item element takes the panel alone at **2.8 kB** (2.7 kB JS, 0.1 kB CSS), and a page that only wants the item takes it at **2.8 kB** (1.8 kB JS, 1.0 kB CSS).
 
@@ -15,6 +15,8 @@ Both halves are also published on their own subpaths, so a page that brings its 
 - **Complete cart management** - Handles cart data, AJAX requests, and item rendering
 - **One import** - The root entry registers the panel and the item together; both are also on their own subpaths if you want only one
 - **Swappable item element** - The panel resolves `<cart-item>` from the custom element registry at render time, so you can substitute your own
+- **Two render modes** - JS templates by default, or let a Shopify section render the line items: the server renders content, JS renders behavior
+- **Optimistic updates** - Opt in and quantity changes land on the click, not on the response, with coalescing and stale-response guards behind them
 - **Delegates modal to dialog-panel** - Works with `@magic-spells/dialog-panel` for accessible modal behavior
 - **Real-time sync** - Automatic cart updates via `/cart.json` and `/cart/change.json` APIs
 - **Event-driven architecture** - Rich event system with custom event emitter
@@ -202,7 +204,12 @@ The component automatically handles:
 | Attribute | Type    | Description                                            |
 | --------- | ------- | ------------------------------------------------------ |
 | `manual`  | Boolean | Skip auto-refresh on connect, require explicit refreshCart() |
+| `section` | String  | Shopify section id that renders the line items. Absent, a JS template renders them — see [Render Modes](#render-modes) |
+| `optimistic` | Boolean | Apply quantity changes and removals locally before the server answers — see [Optimistic Updates](#optimistic-updates) |
+| `hide-count-when-empty` | Boolean | Hide every `[data-content-cart-count]` element on the page while the cart is empty |
 | `state`   | String  | Reflected attribute: 'has-items' or 'empty'            |
+
+`section`, `optimistic` and `hide-count-when-empty` are also reflected properties (`panel.section = 'API-cart-items'`, `panel.optimistic = true`), so they can be flipped at runtime. Changing `section` re-renders the item list from scratch.
 
 ### Required HTML Structure
 
@@ -214,6 +221,8 @@ The component automatically handles:
 | `[data-action-hide-cart]`   | Close buttons (click triggers hide())     | No       |
 | `[data-content-cart-count]` | Elements updated with visible item count  | No       |
 | `[data-content-cart-subtotal]` | Elements updated with formatted subtotal | No       |
+
+`[data-content-cart-count]` and `[data-content-cart-subtotal]` are written **document-wide**, not just inside the panel — put one on your site header's cart icon and it updates with everything else, including optimistic changes, which land the moment the click does. `hide-count-when-empty` hides those same elements at zero, so a header badge disappears instead of reading "0"; only the inline `display` the panel set is ever removed, so your own CSS is left alone.
 
 ### CartItem Child Elements
 
@@ -236,6 +245,7 @@ cartPanel.hide()                       // Close modal
 
 // Cart Data
 cartPanel.getCart()                    // Fetch from /cart.json
+cartPanel.getCartSection()             // Fetch /?sections=<id> in section mode, else null
 cartPanel.updateCartItem(key, quantity) // POST to /cart/change.json
 cartPanel.refreshCart(cartObj?)        // Update display with cart data
 
@@ -257,13 +267,16 @@ cartPanel.off(eventName, callback)     // Remove event listener
 | `cart-panel:refreshed` | `{ cart }`                                          | After cart data refreshed |
 | `cart-panel:updated`   | `{ cart }`                                          | After item quantity/remove |
 | `cart-panel:data-changed` | `{ calculated_count, calculated_subtotal, ... }` | Any cart change          |
+| `cart-panel:error`     | `{ key, error }`                                    | An optimistic change the server refused. Server truth is already back on screen |
 
 ### CartItem Events (bubbled)
 
 | Event                     | Detail                             | Description           |
 | ------------------------- | ---------------------------------- | --------------------- |
 | `cart-item:remove`        | `{ cartKey, element }`             | Remove button clicked |
-| `cart-item:quantity-change` | `{ cartKey, quantity, element }` | Quantity changed      |
+| `cart-item:quantity-change` | `{ cartKey, quantity, element }` | Quantity changed, by a `change` event or by Enter |
+
+**Enter commits a quantity.** A `[data-cart-quantity]` field inside a `<form>` submits the page on Enter, and one outside a form commits nothing until it loses focus. Pressing Enter in a bare quantity field now commits the typed value instead: it is clamped to the field's own `min`/`max`, written back into the field, and emitted only if the quantity actually changed. Fields inside `<quantity-input>` or `<quantity-modifier>` are left alone — those components own their commit logic, and handling Enter here as well would send the change twice.
 
 ### CartItem States
 
@@ -288,6 +301,22 @@ CartItem.setProcessingTemplate(templateFn)
 // Create with animation
 CartItem.createAnimated(itemData, cartData)
 ```
+
+### CartItem Instance Methods
+
+```javascript
+const item = document.querySelector('cart-item');
+
+item.setState('processing')       // 'ready' | 'processing' | 'destroying' | 'appearing'
+item.setData(itemData, cartData?) // Redraw from cart JSON through the template
+item.destroyYourself()            // Animate closed, then remove
+
+// Section mode
+item.setContent(html)             // Swap in server-rendered markup, keeping identity and focus
+item.applyItemData(itemData)      // Move line price and quantity from JSON without redrawing
+```
+
+A replacement `<cart-item>` element needs `setContent(html)` to work with the `section` attribute; without it the panel warns once and leaves the line empty.
 
 ### Programmatic Control
 
@@ -358,6 +387,99 @@ cartPanel.setCartItemProcessingTemplate(() => {
   return `<div class="custom-loader">Updating...</div>`;
 });
 ```
+
+## Render Modes
+
+There are two ways to draw a line item, and the `section` attribute picks between them.
+
+**JS template mode (default).** No `section` attribute. The panel renders line items from the template you registered above. Everything is client-side.
+
+**Section mode.** `<cart-panel section="API-cart-items">`. Shopify renders the line items and the panel diffs the returned markup into place. The split is:
+
+> **The server renders content, JS renders behavior.**
+
+The cart JSON still drives everything except the line-item markup — count, subtotal, the `state` attribute, and every event. Progress bars and gift-with-purchase stay client-side and are never server-rendered; only the items come from the section.
+
+### What it costs in requests
+
+| Action | JS template mode | Section mode |
+| ------ | ---------------- | ------------ |
+| Quantity change / removal | POST `/cart/change.json` | POST `/cart/change.json` with `sections` in the body — the markup comes back in the same response |
+| `refreshCart()` | GET `/cart.json` | GET `/cart.json` and `/?sections=<id>`, in parallel |
+
+Section mode costs no extra round trip on a mutation, which is the whole reason the mode select is an attribute rather than a fork in your code.
+
+### The section
+
+Copy `shopify/API-cart-items.liquid` out of this package into your theme's `sections/` folder, then point the panel at its filename:
+
+```html
+<cart-panel section="API-cart-items">
+```
+
+The section is yours to restyle — the contract is only about structure:
+
+```liquid
+{%- for item in cart.items -%}
+  {%- if item.properties._hide_in_cart -%}{%- continue -%}{%- endif -%}
+
+  <cart-item key="{{ item.key }}">
+    <cart-item-content>
+      <!-- your markup -->
+      <input type="number" value="{{ item.quantity }}" min="0" data-cart-quantity>
+      <button type="button" data-action-remove-item>&times;</button>
+      <span data-content-line-price>{{ item.final_line_price | money }}</span>
+    </cart-item-content>
+  </cart-item>
+{%- endfor -%}
+```
+
+- One `<cart-item key="...">` per line, wrapping a `<cart-item-content>`.
+- The same three selectors JS templates use: `[data-action-remove-item]`, `[data-cart-quantity]`, `[data-content-line-price]`. Event handling needs no changes at all.
+- Skip `_hide_in_cart` lines, the way the panel does.
+- Do **not** render `<cart-item-processing>` — the component injects the processing overlay itself in both modes, so the states behave identically.
+
+### What the diff preserves
+
+When new markup arrives, the panel matches it against what is on screen by key:
+
+- **Existing key** — the live element keeps its identity: the element, its `state` attribute and any animation in progress all survive, and only its content is swapped. Focus and caret position inside a quantity field are restored afterwards, so a refresh cannot interrupt someone typing.
+- **New key** — inserted in cart order with the `appearing` animation.
+- **Missing key** — `destroyYourself()`, with the `destroying` animation.
+
+Setting a JS template while `section` is present warns once and the template is ignored: two sources of truth for the same markup is a configuration error, and the section wins.
+
+## Optimistic Updates
+
+`<cart-panel optimistic>` turns quantity changes and removals into local edits that happen immediately, with the request sent behind them.
+
+```html
+<cart-panel optimistic>
+```
+
+- **Quantity change** — the item's quantity and line price are recalculated locally, along with `calculated_count` and `calculated_subtotal` (still honoring `_ignore_price_in_subtotal` and `_hide_in_cart`), and drawn at once. The item never enters the `processing` state.
+- **Removal** — the line animates out immediately.
+- **`cart-panel:data-changed` fires on the local update**, so progress bars and gift-with-purchase react to the click rather than to the network.
+- **On success** the server's cart is reconciled in silently — including fresh item markup in section mode. A second `data-changed` fires only if the server disagreed with what is already on screen.
+- **On failure** server truth is fetched and restored — a line removed optimistically animates back in — and `cart-panel:error` fires with `{ key, error }`.
+
+```javascript
+cartPanel.on('cart-panel:error', ({ key, error }) => {
+  showToast(`Could not update that item`);
+});
+```
+
+### Race safety
+
+Fast fingers on a `+` button are the interesting case, and three rules cover it:
+
+1. **Coalescing.** At most one request per line key is in flight. Newer values queue behind it, and only the latest is sent when it settles — six fast clicks send two requests, not six.
+2. **Sequence ids.** Every queued value bumps a per-key counter, and a response is applied only if its counter is still current. A slow answer can never overwrite newer local state.
+3. **Remove wins.** A removal marks its key, and quantity changes queued behind it are ignored until it settles. A late change response for a removed line cannot bring it back.
+
+A response for one line also leaves other lines' in-flight quantities alone, so an answer about line A cannot flash line B's old number back onto the screen.
+
+Without the attribute, none of this is engaged: the panel keeps the processing-state flow it has always had.
 
 ## Customization
 

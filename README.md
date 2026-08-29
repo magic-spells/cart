@@ -11,7 +11,7 @@ in lockstep as one family, and they are developed together in this monorepo.
 
 | Package                                                       | Description                                                       | Size (min + gzip) |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------- |
-| [`@magic-spells/cart-panel`](packages/cart-panel)             | Slide-out shopping cart that owns cart data, Shopify AJAX and item rendering. | 2.8 kB panel · 2.8 kB cart item |
+| [`@magic-spells/cart-panel`](packages/cart-panel)             | Slide-out shopping cart that owns cart data, Shopify AJAX and item rendering. | 4.9 kB both · 2.8 kB panel · 2.8 kB cart item |
 | [`@magic-spells/cart-progress-bar`](packages/cart-progress-bar) | Progress bar for free-shipping and other cart spend thresholds.   | 2.1 kB            |
 | [`@magic-spells/gift-with-purchase`](packages/gift-with-purchase) | Automatic gift-with-purchase threshold promotions.                | 2.8 kB            |
 
@@ -21,9 +21,21 @@ A slide-out shopping cart web component. The panel owns the cart data, the Shopi
 item rendering; [`@magic-spells/dialog-panel`](https://github.com/magic-spells/dialog-panel) owns
 the modal behavior.
 
-**2.8 kB** min + gzip for the panel (2.7 kB JS, 0.1 kB CSS) · **2.8 kB** for the opt-in cart item
-(1.8 kB JS, 1.0 kB CSS). Two entry points, so a page that brings its own item element pays for the
-panel only. `<cart-item>` ships in this same package on its own subpath export.
+Three entry points. The root import registers the panel and the item together — a working cart in
+one line — and each half is also on its own subpath, so a page that brings its own item element
+pays for the panel only.
+
+| Import                                  | Registers                              | min + gzip                       |
+| --------------------------------------- | -------------------------------------- | -------------------------------- |
+| `@magic-spells/cart-panel`              | `<cart-panel>` **and** `<cart-item>`   | **4.9 kB** (3.9 JS, 1.0 CSS)     |
+| `@magic-spells/cart-panel/panel`        | `<cart-panel>`                         | **2.8 kB** (2.7 JS, 0.1 CSS)     |
+| `@magic-spells/cart-panel/cart-item`    | `<cart-item>`                          | **2.8 kB** (1.8 JS, 1.0 CSS)     |
+
+`<cart-item>` ships in this same package rather than as a standalone one.
+
+Line items render from a JS template by default, or from a Shopify section with
+`<cart-panel section="API-cart-items">` — the server renders content, JS renders behavior. Add
+`optimistic` and quantity changes land on the click rather than on the response.
 
 ```bash
 npm install @magic-spells/cart-panel

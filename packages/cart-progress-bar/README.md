@@ -18,6 +18,32 @@ A beautiful, accessible cart progress bar web component for free shipping thresh
 npm install @magic-spells/cart-progress-bar
 ```
 
+The package is **ESM only** — there is no CommonJS build and `exports` declares no
+`require` condition. Import it once, anywhere in your module graph; it registers
+`<cart-progress-bar>` and `<progress-bar>` as a side effect.
+
+```javascript
+import '@magic-spells/cart-progress-bar';
+// or, if you need the classes:
+import { CartProgressBar, ProgressBar } from '@magic-spells/cart-progress-bar';
+```
+
+The stylesheet is bundled into the JS entry, so a bundler picks it up
+automatically. To load it yourself instead:
+
+```css
+@import '@magic-spells/cart-progress-bar/css'; /* unminified */
+@import '@magic-spells/cart-progress-bar/css/min'; /* minified */
+```
+
+For a plain `<script>` tag with no build step, use the minified UMD bundle, which
+exposes the global `CartProgressBar`:
+
+```html
+<link rel="stylesheet" href="node_modules/@magic-spells/cart-progress-bar/dist/cart-progress-bar.min.css" />
+<script src="node_modules/@magic-spells/cart-progress-bar/dist/cart-progress-bar.min.js"></script>
+```
+
 ## Basic Usage
 
 ```html
@@ -29,10 +55,6 @@ npm install @magic-spells/cart-progress-bar
 	<p data-content-cart-progress-message>Add ${ amount } more for FREE shipping!</p>
 	<progress-bar></progress-bar>
 </cart-progress-bar>
-```
-
-```css
-@import '@magic-spells/cart-progress-bar/css/min';
 ```
 
 ## JavaScript API
@@ -182,6 +204,30 @@ These attributes are used internally to switch between the "before" and "after" 
 - Firefox 85+
 - Safari 14+
 - All modern browsers with Custom Elements support
+
+## Development
+
+- `npm run build` — production build to `dist/` via `scripts/build.mjs` (Vite +
+  Rolldown, Lightning CSS, Terser). Emits exactly four files: the unminified ESM
+  bundle, the minified UMD bundle, and the plain and minified stylesheets.
+- `npm run dev` — watch build into `demo/dist/`, plus a Vite dev server for
+  `demo/` at [http://localhost:3001](http://localhost:3001) with live reload.
+  `host: true`, so the demo also answers on the LAN address Vite prints.
+- `npm run lint` / `npm run format` — ESLint / Prettier.
+
+`scripts/build.mjs` is the whole build configuration (`configFile: false`) —
+there is no `vite.config.js`. Sourcemaps are emitted for the demo only; the
+published `dist/` carries none, because Rolldown inlines `sourcesContent` and
+would ship `src/` a second time inside them.
+
+### Build output
+
+| File                          | Format                                    |
+| ----------------------------- | ----------------------------------------- |
+| `cart-progress-bar.esm.js`    | Unminified ESM                            |
+| `cart-progress-bar.min.js`    | Minified UMD, global `CartProgressBar`    |
+| `cart-progress-bar.css`       | Plain stylesheet                          |
+| `cart-progress-bar.min.css`   | Minified stylesheet                       |
 
 ## License
 

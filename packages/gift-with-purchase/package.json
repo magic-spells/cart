@@ -1,33 +1,31 @@
 {
 	"name": "@magic-spells/gift-with-purchase",
-	"version": "1.0.1",
+	"version": "2.0.0",
 	"description": "Gift with purchase web component for e-commerce threshold promotions.",
 	"author": "Cory Schulz",
 	"license": "MIT",
 	"type": "module",
-	"main": "dist/gift-with-purchase.cjs.js",
+	"main": "dist/gift-with-purchase.esm.js",
 	"module": "dist/gift-with-purchase.esm.js",
 	"unpkg": "dist/gift-with-purchase.min.js",
 	"style": "dist/gift-with-purchase.min.css",
-	"sass": "dist/gift-with-purchase.scss",
 	"exports": {
 		".": {
 			"import": "./dist/gift-with-purchase.esm.js",
-			"require": "./dist/gift-with-purchase.cjs.js",
 			"default": "./dist/gift-with-purchase.esm.js"
 		},
 		"./css": "./dist/gift-with-purchase.css",
-		"./css/min": "./dist/gift-with-purchase.min.css",
-		"./scss": "./dist/gift-with-purchase.scss"
+		"./css/min": "./dist/gift-with-purchase.min.css"
 	},
 	"sideEffects": true,
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/magic-spells/gift-with-purchase"
+		"url": "git+https://github.com/magic-spells/cart.git",
+		"directory": "packages/gift-with-purchase"
 	},
-	"homepage": "https://github.com/magic-spells/gift-with-purchase#readme",
+	"homepage": "https://github.com/magic-spells/cart/tree/main/packages/gift-with-purchase#readme",
 	"bugs": {
-		"url": "https://github.com/magic-spells/gift-with-purchase/issues"
+		"url": "https://github.com/magic-spells/cart/issues"
 	},
 	"keywords": [
 		"gift-with-purchase",
@@ -39,16 +37,14 @@
 		"cart-promotion"
 	],
 	"files": [
-		"dist/",
-		"src/"
+		"dist/"
 	],
 	"scripts": {
-		"build": "rollup -c",
-		"lint": "eslint src/ rollup.config.mjs",
+		"build": "NODE_ENV=production node scripts/build.mjs",
+		"dev": "NODE_ENV=development node scripts/build.mjs",
+		"lint": "eslint src/ scripts/",
 		"format": "prettier --write .",
-		"prepublishOnly": "npm run build",
-		"serve": "rollup -c --watch",
-		"dev": "rollup -c --watch"
+		"prepublishOnly": "npm run build"
 	},
 	"publishConfig": {
 		"access": "public",
@@ -61,15 +57,12 @@
 	],
 	"devDependencies": {
 		"@eslint/js": "^9.38.0",
-		"@rollup/plugin-node-resolve": "^15.2.3",
-		"@rollup/plugin-terser": "^0.4.4",
+		"@magic-spells/vite-plugin-live-reload": "^0.1.0",
 		"eslint": "^9.38.0",
 		"globals": "^15.15.0",
+		"lightningcss": "^1.29.3",
 		"prettier": "^3.3.3",
-		"rollup": "^3.0.0",
-		"rollup-plugin-copy": "^3.5.0",
-		"rollup-plugin-postcss": "^4.0.2",
-		"rollup-plugin-serve": "^1.1.1",
-		"sass": "^1.86.3"
+		"terser": "^5.16.0",
+		"vite": "^8.0.10"
 	}
 }

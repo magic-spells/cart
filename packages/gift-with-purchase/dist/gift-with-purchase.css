@@ -8,39 +8,42 @@ gift-with-purchase {
   --gwp-border-added: #155724;
   --gwp-text-active: #155724;
   --gwp-text-added: #155724;
-  display: block;
   border: 2px solid var(--gwp-border-active);
   border-radius: var(--gwp-border-radius);
   padding: var(--gwp-padding);
   background-color: var(--gwp-bg-active);
   color: var(--gwp-text-active);
+  display: block;
 }
+
 gift-with-purchase .gwp-product {
-  display: flex;
   align-items: flex-start;
   gap: var(--gwp-gap);
+  display: flex;
 }
+
 gift-with-purchase [data-gwp-image] {
   flex-shrink: 0;
 }
+
 gift-with-purchase .gwp-content {
   flex: 1;
   min-width: 0;
 }
-gift-with-purchase[state=active] {
+
+gift-with-purchase[state="active"] {
   background-color: var(--gwp-bg-active);
   border-color: var(--gwp-border-active);
   color: var(--gwp-text-active);
 }
-gift-with-purchase[state=added] {
+
+gift-with-purchase[state="added"] {
   background-color: var(--gwp-bg-added);
   border-color: var(--gwp-border-added);
   color: var(--gwp-text-added);
 }
-gift-with-purchase[state=ended] {
+
+gift-with-purchase[state="ended"], gift-with-purchase[state="disabled"] {
   display: none;
 }
-gift-with-purchase[state=disabled] {
-  display: none;
-}
-/*# sourceMappingURL=gift-with-purchase.cjs.css.map */
+/*$vite$:1*/
