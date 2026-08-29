@@ -2,102 +2,468 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Cart Panel Demo</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Cart Panel — @magic-spells</title>
+		<meta
+			name="description"
+			content="A slide-out shopping cart web component for Shopify. Panel and cart item ship as separate entry points, 2.8 kB each, min + gzip." />
+		<!-- Inlined as a data URI so the repo stays binary-free and the browser's
+		     automatic /favicon.ico request never 404s. A cart basket with its
+		     handle — the component's own silhouette. -->
+		<link
+			rel="icon"
+			href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060a09'/%3E%3Cpath d='M11 12V9.5a5 5 0 0 1 10 0V12' fill='none' stroke='%235ddba3' stroke-width='2.2' stroke-linecap='round'/%3E%3Cpath d='M7.5 12h17l-1.8 12.5H9.3z' fill='%235ddba3'/%3E%3C/svg%3E" />
 
-		<!-- dialog-panel styles -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@200;300;400;500&display=swap"
+			rel="stylesheet" />
+
+		<!-- sibling packages, via published npm builds on the CDN -->
+		<link
+			rel="stylesheet"
+			href="https://unpkg.com/@magic-spells/split-text@0.2.0/dist/split-text.min.css" />
+		<script defer src="https://unpkg.com/@magic-spells/split-text@0.2.0"></script>
 		<link rel="stylesheet" href="https://unpkg.com/@magic-spells/dialog-panel/dist/dialog-panel.css" />
-		<!-- quantity-input styles -->
-		<link rel="stylesheet" href="https://unpkg.com/@magic-spells/quantity-input/dist/quantity-input.css" />
-		<!-- cart-panel styles -->
+		<link
+			rel="stylesheet"
+			href="https://unpkg.com/@magic-spells/quantity-input/dist/quantity-input.css" />
+
+		<!-- this package: two entry points, two stylesheets -->
 		<link rel="stylesheet" href="./cart-panel.css" />
-		<!-- cart-item styles (opt-in, shipped separately) -->
 		<link rel="stylesheet" href="./cart-item.css" />
 
 		<style>
-			/* Demo page styles */
-			body {
-				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			:root {
+				/* Jade is the checkout colour — the one green a shopper reads as
+				   "yes". --bg-deep is that hue pushed to near-black and a few
+				   degrees cooler, so the accent reads as lit rather than tinted. */
+				--bg-deep: #060a09;
+				--bg-card: #0d1211;
+				--bg-card-hover: #121816;
+				--bg-well: #080d0c;
+				--border: #1d2724;
+				--border-accent: #2c443a;
+
+				--jade: #3fcf8e;
+				--jade-dim: #2a8a60;
+				--jade-glow: rgba(63, 207, 142, 0.12);
+				--jade-text: #5ddba3;
+
+				--cream: #f2f6f3;
+				--cream-dim: #cbd5cf;
+				--text: #dfe6e1;
+				--text-dim: #a9b4ae;
+
+				--font-display: 'Cormorant Garamond', Georgia, serif;
+				--font-body: 'Outfit', system-ui, sans-serif;
+				--font-mono: 'Courier New', ui-monospace, monospace;
+			}
+
+			* {
+				box-sizing: border-box;
 				margin: 0;
 				padding: 0;
-				min-height: 200vh;
-				background-color: #f0f2f5;
-				color: #333;
 			}
 
-			.hero-section {
+			html {
+				background: var(--bg-deep);
+				scroll-behavior: smooth;
+			}
+
+			body {
+				min-width: 0;
+				color: var(--text);
+				background: var(--bg-deep);
+				font-family: var(--font-body);
+				font-weight: 300;
+				overflow-x: hidden;
+				-webkit-font-smoothing: antialiased;
+			}
+
+			/* ---- Noise overlay ---- */
+			body::before {
+				content: '';
+				position: fixed;
+				inset: 0;
+				z-index: 2000;
+				pointer-events: none;
+				opacity: 0.025;
+				background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+				background-repeat: repeat;
+				background-size: 256px;
+			}
+
+			:where(a, button, input, [tabindex]):focus-visible {
+				outline: 2px solid var(--jade-text);
+				outline-offset: 3px;
+			}
+
+			/* ---- Hero ---- */
+			.hero {
 				position: relative;
-				height: 100vh;
-				width: 100%;
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				padding: 4rem 1.5rem 2.5rem;
 				display: flex;
 				flex-direction: column;
-				justify-content: center;
 				align-items: center;
-				color: white;
 				text-align: center;
-				padding: 20px;
-				box-sizing: border-box;
+				overflow: hidden;
 			}
 
-			.hero-section h1 {
-				font-size: 3rem;
-				margin: 20px 0;
-				text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+			.hero::before {
+				content: '';
+				position: absolute;
+				top: -38%;
+				left: 50%;
+				width: 1000px;
+				height: 900px;
+				max-width: 130vw;
+				transform: translateX(-50%);
+				background: radial-gradient(ellipse, var(--jade-glow), transparent 68%);
+				pointer-events: none;
 			}
 
-			.hero-section p {
-				font-size: 1.2rem;
+			.hero-badge {
+				position: relative;
+				max-width: 100%;
+				margin-bottom: 2.25rem;
+				padding: 0.45em 1.25em;
+				color: var(--jade-text);
+				border: 1px solid var(--border-accent);
+				border-radius: 100px;
+				font-size: 0.95rem;
+				font-weight: 400;
+				letter-spacing: 0.1em;
+				text-decoration: none;
+				text-transform: uppercase;
+				transition: border-color 0.3s ease;
+			}
+
+			.hero-badge:hover {
+				border-color: var(--jade-dim);
+			}
+
+			.hero h1 {
+				position: relative;
+				max-width: 12ch;
+				margin-bottom: 1.5rem;
+				color: var(--cream);
+				font-family: var(--font-display);
+				font-size: clamp(3.1rem, 10vw, 7.4rem);
+				font-weight: 300;
+				letter-spacing: -0.025em;
+				line-height: 0.95;
+			}
+
+			.hero h1 em {
+				color: var(--jade-text);
+				font-style: italic;
+				font-weight: 300;
+			}
+
+			.hero-tagline {
+				position: relative;
 				max-width: 600px;
-				text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-				margin-bottom: 30px;
-			}
-
-			.content-section {
-				padding: 50px 20px;
-				max-width: 1200px;
-				margin: 0 auto;
-				min-height: 100vh;
-			}
-
-			.content-section h2 {
-				font-size: 2rem;
-				margin-bottom: 20px;
-			}
-
-			.content-section p {
 				font-size: 1.1rem;
-				line-height: 1.6;
-				margin-bottom: 20px;
+				line-height: 1.72;
+				text-wrap: pretty;
 			}
 
-			/* Prevent body scroll when dialog is open */
+			/* ---- Install ---- */
+			.install {
+				position: relative;
+				margin-top: 2.5rem;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 0.55rem;
+				max-width: 100%;
+			}
+
+			.install-label {
+				color: var(--text-dim);
+				font-size: 0.8rem;
+				font-weight: 400;
+				letter-spacing: 0.18em;
+				text-transform: uppercase;
+			}
+
+			.install-value {
+				max-width: calc(100vw - 2.5rem);
+				padding: 0.6em 1.1em;
+				color: var(--cream);
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				font-family: var(--font-mono);
+				font-size: clamp(0.76rem, 3.4vw, 0.94rem);
+				white-space: nowrap;
+				overflow-x: auto;
+				user-select: all;
+				cursor: copy;
+				transition:
+					border-color 0.3s ease,
+					color 0.3s ease;
+			}
+
+			.install-value:hover {
+				border-color: var(--jade-dim);
+			}
+
+			.install.copied .install-label,
+			.install.copied .install-value {
+				color: var(--jade-text);
+			}
+
+			.install.copied .install-value {
+				border-color: var(--jade-dim);
+			}
+
+			.size-note {
+				display: flex;
+				align-items: baseline;
+				justify-content: center;
+				flex-wrap: wrap;
+				gap: 0.45rem;
+				margin-top: 0.75rem;
+			}
+
+			.size-value {
+				color: var(--jade-text);
+				font-family: var(--font-mono);
+				font-size: 0.92rem;
+			}
+
+			.size-label {
+				color: var(--cream-dim);
+				font-family: var(--font-mono);
+				font-size: 0.72rem;
+				letter-spacing: 0.18em;
+				text-transform: uppercase;
+			}
+
+			.hero-line {
+				position: relative;
+				width: 1px;
+				height: 70px;
+				margin-top: 2.75rem;
+				background: linear-gradient(var(--jade-dim), transparent);
+			}
+
+			/* ---- Sections ---- */
+			.demos {
+				width: min(1080px, 100%);
+				margin: 0 auto;
+				padding: 1rem 1.25rem 6rem;
+				display: flex;
+				flex-direction: column;
+				gap: 3rem;
+			}
+
+			.demo-section {
+				min-width: 0;
+				padding: 2.5rem;
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: 16px;
+				transition:
+					background 0.3s ease,
+					border-color 0.3s ease;
+			}
+
+			.demo-section:hover {
+				background: var(--bg-card-hover);
+				border-color: var(--border-accent);
+			}
+
+			.spec {
+				margin-bottom: 0.7rem;
+			}
+
+			.spec-key {
+				color: var(--jade-text);
+				font-family: var(--font-mono);
+				font-size: 0.8rem;
+				letter-spacing: 0.22em;
+				text-transform: uppercase;
+			}
+
+			.demo-section h2 {
+				margin-bottom: 0.85rem;
+				color: var(--cream);
+				font-family: var(--font-display);
+				font-size: clamp(2rem, 5vw, 3.1rem);
+				font-weight: 400;
+				letter-spacing: -0.01em;
+				line-height: 1.08;
+			}
+
+			.demo-section h2 em {
+				color: var(--jade-text);
+				font-style: italic;
+				font-weight: 400;
+			}
+
+			.demo-desc {
+				max-width: 660px;
+				margin-bottom: 1.35rem;
+				font-size: 1.07rem;
+				line-height: 1.72;
+				text-wrap: pretty;
+			}
+
+			.demo-desc code {
+				color: var(--cream);
+				font-family: var(--font-mono);
+				font-size: 0.94em;
+			}
+
+			/* ---- Controls ---- */
+			.controls {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.7rem;
+			}
+
+			.btn {
+				padding: 0.7em 1.4em;
+				color: var(--text);
+				background: var(--bg-well);
+				border: 1px solid var(--border-accent);
+				border-radius: 8px;
+				font-family: var(--font-body);
+				font-size: 0.95rem;
+				font-weight: 300;
+				letter-spacing: 0.02em;
+				cursor: pointer;
+				transition:
+					color 0.25s ease,
+					border-color 0.25s ease,
+					box-shadow 0.25s ease;
+			}
+
+			.btn:hover {
+				color: var(--jade-text);
+				border-color: var(--jade-dim);
+				box-shadow: 0 0 20px var(--jade-glow);
+			}
+
+			.btn-primary {
+				color: var(--jade-text);
+				border-color: var(--jade-dim);
+				background: rgba(63, 207, 142, 0.06);
+			}
+
+			/* ---- Readout ---- */
+			.readout {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 2.5rem;
+				margin-top: 1.75rem;
+				padding: 1.25rem 1.5rem;
+				background: var(--bg-well);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+			}
+
+			.readout dt {
+				color: var(--text-dim);
+				font-family: var(--font-mono);
+				font-size: 0.7rem;
+				letter-spacing: 0.18em;
+				text-transform: uppercase;
+			}
+
+			.readout dd {
+				margin-top: 0.3rem;
+				color: var(--jade-text);
+				font-family: var(--font-mono);
+				font-size: 1.15rem;
+			}
+
+			/* ---- Code aside ---- */
+			.code-aside {
+				margin-top: 1.5rem;
+				padding: 1.1rem 1.25rem;
+				background: var(--bg-well);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				overflow-x: auto;
+			}
+
+			.code-aside code {
+				color: var(--cream-dim);
+				font-family: var(--font-mono);
+				font-size: 0.86rem;
+				line-height: 1.9;
+				white-space: pre;
+			}
+
+			.code-aside .cm {
+				color: var(--text-dim);
+			}
+
+			.code-aside .str {
+				color: var(--jade-text);
+			}
+
+			/* ---- Event log ---- */
+			.log {
+				max-height: 15rem;
+				overflow-y: auto;
+				padding: 1rem 1.25rem;
+				background: var(--bg-well);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				list-style: none;
+			}
+
+			.log li {
+				padding: 0.3rem 0;
+				color: var(--cream-dim);
+				font-family: var(--font-mono);
+				font-size: 0.8rem;
+			}
+
+			.log li:first-child {
+				color: var(--jade-text);
+			}
+
+			.log li b {
+				font-weight: 400;
+			}
+
+			/* ---- The drawer skin ----
+			   dialog-panel ships the modal behaviour and nothing visual, so every
+			   colour, edge and transform below is ordinary CSS this page writes. */
 			body:has(dialog-panel[state='showing']),
 			body:has(dialog-panel[state='shown']) {
 				overflow: hidden;
 			}
 
-			/* Slide-from-right drawer override for dialog-panel */
 			dialog-panel > dialog {
 				position: fixed;
 				top: 0;
 				right: 0;
 				left: auto;
-				width: min(400px, 90vw);
+				width: min(420px, 92vw);
 				height: 100dvh;
 				max-width: none;
 				max-height: none;
-				border: none;
-				border-radius: 0;
 				margin: 0;
 				padding: 0;
-				transform: translateX(100%);
-				opacity: 1;
-				transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 				display: flex;
 				flex-direction: column;
-				background: #fff;
-				box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+				color: var(--text);
+				background: var(--bg-card);
+				border: none;
+				border-left: 1px solid var(--border);
+				border-radius: 0;
+				opacity: 1;
+				transform: translateX(100%);
+				transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+				box-shadow: -30px 0 60px rgba(0, 0, 0, 0.55);
 			}
 
 			dialog-panel[state='showing'] > dialog,
@@ -109,7 +475,10 @@
 				transform: translateX(100%);
 			}
 
-			/* Cart panel styling */
+			dialog-panel > dialog::backdrop {
+				background: rgba(3, 6, 5, 0.7);
+			}
+
 			cart-panel {
 				display: flex;
 				flex-direction: column;
@@ -117,43 +486,43 @@
 			}
 
 			.cart-header {
-				padding: 24px;
-				border-bottom: 1px solid #eee;
 				display: flex;
-				justify-content: space-between;
 				align-items: center;
-				background: #f8f9fa;
+				justify-content: space-between;
+				padding: 1.5rem;
+				border-bottom: 1px solid var(--border);
 			}
 
 			.cart-header h2 {
-				margin: 0;
-				font-size: 1.5rem;
-				color: #333;
+				color: var(--cream);
+				font-family: var(--font-display);
+				font-size: 1.9rem;
+				font-weight: 400;
 			}
 
-			.close-button {
-				background: transparent;
-				border: none;
-				font-size: 24px;
-				cursor: pointer;
-				color: #666;
-				width: 32px;
-				height: 32px;
-				border-radius: 50%;
+			.cart-close {
+				width: 2rem;
+				height: 2rem;
 				display: flex;
 				align-items: center;
 				justify-content: center;
-				transition: background-color 0.2s;
+				color: var(--text-dim);
+				background: transparent;
+				border: none;
+				border-radius: 50%;
+				font-size: 1.4rem;
+				line-height: 1;
+				cursor: pointer;
+				transition: color 0.2s ease;
 			}
 
-			.close-button:hover {
-				background-color: rgba(0, 0, 0, 0.05);
+			.cart-close:hover {
+				color: var(--jade-text);
 			}
 
 			.cart-body {
 				flex: 1;
 				overflow-y: auto;
-				padding: 0;
 			}
 
 			.cart-items {
@@ -161,269 +530,341 @@
 				flex-direction: column;
 			}
 
-			.cart-footer {
-				padding: 24px;
-				border-top: 1px solid #eee;
-				background: #f8f9fa;
-			}
-
-			.cart-total {
-				font-size: 1.2rem;
-				font-weight: bold;
-				margin-bottom: 16px;
+			.cart-empty {
+				padding: 4rem 1.5rem;
+				color: var(--text-dim);
 				text-align: center;
 			}
 
-			.checkout-button {
-				width: 100%;
-				padding: 16px;
-				background-color: #28a745;
-				color: white;
-				border: none;
-				border-radius: 6px;
-				font-size: 16px;
-				font-weight: 600;
-				cursor: pointer;
-				transition: background-color 0.2s;
+			.cart-empty-icon {
+				margin-bottom: 0.75rem;
+				font-size: 2.5rem;
+				opacity: 0.45;
 			}
 
-			.checkout-button:hover {
-				background-color: #218838;
+			.cart-foot {
+				padding: 1.5rem;
+				border-top: 1px solid var(--border);
 			}
 
-			/* Cart item template styles */
-			.sample-cart-item {
+			.cart-total {
 				display: flex;
-				padding: 16px;
-				border-bottom: 1px solid #eee;
-				gap: 12px;
-				align-items: center;
+				align-items: baseline;
+				justify-content: space-between;
+				margin-bottom: 1rem;
+				color: var(--cream);
+				font-family: var(--font-mono);
+				font-size: 0.78rem;
+				letter-spacing: 0.18em;
+				text-transform: uppercase;
 			}
 
-			.item-image {
-				width: 60px;
-				height: 60px;
-				background: #ddd;
-				border-radius: 4px;
+			.cart-total span {
+				color: var(--jade-text);
+				font-size: 1.25rem;
+				letter-spacing: 0;
+			}
+
+			.cart-checkout {
+				width: 100%;
+				padding: 1em;
+				color: var(--bg-deep);
+				background: var(--jade);
+				border: none;
+				border-radius: 8px;
+				font-family: var(--font-body);
+				font-size: 1rem;
+				font-weight: 500;
+				letter-spacing: 0.04em;
+				cursor: pointer;
+				transition: background 0.25s ease;
+			}
+
+			.cart-checkout:hover {
+				background: var(--jade-text);
+			}
+
+			/* ---- The line item skin ---- */
+			.line-item {
+				display: flex;
+				align-items: center;
+				gap: 0.9rem;
+				padding: 1.1rem 1.5rem;
+				border-bottom: 1px solid var(--border);
+			}
+
+			.line-thumb {
+				width: 3.25rem;
+				height: 3.25rem;
 				flex-shrink: 0;
 				display: flex;
 				align-items: center;
 				justify-content: center;
-				font-size: 24px;
+				background: var(--bg-well);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				font-size: 1.5rem;
 			}
 
-			.item-details {
+			.line-body {
 				flex: 1;
+				min-width: 0;
 			}
 
-			.item-name {
-				font-weight: 600;
-				margin-bottom: 8px;
+			.line-title {
+				margin-bottom: 0.5rem;
+				color: var(--cream);
+				font-size: 0.95rem;
 			}
 
-			.item-controls {
+			.line-side {
 				display: flex;
 				flex-direction: column;
-				justify-content: space-between;
 				align-items: flex-end;
-				min-height: 60px;
+				gap: 0.75rem;
 			}
 
-			.remove-button {
-				background: transparent;
-				color: #666;
-				border: none;
-				padding: 4px;
-				border-radius: 50%;
-				cursor: pointer;
-				font-size: 18px;
-				font-weight: bold;
-				width: 24px;
-				height: 24px;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				transition: background-color 0.2s, color 0.2s;
-			}
-
-			.remove-button:hover {
-				background: #f0f0f0;
-				color: #333;
-			}
-
-			.item-price {
-				color: #666;
-				font-size: 14px;
-			}
-
-			.trigger-button {
-				padding: 12px 28px;
-				background-color: #0077ff;
-				color: #fff;
-				border: none;
-				cursor: pointer;
-				font-size: 16px;
-				font-weight: 600;
-				border-radius: 6px;
-				transition: all 0.2s ease;
-				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-				letter-spacing: 0.5px;
-				margin-bottom: 20px;
-			}
-
-			.trigger-button:hover {
-				background-color: #0066db;
-				transform: translateY(-2px);
-				box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-			}
-
-			.trigger-button:active {
-				transform: translateY(0);
-				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-			}
-
-			.button-group {
-				display: flex;
-				gap: 10px;
-				flex-wrap: wrap;
-				margin-top: 20px;
-			}
-
-			.empty-cart {
-				padding: 40px 20px;
-				text-align: center;
-				color: #666;
-			}
-
-			.empty-cart-icon {
-				font-size: 48px;
-				margin-bottom: 16px;
-				opacity: 0.5;
-			}
-
-			/* Event log styling */
-			.event-log {
-				margin-top: 30px;
-				padding: 15px;
-				background-color: #f5f5f5;
-				border-radius: 8px;
-				box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-			}
-
-			.event-log h3 {
-				margin-top: 0;
-				color: #333;
-				font-size: 1.2rem;
-			}
-
-			.event-log ul {
-				margin: 0;
-				padding: 0;
-				list-style: none;
-			}
-
-			.event-log li {
-				padding: 8px 12px;
-				margin-bottom: 8px;
-				background-color: #fff;
-				border-left: 4px solid #0077ff;
-				border-radius: 4px;
-				font-family: monospace;
+			.line-price {
+				color: var(--jade-text);
+				font-family: var(--font-mono);
 				font-size: 0.9rem;
-				box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 			}
 
-			.event-log li:last-child {
-				border-left-color: #ff6b6b;
-				font-weight: bold;
+			.line-remove {
+				color: var(--text-dim);
+				background: transparent;
+				border: none;
+				font-size: 1.1rem;
+				line-height: 1;
+				cursor: pointer;
+				transition: color 0.2s ease;
+			}
+
+			.line-remove:hover {
+				color: var(--jade-text);
+			}
+
+			quantity-input {
+				display: inline-flex;
+				align-items: center;
+				border: 1px solid var(--border-accent);
+				border-radius: 6px;
+				overflow: hidden;
+			}
+
+			quantity-input button {
+				width: 1.9rem;
+				height: 1.9rem;
+				color: var(--text-dim);
+				background: var(--bg-well);
+				border: none;
+				font-size: 0.9rem;
+				cursor: pointer;
+				transition: color 0.2s ease;
+			}
+
+			quantity-input button:hover {
+				color: var(--jade-text);
+			}
+
+			quantity-input input {
+				width: 2.4rem;
+				height: 1.9rem;
+				color: var(--cream);
+				background: transparent;
+				border: none;
+				font-family: var(--font-mono);
+				font-size: 0.85rem;
+				text-align: center;
+			}
+
+			/* ---- Footer ---- */
+			.site-foot {
+				padding: 2.5rem 1.5rem 3.5rem;
+				color: var(--text-dim);
+				text-align: center;
+				font-size: 0.9rem;
+				border-top: 1px solid var(--border);
+			}
+
+			.site-foot a {
+				color: var(--jade-text);
+				text-decoration: none;
+				transition: color 0.3s ease;
+			}
+
+			.site-foot a:hover {
+				color: var(--cream);
+			}
+
+			@media (max-width: 640px) {
+				.demo-section {
+					padding: 1.6rem 1.25rem;
+				}
+
+				.readout {
+					gap: 1.5rem;
+					padding: 1rem 1.1rem;
+				}
+
+				.btn {
+					flex: 1 1 auto;
+				}
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				html {
+					scroll-behavior: auto;
+				}
+
+				.demo-section,
+				.btn,
+				.hero-badge,
+				.install-value,
+				.cart-close,
+				.cart-checkout,
+				.line-remove,
+				dialog-panel > dialog,
+				.site-foot a {
+					transition: none;
+				}
 			}
 		</style>
 	</head>
 	<body>
-		<div class="hero-section">
-			<button id="open-cart-btn" class="trigger-button">
-				Open Shopping Cart (<span data-content-cart-count>0</span> items)
-			</button>
-			<h1>Cart Panel 2.0 Demo</h1>
-			<p>Shopping cart panel with dialog-panel integration</p>
-		</div>
+		<!-- ======== HERO ======== -->
+		<header class="hero">
+			<a class="hero-badge" href="https://github.com/magic-spells/cart-panel"
+				>@magic-spells/cart-panel</a
+			>
+			<h1>
+				<split-text split="chars" trigger="load" stagger="26" duration="820">
+					A cart that <em>slides</em>
+				</split-text>
+			</h1>
+			<p class="hero-tagline">
+				The panel owns the cart data and the AJAX; <code>&lt;dialog-panel&gt;</code> owns the modal.
+			</p>
 
-		<div class="content-section">
-			<h2>Cart Panel Features</h2>
-			<p>This cart panel component demonstrates:</p>
-			<ul>
-				<li>Opt-in cart-item via @magic-spells/cart-panel/cart-item</li>
-				<li>Uses dialog-panel for modal behavior (native &lt;dialog&gt;)</li>
-				<li>Slide-in animation from the right side</li>
-				<li>Cart item management with smooth animations</li>
-				<li>Shopify cart API integration (getCart, updateCartItem)</li>
-				<li>Processing states during cart operations</li>
-				<li>Event system (cart-panel:show, cart-panel:updated, etc.)</li>
-				<li>Native focus trap and escape key handling</li>
-			</ul>
-
-			<div class="button-group">
-				<button id="add-item-btn" class="trigger-button" style="background-color: #28a745">
-					Add Random Item
-				</button>
-				<button id="clear-cart-btn" class="trigger-button" style="background-color: #dc3545">
-					Clear Cart
-				</button>
+			<div class="install">
+				<span class="install-label" id="install-label">Install</span>
+				<code class="install-value" id="install-value" title="Click to copy"
+					>npm install @magic-spells/cart-panel</code
+				>
+				<!-- Each entry point gzipped on its own, js + css, the way a CDN
+				     serves it. cart-item is opt-in, so a panel-only page pays 2.8 kB. -->
+				<div class="size-note">
+					<span class="size-value">2.8 kB panel · 2.8 kB cart-item</span>
+					<span class="size-label">min + gzip</span>
+				</div>
 			</div>
-		</div>
 
-		<!-- Cart with dialog-panel wrapper -->
+			<div class="hero-line" aria-hidden="true"></div>
+		</header>
+
+		<!-- ======== SECTIONS ======== -->
+		<main class="demos">
+			<!-- ---- The cart ---- -->
+			<section class="demo-section">
+				<div class="spec"><span class="spec-key">The cart</span></div>
+				<h2>Open it.</h2>
+				<p class="demo-desc">
+					Quantities and removals run through a simulated
+					<code>updateCartItem()</code>, delay and all.
+				</p>
+				<div class="controls">
+					<button class="btn btn-primary" id="open-cart-btn" type="button">Open cart</button>
+					<button class="btn" id="add-item-btn" type="button">Add item</button>
+					<button class="btn" id="clear-cart-btn" type="button">Clear cart</button>
+				</div>
+				<dl class="readout">
+					<div>
+						<dt>Items</dt>
+						<dd data-content-cart-count>0</dd>
+					</div>
+					<div>
+						<dt>Subtotal</dt>
+						<dd data-content-cart-subtotal>$0.00</dd>
+					</div>
+				</dl>
+			</section>
+
+			<!-- ---- Opt-in item ---- -->
+			<section class="demo-section">
+				<div class="spec"><span class="spec-key">Entry points</span></div>
+				<h2>Two imports, <em>not one</em>.</h2>
+				<p class="demo-desc">
+					The panel never imports the item. Drop the second line and the panel still renders count,
+					subtotal and empty state — it just skips the items.
+				</p>
+				<div class="code-aside">
+					<code><span class="cm">// registers &lt;cart-panel&gt;</span>
+import <span class="str">'@magic-spells/cart-panel'</span>;
+
+<span class="cm">// registers &lt;cart-item&gt;, &lt;cart-item-content&gt;, &lt;cart-item-processing&gt;</span>
+import <span class="str">'@magic-spells/cart-panel/cart-item'</span>;</code>
+				</div>
+			</section>
+
+			<!-- ---- Events ---- -->
+			<section class="demo-section">
+				<div class="spec"><span class="spec-key">Events</span></div>
+				<h2>Everything <em>announces</em>.</h2>
+				<ul class="log" id="log"></ul>
+			</section>
+		</main>
+
+		<footer class="site-foot">
+			Built for the layer just below ·
+			<a href="https://github.com/magic-spells/cart-panel">@magic-spells/cart-panel</a> · MIT License ·
+			Made by <a href="https://github.com/coryschulz">Cory Schulz</a>
+		</footer>
+
+		<!-- ======== THE PANEL ======== -->
 		<dialog-panel id="cart-dialog">
 			<dialog aria-labelledby="cart-title">
 				<cart-panel manual>
 					<div class="cart-header">
-						<h2 id="cart-title">Shopping Cart</h2>
-						<button aria-label="Close cart" class="close-button" data-action-hide-cart>
+						<h2 id="cart-title">Cart</h2>
+						<button class="cart-close" type="button" aria-label="Close cart" data-action-hide-cart>
 							&times;
 						</button>
 					</div>
 					<div class="cart-body">
-						<!-- Cart has items section -->
 						<div data-cart-has-items>
-							<div class="cart-items" data-content-cart-items>
-								<!-- Cart items rendered dynamically -->
-							</div>
+							<div class="cart-items" data-content-cart-items></div>
 						</div>
-
-						<!-- Cart is empty section -->
 						<div data-cart-is-empty>
-							<div class="empty-cart">
-								<div class="empty-cart-icon">🛒</div>
+							<div class="cart-empty">
+								<div class="cart-empty-icon" aria-hidden="true">🛒</div>
 								<p>Your cart is empty</p>
-								<p>Add some items to get started!</p>
 							</div>
 						</div>
 					</div>
-					<div class="cart-footer">
-						<div class="cart-total">Subtotal: <span data-content-cart-subtotal>$0.00</span></div>
-						<button class="checkout-button">Proceed to Checkout</button>
+					<div class="cart-foot">
+						<div class="cart-total">
+							Subtotal <span data-content-cart-subtotal>$0.00</span>
+						</div>
+						<button class="cart-checkout" type="button">Checkout</button>
 					</div>
 				</cart-panel>
 			</dialog>
 		</dialog-panel>
 
 		<script type="module">
-			// Import components
 			import 'https://unpkg.com/@magic-spells/dialog-panel/dist/dialog-panel.esm.js';
 			import 'https://unpkg.com/@magic-spells/quantity-input/dist/quantity-input.esm.js';
-			// cart-panel does not register cart-item - opt in explicitly
+			// cart-panel does not register cart-item — opt in explicitly
 			// (published as '@magic-spells/cart-panel' and '@magic-spells/cart-panel/cart-item')
 			import './cart-item.esm.js';
 			import './cart-panel.esm.js';
 
-			// Get elements
-			const cartPanel = document.querySelector('cart-panel');
-			const openCartBtn = document.getElementById('open-cart-btn');
-			const addItemBtn = document.getElementById('add-item-btn');
-			const clearCartBtn = document.getElementById('clear-cart-btn');
+			const $ = (selector, root = document) => root.querySelector(selector);
 
-			// Sample items for adding to cart
-			const sampleItems = [
+			const cartPanel = $('cart-panel');
+			const log = $('#log');
+
+			const catalog = [
 				{ name: 'Wireless Headphones', price: 99.99, emoji: '🎧' },
 				{ name: 'Smartphone Case', price: 24.99, emoji: '📱' },
 				{ name: 'USB Cable', price: 12.99, emoji: '🔌' },
@@ -432,33 +873,33 @@
 				{ name: 'Notebook', price: 8.99, emoji: '📓' },
 			];
 
-			// Set up cart item template
-			cartPanel.setCartItemTemplate('default', (itemData, cartData) => {
+			// ---- Line item template ----
+			cartPanel.setCartItemTemplate('default', (itemData) => {
 				const price = (itemData.line_price / 100).toFixed(2);
 				const emoji = itemData.properties?.emoji || '📦';
 
 				return `
-					<div class="sample-cart-item">
-						<div class="item-image">${emoji}</div>
-						<div class="item-details">
-							<div class="item-name">${itemData.product_title}</div>
+					<div class="line-item">
+						<div class="line-thumb" aria-hidden="true">${emoji}</div>
+						<div class="line-body">
+							<div class="line-title">${itemData.product_title}</div>
 							<quantity-input value="${itemData.quantity}" min="1">
 								<button data-action-decrement type="button">−</button>
-								<input type="number" />
+								<input type="number" aria-label="Quantity" />
 								<button data-action-increment type="button">+</button>
 							</quantity-input>
 						</div>
-						<div class="item-controls">
-							<button class="remove-button" data-action-remove-item>&times;</button>
-							<div class="item-price" data-content-line-price>$${price}</div>
+						<div class="line-side">
+							<button class="line-remove" type="button" aria-label="Remove item" data-action-remove-item>&times;</button>
+							<div class="line-price" data-content-line-price>$${price}</div>
 						</div>
 					</div>
 				`;
 			});
 
-			// Simulate cart data for demo
-			let simulatedCartData = {
-				item_count: 3,
+			// ---- Simulated Shopify cart ----
+			let cart = {
+				item_count: 4,
 				items: [
 					{
 						key: '1',
@@ -487,104 +928,87 @@
 				],
 			};
 
-			// Override cart APIs to use simulated data
-			cartPanel.getCart = function () {
-				return Promise.resolve(simulatedCartData);
-			};
+			cartPanel.getCart = () => Promise.resolve(cart);
 
-			cartPanel.updateCartItem = function (key, quantity) {
-				return new Promise((resolve) => {
-					// Simulate network delay
+			cartPanel.updateCartItem = (key, quantity) =>
+				new Promise((resolve) => {
+					// stand in for the network round trip
 					setTimeout(() => {
-						const itemIndex = simulatedCartData.items.findIndex(
-							(item) => (item.key || item.id) === key
-						);
-						if (itemIndex !== -1) {
-							if (quantity === 0) {
-								simulatedCartData.items.splice(itemIndex, 1);
-							} else {
-								simulatedCartData.items[itemIndex].quantity = quantity;
-							}
+						const index = cart.items.findIndex((item) => (item.key || item.id) === key);
+						if (index !== -1) {
+							if (quantity === 0) cart.items.splice(index, 1);
+							else cart.items[index].quantity = quantity;
 						}
-						simulatedCartData.item_count = simulatedCartData.items.reduce(
-							(sum, item) => sum + item.quantity,
-							0
-						);
-						resolve(simulatedCartData);
+						cart.item_count = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+						resolve(cart);
 					}, 300);
 				});
-			};
 
-			// Load initial cart data
 			cartPanel.refreshCart();
 
-			// Open cart button
-			openCartBtn.addEventListener('click', (e) => {
-				cartPanel.show(e.target);
-			});
+			// ---- Controls ----
+			$('#open-cart-btn').addEventListener('click', (e) => cartPanel.show(e.currentTarget));
 
-			// Add item functionality
-			addItemBtn.addEventListener('click', () => {
-				const randomItem = sampleItems[Math.floor(Math.random() * sampleItems.length)];
-				const newItemKey = Date.now().toString();
-				const newItem = {
-					key: newItemKey,
-					id: newItemKey,
-					product_title: randomItem.name,
+			$('#add-item-btn').addEventListener('click', () => {
+				const pick = catalog[Math.floor(Math.random() * catalog.length)];
+				const key = Date.now().toString();
+
+				cart.items.push({
+					key,
+					id: key,
+					product_title: pick.name,
 					quantity: 1,
-					line_price: Math.round(randomItem.price * 100),
-					properties: { emoji: randomItem.emoji },
-				};
-
-				simulatedCartData.items.push(newItem);
-				simulatedCartData.item_count += 1;
-
-				cartPanel.refreshCart().then(() => {
-					logEvent('item-added', { item: randomItem.name });
+					line_price: Math.round(pick.price * 100),
+					properties: { emoji: pick.emoji },
 				});
+				cart.item_count += 1;
+
+				cartPanel.refreshCart().then(() => logEvent('item added', pick.name));
 			});
 
-			// Clear cart functionality
-			clearCartBtn.addEventListener('click', () => {
-				if (confirm('Are you sure you want to clear your cart?')) {
-					simulatedCartData.items = [];
-					simulatedCartData.item_count = 0;
-					cartPanel.refreshCart().then(() => {
-						logEvent('cart-cleared');
-					});
-				}
+			$('#clear-cart-btn').addEventListener('click', () => {
+				cart.items = [];
+				cart.item_count = 0;
+				cartPanel.refreshCart().then(() => logEvent('cart cleared'));
 			});
 
-			// Event listeners
+			// ---- Events ----
 			cartPanel
 				.on('cart-panel:show', () => logEvent('cart-panel:show'))
 				.on('cart-panel:hide', () => logEvent('cart-panel:hide'))
 				.on('cart-panel:refreshed', () => logEvent('cart-panel:refreshed'))
 				.on('cart-panel:updated', () => logEvent('cart-panel:updated'))
-				.on('cart-panel:data-changed', (data) => {
-					logEvent('cart-panel:data-changed', { count: data.calculated_count });
-				});
+				.on('cart-panel:data-changed', (data) =>
+					logEvent('cart-panel:data-changed', `count: ${data.calculated_count}`)
+				);
 
-			// Event logging
-			const eventLog = document.createElement('div');
-			eventLog.classList.add('event-log');
-			eventLog.innerHTML = '<h3>Event Log:</h3><ul></ul>';
-			document.querySelector('.content-section').appendChild(eventLog);
-
-			function logEvent(eventName, detail = {}) {
-				const list = eventLog.querySelector('ul');
-				const item = document.createElement('li');
-				let text = `${eventName} at ${new Date().toLocaleTimeString()}`;
-				if (detail.item) text += ` (${detail.item})`;
-				if (detail.count !== undefined) text += ` (count: ${detail.count})`;
-				item.textContent = text;
-				list.appendChild(item);
-
-				// Limit to last 10 events
-				if (list.children.length > 10) {
-					list.removeChild(list.firstChild);
-				}
+			function logEvent(name, note) {
+				const li = document.createElement('li');
+				li.innerHTML = `<b>${name}</b>${note ? ` · ${note}` : ''}`;
+				log.prepend(li);
+				while (log.children.length > 12) log.lastElementChild.remove();
 			}
+
+			// ---- Click to copy the install command ----
+			const install = $('.install');
+			const installValue = $('#install-value');
+			const installLabel = $('#install-label');
+			let copyTimer;
+
+			installValue.addEventListener('click', async () => {
+				try {
+					await navigator.clipboard.writeText(installValue.textContent.trim());
+					install.classList.add('copied');
+					installLabel.textContent = 'Copied';
+					clearTimeout(copyTimer);
+					copyTimer = setTimeout(() => {
+						install.classList.remove('copied');
+						installLabel.textContent = 'Install';
+					}, 1600);
+				} catch {
+					// clipboard blocked — the text is user-select: all, so select it instead
+				}
+			});
 		</script>
 	</body>
 </html>
