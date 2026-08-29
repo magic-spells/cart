@@ -1,0 +1,93 @@
+{%- comment -%}
+  API-cart-items
+  ---------------------------------------------------------------------------
+  Reference section for @magic-spells/cart-panel in section render mode.
+
+  Copy this file into your theme's `sections/` folder, then point the panel at
+  it: <cart-panel section="API-cart-items">. The panel asks Shopify for this
+  section alongside every cart mutation, so the rendered line items arrive in
+  the same response as the cart JSON.
+
+  The contract is: the server renders content, JS renders behaviour. Emit one
+  <cart-item> per line with its `key`, put your markup inside
+  <cart-item-content>, and use the three selectors the panel already listens
+  for. Do not render <cart-item-processing> - the component injects the
+  processing overlay itself, in both render modes, so the states behave the
+  same either way.
+
+  Selectors the panel and the item bind to:
+    [data-action-remove-item]  - removes the line
+    [data-cart-quantity]       - quantity field (change, and Enter, commit it)
+    [data-content-line-price]  - line total, kept in sync from cart JSON
+
+  Progress bars and gift-with-purchase stay client-side and are never rendered
+  here: this section is line items and nothing else.
+{%- endcomment -%}
+
+{%- for item in cart.items -%}
+  {%- if item.properties._hide_in_cart -%}
+    {%- continue -%}
+  {%- endif -%}
+
+  <cart-item key="{{ item.key }}">
+    <cart-item-content>
+      <div class="cart-line">
+        {%- if item.image -%}
+          <a class="cart-line__media" href="{{ item.url }}" tabindex="-1" aria-hidden="true">
+            <img
+              src="{{ item.image | image_url: width: 160 }}"
+              alt="{{ item.image.alt | escape }}"
+              width="80"
+              height="80"
+              loading="lazy">
+          </a>
+        {%- endif -%}
+
+        <div class="cart-line__body">
+          <a class="cart-line__title" href="{{ item.url }}">{{ item.product.title }}</a>
+
+          {%- unless item.product.has_only_default_variant -%}
+            <p class="cart-line__variant">{{ item.variant.title }}</p>
+          {%- endunless -%}
+
+          {%- comment -%} A bare input: change commits it, and so does Enter. {%- endcomment -%}
+          <label class="visually-hidden" for="quantity-{{ item.key }}">
+            {{ 'products.product.quantity.label' | t | default: 'Quantity' }}
+          </label>
+          <input
+            id="quantity-{{ item.key }}"
+            class="cart-line__quantity"
+            type="number"
+            name="updates[]"
+            value="{{ item.quantity }}"
+            min="0"
+            {%- if item.variant.inventory_management != blank and item.variant.inventory_policy == 'deny' %}
+              max="{{ item.variant.inventory_quantity }}"
+            {%- endif %}
+            data-cart-quantity>
+        </div>
+
+        <div class="cart-line__side">
+          <button
+            class="cart-line__remove"
+            type="button"
+            aria-label="{{ 'sections.cart.remove_title' | t: title: item.title | default: 'Remove item' }}"
+            data-action-remove-item>
+            &times;
+          </button>
+
+          <span class="cart-line__price" data-content-line-price>
+            {{ item.final_line_price | money }}
+          </span>
+        </div>
+      </div>
+    </cart-item-content>
+  </cart-item>
+{%- endfor -%}
+
+{% schema %}
+{
+  "name": "API cart items",
+  "tag": "div"
+}
+{% endschema %}

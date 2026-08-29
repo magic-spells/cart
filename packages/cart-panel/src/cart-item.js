@@ -4,6 +4,16 @@ import './cart-item.css';
 // CartItem Component
 // =============================================================================
 
+// What focus is worth putting back after server markup replaces the content of
+// a live item, most specific first. Each entry is matched with closest() before
+// the swap and re-queried after it.
+const FOCUSABLE_SELECTORS = [
+	'[data-cart-quantity]',
+	'quantity-input input',
+	'quantity-modifier input',
+	'[data-action-remove-item]',
+];
+
 /**
  * CartItem class that handles the functionality of a cart item component
  */
@@ -21,6 +31,7 @@ class CartItem extends HTMLElement {
 	#cartData = null;
 	#lastRenderedHTML = '';
 	#lastKnownQuantity = null;
+	#hasServerContent = false;
 
 	/**
 	 * Set the template function for rendering cart items
@@ -100,12 +111,14 @@ class CartItem extends HTMLElement {
 	connectedCallback() {
 		const _ = this;
 
-		// If we have item data, render it first
-		if (_.#itemData) _.#render();
+		// If we have item data, render it first. Server-rendered content is left
+		// alone: in section mode Shopify drew this line and a template must not
+		// paint over it.
+		if (_.#itemData && !_.#hasServerContent) _.#render();
 
 		// Find child elements and attach listeners
 		_.#queryDOM();
-		_.#updateLinePriceElements();
+		if (!_.#hasServerContent) _.#updateLinePriceElements();
 		_.#syncLastKnownQuantity();
 		_.#attachListeners();
 
@@ -389,7 +402,10 @@ class CartItem extends HTMLElement {
 	 */
 	#syncLastKnownQuantity() {
 		const quantity = this.#itemData?.quantity;
-		if (typeof quantity === 'number') {
+
+		// server-rendered content is the truth about what is on screen; item data
+		// is only the truth when a template drew from it
+		if (typeof quantity === 'number' && !this.#hasServerContent) {
 			this.#lastKnownQuantity = quantity;
 			return;
 		}
@@ -397,6 +413,128 @@ class CartItem extends HTMLElement {
 		const quantityInput = this.querySelector('[data-cart-quantity]');
 		const parsed = parseInt(quantityInput?.value ?? quantityInput?.getAttribute?.('value'), 10);
 		if (!Number.isNaN(parsed)) this.#lastKnownQuantity = parsed;
+		else if (typeof quantity === 'number') this.#lastKnownQuantity = quantity;
+	}
+
+	/**
+	 * Replace this item's content with server-rendered markup.
+	 *
+	 * Section mode calls this: Shopify renders the line, this component renders
+	 * the behaviour. The element itself is never replaced, so its identity, its
+	 * state attribute and any animation already running survive the swap - and
+	 * focus with its caret position goes back where it was, so a swap cannot
+	 * interrupt someone typing a quantity.
+	 *
+	 * @param {string} html - Inner markup of a <cart-item>, with or without a
+	 *   <cart-item-content> wrapper. Any <cart-item-processing> in it is dropped:
+	 *   the overlay stays JS-owned in both render modes, so states behave the same.
+	 */
+	setContent(html) {
+		const _ = this;
+		const focusState = _.#captureFocus();
+
+		const holder = document.createElement('div');
+		holder.innerHTML = html ?? '';
+		holder.querySelectorAll('cart-item-processing').forEach((node) => node.remove());
+
+		const serverContent = holder.querySelector('cart-item-content');
+		const contentHTML = serverContent
+			? serverContent.outerHTML
+			: `<cart-item-content>${holder.innerHTML}</cart-item-content>`;
+
+		const processingHTML = CartItem.#processingTemplate
+			? CartItem.#processingTemplate()
+			: '<div class="cart-item-loader"></div>';
+
+		_.#hasServerContent = true;
+		_.innerHTML = `${contentHTML}<cart-item-processing>${processingHTML}</cart-item-processing>`;
+
+		// fresh markup means the request that caused it is done; an appearing or
+		// destroying animation is left to finish
+		if (_.#currentState === 'processing') _.setState('ready');
+
+		_.#queryDOM();
+		_.#syncLastKnownQuantity();
+		_.#restoreFocus(focusState);
+	}
+
+	/**
+	 * Apply fresh cart JSON to already-rendered markup without redrawing it.
+	 *
+	 * This is the "numbers now, markup later" path an optimistic update takes in
+	 * section mode: the line price and quantity field move at once, and the
+	 * server's own markup replaces them when it arrives.
+	 *
+	 * @param {Object} itemData - Shopify cart item data
+	 * @param {Object} [cartData=null] - Full Shopify cart object
+	 */
+	applyItemData(itemData, cartData = null) {
+		const _ = this;
+		if (!itemData) return;
+
+		_.#itemData = itemData;
+		if (cartData) _.#cartData = cartData;
+
+		_.#updateLinePriceElements();
+		_.#updateQuantityInput();
+
+		// bare inputs are only written here - the template path redraws them
+		const quantityInput = _.querySelector('[data-cart-quantity]');
+		if (
+			quantityInput &&
+			'value' in quantityInput &&
+			String(quantityInput.value) !== String(itemData.quantity)
+		) {
+			quantityInput.value = itemData.quantity;
+		}
+
+		if (typeof itemData.quantity === 'number') _.#lastKnownQuantity = itemData.quantity;
+	}
+
+	/**
+	 * Note what has focus inside this item, and where the caret sits
+	 * @returns {Object|null} Focus state to hand to #restoreFocus, or null
+	 * @private
+	 */
+	#captureFocus() {
+		const active = document.activeElement;
+		if (!active || !this.contains(active) || typeof active.closest !== 'function') return null;
+
+		const selector = FOCUSABLE_SELECTORS.find((candidate) => active.closest(candidate));
+		if (!selector) return null;
+
+		const focusState = { selector, selectionStart: null, selectionEnd: null };
+
+		try {
+			focusState.selectionStart = active.selectionStart;
+			focusState.selectionEnd = active.selectionEnd;
+		} catch {
+			// selection is unreadable on some input types - focus alone is enough
+		}
+
+		return focusState;
+	}
+
+	/**
+	 * Put focus and caret back after a content swap
+	 * @param {Object|null} focusState - What #captureFocus returned
+	 * @private
+	 */
+	#restoreFocus(focusState) {
+		if (!focusState) return;
+
+		const target = this.querySelector(focusState.selector);
+		if (!target || typeof target.focus !== 'function') return;
+
+		target.focus({ preventScroll: true });
+
+		if (focusState.selectionStart == null) return;
+
+		try {
+			target.setSelectionRange(focusState.selectionStart, focusState.selectionEnd);
+		} catch {
+			// number inputs refuse selection ranges - focus is already restored
+		}
 	}
 
 	/**

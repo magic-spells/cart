@@ -54,7 +54,8 @@
 	],
 	"files": [
 		"dist/",
-		"src/"
+		"src/",
+		"shopify/"
 	],
 	"scripts": {
 		"build": "NODE_ENV=production node scripts/build.mjs",
