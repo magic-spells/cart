@@ -350,6 +350,7 @@ cart-item {
   --cart-item-shadow-color: rgba(0, 0, 0, 0.15);
   --cart-item-shadow-color-strong: rgba(0, 0, 0, 0.5);
   --cart-item-destroying-bg: rgba(0, 0, 0, 0.1);
+  --cart-item-loader-color: #000;
 
   /* Scale transforms */
   --cart-item-processing-scale: 0.98;
