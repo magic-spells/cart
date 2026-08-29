@@ -20,6 +20,7 @@ class CartItem extends HTMLElement {
 	#itemData = null;
 	#cartData = null;
 	#lastRenderedHTML = '';
+	#lastKnownQuantity = null;
 
 	/**
 	 * Set the template function for rendering cart items
@@ -91,6 +92,7 @@ class CartItem extends HTMLElement {
 		this.#handlers = {
 			click: this.#handleClick.bind(this),
 			change: this.#handleChange.bind(this),
+			keydown: this.#handleKeydown.bind(this),
 			transitionEnd: this.#handleTransitionEnd.bind(this),
 		};
 	}
@@ -104,6 +106,7 @@ class CartItem extends HTMLElement {
 		// Find child elements and attach listeners
 		_.#queryDOM();
 		_.#updateLinePriceElements();
+		_.#syncLastKnownQuantity();
 		_.#attachListeners();
 
 		// If we started with 'appearing' state, handle the entry animation
@@ -138,6 +141,7 @@ class CartItem extends HTMLElement {
 		const _ = this;
 		_.addEventListener('click', _.#handlers.click);
 		_.addEventListener('change', _.#handlers.change);
+		_.addEventListener('keydown', _.#handlers.keydown);
 		_.addEventListener('quantity-input:change', _.#handlers.change);
 		_.addEventListener('quantity-modifier:change', _.#handlers.change);
 		_.addEventListener('transitionend', _.#handlers.transitionEnd);
@@ -150,6 +154,7 @@ class CartItem extends HTMLElement {
 		const _ = this;
 		_.removeEventListener('click', _.#handlers.click);
 		_.removeEventListener('change', _.#handlers.change);
+		_.removeEventListener('keydown', _.#handlers.keydown);
 		_.removeEventListener('quantity-input:change', _.#handlers.change);
 		_.removeEventListener('quantity-modifier:change', _.#handlers.change);
 		_.removeEventListener('transitionend', _.#handlers.transitionEnd);
@@ -199,6 +204,74 @@ class CartItem extends HTMLElement {
 	}
 
 	/**
+	 * Handle Enter inside a bare quantity input.
+	 *
+	 * A quantity field inside a <form> submits the page on Enter, and a field
+	 * outside one commits nothing at all until it loses focus - both read as the
+	 * cart ignoring you. Enter commits the typed value through the same path a
+	 * change event takes.
+	 *
+	 * Skipped entirely when the input belongs to <quantity-input> or
+	 * <quantity-modifier>: those components own their own commit logic and
+	 * handle Enter themselves, so acting here would emit the event twice.
+	 */
+	#handleKeydown(e) {
+		// isComposing guards IME input, where Enter accepts a candidate word
+		if (e.key !== 'Enter' || e.isComposing) return;
+
+		const quantityInput = e.target.closest?.('[data-cart-quantity]');
+		if (!quantityInput) return;
+		if (quantityInput.closest('quantity-input, quantity-modifier')) return;
+
+		e.preventDefault();
+		this.#commitQuantityInput(quantityInput);
+	}
+
+	/**
+	 * Commit a quantity input's current value: clamp it, write the clamped value
+	 * back into the field, and emit only when the quantity actually changed
+	 * @param {HTMLInputElement} quantityInput - The [data-cart-quantity] field
+	 * @private
+	 */
+	#commitQuantityInput(quantityInput) {
+		const clamped = this.#clampQuantity(quantityInput);
+
+		// unparseable input - restore the last known quantity rather than
+		// sending the server a NaN
+		if (clamped === null) {
+			if (this.#lastKnownQuantity !== null) quantityInput.value = this.#lastKnownQuantity;
+			return;
+		}
+
+		if (String(clamped) !== String(quantityInput.value)) quantityInput.value = clamped;
+
+		// nothing changed - a keypress is not a reason to hit the network
+		if (this.#lastKnownQuantity !== null && clamped === this.#lastKnownQuantity) return;
+
+		this.#emitQuantityChangeEvent(clamped);
+	}
+
+	/**
+	 * Clamp an input's value to its own min/max attributes
+	 * @param {HTMLInputElement} quantityInput - The [data-cart-quantity] field
+	 * @returns {number|null} Clamped quantity, or null if the value is not a number
+	 * @private
+	 */
+	#clampQuantity(quantityInput) {
+		const parsed = parseInt(quantityInput.value, 10);
+		if (Number.isNaN(parsed)) return null;
+
+		const min = parseInt(quantityInput.getAttribute('min'), 10);
+		const max = parseInt(quantityInput.getAttribute('max'), 10);
+
+		// quantity 0 is a removal, so the floor is 0 unless the field says otherwise
+		let clamped = Math.max(Number.isNaN(min) ? 0 : min, parsed);
+		if (!Number.isNaN(max)) clamped = Math.min(max, clamped);
+
+		return clamped;
+	}
+
+	/**
 	 * Handle transition end events for destroy animation and appearing animation
 	 */
 	#handleTransitionEnd(e) {
@@ -231,6 +304,10 @@ class CartItem extends HTMLElement {
 	 * Emit quantity change event
 	 */
 	#emitQuantityChangeEvent(quantity) {
+		// remember what was last sent, so Enter on an unchanged field stays quiet
+		const parsed = parseInt(quantity, 10);
+		if (!Number.isNaN(parsed)) this.#lastKnownQuantity = parsed;
+
 		this.dispatchEvent(
 			new CustomEvent('cart-item:quantity-change', {
 				bubbles: true,
@@ -285,6 +362,7 @@ class CartItem extends HTMLElement {
 		// Update internal data
 		_.#itemData = itemData;
 		if (cartData) _.#cartData = cartData;
+		_.#syncLastKnownQuantity();
 
 		// Generate new HTML with updated data
 		const newHTML = _.#generateTemplateHTML();
@@ -302,6 +380,23 @@ class CartItem extends HTMLElement {
 		_.#render();
 		_.#queryDOM();
 		_.#updateLinePriceElements();
+	}
+
+	/**
+	 * Refresh the remembered quantity from item data, falling back to whatever
+	 * the rendered quantity field says - server-rendered items carry no JSON
+	 * @private
+	 */
+	#syncLastKnownQuantity() {
+		const quantity = this.#itemData?.quantity;
+		if (typeof quantity === 'number') {
+			this.#lastKnownQuantity = quantity;
+			return;
+		}
+
+		const quantityInput = this.querySelector('[data-cart-quantity]');
+		const parsed = parseInt(quantityInput?.value ?? quantityInput?.getAttribute?.('value'), 10);
+		if (!Number.isNaN(parsed)) this.#lastKnownQuantity = parsed;
 	}
 
 	/**
