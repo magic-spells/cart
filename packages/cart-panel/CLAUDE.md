@@ -4,10 +4,15 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Development Commands
 
-- **Build**: `npm run build` - Creates dist files (ESM, UMD, minified)
-- **Development**: `npm run dev` or `npm run serve` - Runs Rollup in watch mode with dev server on port 3004
-- **Linting**: `npm run lint` - Lints src/ and rollup.config.mjs with ESLint
+- **Build**: `npm run build` - Vite/rolldown production build into `dist/` (ESM + minified browser
+  bundle + CSS, per entry point)
+- **Development**: `npm run dev` - Vite watch build into `demo/dist/` with a dev server on port 3002
+- **Linting**: `npm run lint` - Lints `src/` and `scripts/` with ESLint
 - **Formatting**: `npm run format` - Formats code with Prettier
+
+This package lives in the `magic-spells/cart` monorepo. Lint and format config are owned by the
+repo root, and `npm install` runs once at the root for all workspaces. `npm run build` at the root
+fans out over every package.
 
 ## Architecture
 
@@ -137,38 +142,53 @@ CartItem listens for both `quantity-input:change` and `quantity-modifier:change`
 
 ### Build System
 
-Rollup builds the same three formats for each of the three entry points via `productionBuilds()` in
-`rollup.config.mjs`:
-- **ESM**: `dist/index.esm.js` / `dist/cart-panel.esm.js` / `dist/cart-item.esm.js`
-- **UMD**: `dist/<name>.js` + `dist/<name>.min.js`, with globals `MagicSpellsCart` (root),
+`scripts/build.mjs` (vite 8 + rolldown + lightningcss + terser — the house pattern shared with
+`cart-progress-bar` and `gift-with-purchase`) runs two passes over each of the three entry points:
+
+- **ESM**: `dist/index.esm.js` / `dist/cart-panel.esm.js` / `dist/cart-item.esm.js` — never
+  minified, since these are inputs to somebody else's bundler.
+- **Minified browser build**: `dist/<name>.min.js`, UMD, with globals `MagicSpellsCart` (root),
   `CartPanel` (panel) and `MagicSpellsCartItem` (item). Two of the three are namespaced because the
   obvious names are taken: `CartPanel` by the panel-only build's exports object, and
   `window.CartItem` by the class itself, which `src/cart-item.js` sets for Shopify themes. A UMD
   exports object must not clobber either.
-- **CSS**: `dist/index.css` (both stylesheets, extracted from the root entry), `dist/cart-panel.css`
-  and `dist/cart-item.css`, plus a `.min.css` alongside each.
+- **CSS**: `dist/index.css` (both stylesheets — the root entry's module graph reaches both),
+  `dist/cart-panel.css` and `dist/cart-item.css`, plus a `.min.css` alongside each. Each source
+  module side-effect imports its own CSS and `lib.cssFileName` names the extracted sheet; CSS is
+  never a separate build entry.
 
-**No CommonJS.** This package is ESM only — no `.cjs.js` outputs, and no `require` condition in the
-exports map. A `require()` consumer would be loading a browser custom element into a runtime with no
-DOM; the UMD `.min.js` covers plain `<script>` tags.
+**No CommonJS, and no unminified UMD.** This package is ESM only — no `.cjs.js` outputs, and no
+`require` condition in the exports map. A `require()` consumer would be loading a browser custom
+element into a runtime with no DOM; the `.min.js` covers plain `<script>` tags.
 
-`@magic-spells/event-emitter` stays external in ESM and is bundled into UMD. ESM is never minified —
-it is an input to a downstream bundler. The only minified JS this package ships is `*.min.js`, which
-is UMD-derived.
+**No source maps in `dist/`.** Rolldown inlines `sourcesContent`, and the tarball already ships
+`src/`, so maps would ship the source a second time. `demo/dist` keeps its maps — it is gitignored
+and never published.
 
-**Watch mode never writes to `dist/`.** `rollup.config.mjs` exports *either* the production configs
-(output `dist/`) *or* the watch configs (output `demo/`) — never both — so a `npm run dev` run cannot
-touch a published artifact. This matters because the two ESM builds are legitimately different bytes:
-the demo's copy bundles `@magic-spells/event-emitter` so a plain `<script type="module">` loads with
-no import map, while the published copy leaves it external. When both wrote to `dist/` the result was
-a race, and a dev-built `dist/cart-panel.esm.js` with the dependency inlined got committed twice.
-A guard at the bottom of the config throws if any watch-mode output ever resolves outside `demo/`.
+`@magic-spells/event-emitter` stays external in ESM and is bundled into the `.min.js`, which has no
+resolver behind it.
 
-Watch mode builds the root entry alone: `demo/index.esm.js`, its sourcemap and `demo/index.css`,
-written directly to their final location (no copy step), with the dev server on port 3004. The demo
-page loads that single bundle, which is also how it dogfoods the root import it documents. The two
-subpath entries are strict subsets of the root's module graph, so a break in either source file
-still fails `npm run dev` — building them too would only write `demo/` files nothing loads.
+**Class names in `.min.js`.** Rolldown rewrites `class Foo extends HTMLElement {}` into
+`var Foo = class extends HTMLElement {}` before Terser runs, so `mangle.keep_classnames` has no
+named class to keep. `RESERVED_CLASS_NAMES` at the top of `scripts/build.mjs` scans `src/*.js` for
+class declarations and passes them as Terser's `mangle.reserved`, which is what actually preserves
+them. Do not "simplify" that away — `constructor.name` and the devtools display depend on it.
+
+**Dev mode never writes to `dist/`.** `npm run dev` builds into `demo/dist/` and serves `demo/` on
+port 3002. This matters because the two ESM builds are legitimately different bytes: the demo's copy
+bundles `@magic-spells/event-emitter` so a plain `<script type="module">` loads with no import map,
+while the published copy leaves it external. When both wrote to `dist/` the result was a race, and a
+dev-built `dist/cart-panel.esm.js` with the dependency inlined got committed twice.
+
+Dev builds the root entry alone. The demo page loads that single bundle, which is also how it
+dogfoods the root import it documents. The two subpath entries are strict subsets of the root's
+module graph, so a break in either source file still fails `npm run dev` — building them too would
+only write files nothing loads.
+
+Dev also copies `cart-progress-bar` and `gift-with-purchase` out of their workspace `dist/` into
+`demo/dist/vendor/`, so the demo drives the siblings in this repo rather than the published ones on
+unpkg. `dialog-panel`, `quantity-input` and `split-text` stay on pinned unpkg URLs — they are
+external packages.
 
 ### Line Item Properties
 

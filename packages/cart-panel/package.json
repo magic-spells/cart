@@ -32,11 +32,12 @@
 	"sideEffects": true,
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/magic-spells/cart-panel"
+		"url": "git+https://github.com/magic-spells/cart.git",
+		"directory": "packages/cart-panel"
 	},
-	"homepage": "https://github.com/magic-spells/cart-panel#readme",
+	"homepage": "https://github.com/magic-spells/cart/tree/main/packages/cart-panel#readme",
 	"bugs": {
-		"url": "https://github.com/magic-spells/cart-panel/issues"
+		"url": "https://github.com/magic-spells/cart/issues"
 	},
 	"keywords": [
 		"cart-panel",
@@ -56,12 +57,11 @@
 		"src/"
 	],
 	"scripts": {
-		"build": "rollup -c",
-		"lint": "eslint src/ rollup.config.mjs",
+		"build": "NODE_ENV=production node scripts/build.mjs",
+		"dev": "NODE_ENV=development node scripts/build.mjs",
+		"lint": "eslint src/ scripts/",
 		"format": "prettier --write .",
-		"prepublishOnly": "npm run build",
-		"serve": "rollup -c --watch",
-		"dev": "rollup -c --watch"
+		"prepublishOnly": "npm run build"
 	},
 	"publishConfig": {
 		"access": "public",
@@ -74,14 +74,13 @@
 	],
 	"devDependencies": {
 		"@eslint/js": "^9.38.0",
-		"@rollup/plugin-node-resolve": "^15.2.3",
-		"@rollup/plugin-terser": "^1.0.0",
+		"@magic-spells/vite-plugin-live-reload": "^0.1.0",
 		"eslint": "^9.38.0",
 		"globals": "^15.15.0",
+		"lightningcss": "^1.29.3",
 		"prettier": "^3.3.3",
-		"rollup": "^3.0.0",
-		"rollup-plugin-postcss": "^4.0.2",
-		"rollup-plugin-serve": "^1.1.1"
+		"terser": "^5.16.0",
+		"vite": "^8.0.10"
 	},
 	"dependencies": {
 		"@magic-spells/event-emitter": "^0.1.0"
