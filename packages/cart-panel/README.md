@@ -1,8 +1,12 @@
-# Cart Panel Web Component
+# @magic-spells/cart-panel
 
-A professional, highly-customizable shopping cart component built with Web Components. Features smooth animations, real-time cart synchronization, and seamless integration with Shopify and other e-commerce platforms.
+A slide-out shopping cart web component. The panel owns the cart data, the Shopify AJAX and the item rendering; `@magic-spells/dialog-panel` owns the modal.
 
 [**Live Demo**](https://magic-spells.github.io/cart-panel/demo/)
+
+## Size & scope
+
+**2.8 kB** min + gzip for the panel (2.7 kB JS, 0.1 kB CSS) · **2.8 kB** for the opt-in cart item (1.8 kB JS, 1.0 kB CSS). Two entry points, so a page that brings its own item element pays for the panel only.
 
 ## Features
 
@@ -346,6 +350,7 @@ cart-item {
   --cart-item-shadow-color: rgba(0, 0, 0, 0.15);
   --cart-item-shadow-color-strong: rgba(0, 0, 0, 0.5);
   --cart-item-destroying-bg: rgba(0, 0, 0, 0.1);
+  --cart-item-loader-color: #000;
 
   /* Scale transforms */
   --cart-item-processing-scale: 0.98;
@@ -560,4 +565,10 @@ All modern browsers with Web Components support.
 
 ## License
 
-MIT
+MIT © Cory Schulz
+
+---
+
+<p align="center">
+  Made by <a href="https://github.com/coryschulz">Cory Schulz</a>
+</p>

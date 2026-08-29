@@ -171,6 +171,7 @@ cart-item {
   --cart-item-destroying-duration: 600ms;
   --cart-item-appearing-duration: 400ms;
   --cart-item-shadow-color: rgba(0, 0, 0, 0.15);
+  --cart-item-loader-color: #000;
   --cart-item-processing-scale: 0.98;
   --cart-item-destroying-scale: 0.85;
   --cart-item-processing-blur: 1px;

@@ -20,6 +20,7 @@ cart-item {
 	--cart-item-appearing-opacity: 0.5;
 	--cart-item-destroying-brightness: 0.6;
 	--cart-item-destroying-saturate: 0.3;
+	--cart-item-loader-color: #000;
 
 	display: block;
 	position: relative;
@@ -183,7 +184,7 @@ cart-item-processing {
 cart-item-processing .cart-item-loader {
 	width: 60px;
 	aspect-ratio: 2;
-	--_g: no-repeat radial-gradient(circle closest-side, #000 90%, #0000);
+	--_g: no-repeat radial-gradient(circle closest-side, var(--cart-item-loader-color) 90%, #0000);
 	background:
 		var(--_g) 0% 50%,
 		var(--_g) 50% 50%,
