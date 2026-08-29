@@ -3,8 +3,31 @@ import { rm, mkdir, cp } from 'node:fs/promises';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import liveReload from '@magic-spells/vite-plugin-live-reload';
 
-const isDev = process.env.NODE_ENV === 'development';
-const outDir = isDev ? 'demo/dist' : 'dist';
+// Three modes, two output shapes.
+//
+//   dev   `npm run dev`        — build the demo bundle, watch it, serve demo/.
+//   demo  `npm run build:demo` — the same demo bundle, built once, then exit.
+//   prod  `npm run build`      — the published dist/.
+//
+// `dev` and `demo` are one build with the watcher and the dev server switched
+// off, not two builds that happen to agree. GitHub Pages serves this repo's
+// demo straight off the branch with no build step, so `demo/dist` is committed;
+// sharing the config is what stops the committed bundle from drifting away from
+// the one a developer sees locally.
+//
+// Everything below branches on `isDemo` (which output, built which way) or
+// `isWatch` (whether this process stays alive), never on the mode name.
+const MODE =
+	process.env.DEMO_BUILD === '1'
+		? 'demo'
+		: process.env.NODE_ENV === 'development'
+			? 'dev'
+			: 'prod';
+
+const isDemo = MODE !== 'prod';
+const isWatch = MODE === 'dev';
+
+const outDir = isDemo ? 'demo/dist' : 'dist';
 
 // Every class declared in src/, reserved so Terser cannot rename it.
 //
@@ -73,24 +96,26 @@ const SIBLING_BUILDS = [
 function sharedBuild(overrides = {}) {
 	return {
 		configFile: false,
-		logLevel: isDev ? 'warn' : 'info',
+		// Quiet under the watcher, which reprints on every keystroke. A one-shot
+		// build says what it wrote.
+		logLevel: isWatch ? 'warn' : 'info',
 		css: { transformer: 'lightningcss' },
 		build: {
 			outDir,
 			// Six passes write into the same directory, one per entry point per
 			// format. Emptying between them would delete the previous pass's work.
 			emptyOutDir: false,
-			// Dev only. The published tarball is `files: ["dist/", "src/"]`, and
-			// rolldown inlines `sourcesContent` — shipping maps would put the whole
-			// source tree in the tarball a second time. `false` rather than
+			// Demo output only. The published tarball is `files: ["dist/", "src/"]`,
+			// and rolldown inlines `sourcesContent` — shipping maps would put the
+			// whole source tree in the tarball a second time. `false` rather than
 			// `'hidden'`: the artifacts carry a `//# sourceMappingURL=` comment, so
 			// emitting the map and merely withholding it from the tarball would 404
-			// in devtools. The demo keeps its maps — demo/dist is gitignored and
-			// never published.
-			sourcemap: isDev,
+			// in devtools. The demo keeps its maps: demo/dist is committed but never
+			// published, and the map is what makes the live demo debuggable.
+			sourcemap: isDemo,
 			target: 'es2022',
-			reportCompressedSize: !isDev,
-			watch: isDev ? {} : null,
+			reportCompressedSize: !isDemo,
+			watch: isWatch ? {} : null,
 			...overrides.build,
 		},
 		...Object.fromEntries(Object.entries(overrides).filter(([key]) => key !== 'build')),
@@ -161,9 +186,9 @@ function umdMinConfig({ fileName, globalName }) {
 }
 
 // Copy the sibling workspace builds the demo drives into demo/dist/vendor/.
-// demo/dist is gitignored, so nothing here is committed or published. Siblings
-// are read from their committed dist/ — house policy publishes those — so this
-// needs no build ordering between packages.
+// Siblings are read from their committed dist/ — house policy commits those — so
+// this needs no build ordering between packages, and `npm run build:demo` is
+// reproducible from a fresh checkout without building anything else first.
 async function copySiblingBuilds() {
 	const vendorDir = `${outDir}/vendor`;
 	await mkdir(vendorDir, { recursive: true });
@@ -179,40 +204,54 @@ async function copySiblingBuilds() {
 }
 
 async function main() {
-	if (!isDev) {
+	// A one-shot build starts from an empty directory, so its output is a
+	// function of the sources and nothing else. That matters twice over for the
+	// demo build, whose result is committed: a file that stopped being emitted
+	// must stop being served too. Watch mode keeps the directory and rewrites in
+	// place — wiping it would break the page open in the browser.
+	if (!isWatch) {
 		await rm(outDir, { recursive: true, force: true });
 		await mkdir(outDir, { recursive: true });
 	} else if (!existsSync(outDir)) {
 		await mkdir(outDir, { recursive: true });
 	}
 
-	if (isDev) {
-		await copySiblingBuilds();
-
-		// The demo loads the root bundle and its stylesheet, and nothing else this
-		// package builds. Watch builds never resolve, so they are fired unawaited.
-		build(esmConfig({ ...ROOT_ENTRY, external: [] })).catch((error) => {
-			console.error('build error:', error);
-		});
-
-		const server = await createServer({
-			configFile: false,
-			root: 'demo',
-			server: { port: 3002, open: true, strictPort: false, host: true },
-			// Raw-serve JS as well as CSS: Vite's cached transform of files the
-			// module graph doesn't own is never invalidated, so the externally
-			// rebuilt bundles go stale behind it.
-			plugins: [liveReload({ distDir: 'demo/dist', extensions: ['.css', '.js', '.mjs', '.map'] })],
-		});
-		await server.listen();
-		server.printUrls();
-	} else {
+	if (!isDemo) {
 		// Sequential for prod — deterministic, and a smaller memory footprint.
 		for (const entry of ENTRIES) {
 			await build(esmConfig(entry));
 			await build(umdMinConfig(entry));
 		}
+		return;
 	}
+
+	await copySiblingBuilds();
+
+	// The demo loads the root bundle and its stylesheet, and nothing else this
+	// package builds.
+	const demoBuild = esmConfig({ ...ROOT_ENTRY, external: [] });
+
+	if (!isWatch) {
+		await build(demoBuild);
+		return;
+	}
+
+	// Watch builds never resolve, so they are fired unawaited.
+	build(demoBuild).catch((error) => {
+		console.error('build error:', error);
+	});
+
+	const server = await createServer({
+		configFile: false,
+		root: 'demo',
+		server: { port: 3002, open: true, strictPort: false, host: true },
+		// Raw-serve JS as well as CSS: Vite's cached transform of files the
+		// module graph doesn't own is never invalidated, so the externally
+		// rebuilt bundles go stale behind it.
+		plugins: [liveReload({ distDir: 'demo/dist', extensions: ['.css', '.js', '.mjs', '.map'] })],
+	});
+	await server.listen();
+	server.printUrls();
 }
 
 main().catch((error) => {

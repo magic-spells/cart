@@ -59,6 +59,7 @@
 	],
 	"scripts": {
 		"build": "NODE_ENV=production node scripts/build.mjs",
+		"build:demo": "DEMO_BUILD=1 node scripts/build.mjs",
 		"dev": "NODE_ENV=development node scripts/build.mjs",
 		"lint": "eslint src/ scripts/",
 		"format": "prettier --write .",
@@ -87,10 +88,18 @@
 		"@magic-spells/event-emitter": "^0.1.0"
 	},
 	"peerDependencies": {
-		"@magic-spells/dialog-panel": "^1.0.0"
+		"@magic-spells/dialog-panel": "^2.0.0",
+		"@magic-spells/quantity-input": "^1.0.0",
+		"@magic-spells/quantity-modifier": "^0.2.0"
 	},
 	"peerDependenciesMeta": {
 		"@magic-spells/dialog-panel": {
+			"optional": true
+		},
+		"@magic-spells/quantity-input": {
+			"optional": true
+		},
+		"@magic-spells/quantity-modifier": {
 			"optional": true
 		}
 	}

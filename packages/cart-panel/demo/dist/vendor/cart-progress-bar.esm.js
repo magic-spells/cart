@@ -18,7 +18,7 @@ var ProgressBar = class extends HTMLElement {
 		this.setAttribute("aria-valuenow", p);
 	}
 };
-if (!customElements.get("progress-bar")) customElements.define("progress-bar", ProgressBar);
+customElements.define("progress-bar", ProgressBar);
 /**
 * CartProgressBar main component
 */
@@ -249,6 +249,6 @@ var CartProgressBar = class extends HTMLElement {
 		return this.#current >= this.#converted();
 	}
 };
-if (!customElements.get("cart-progress-bar")) customElements.define("cart-progress-bar", CartProgressBar);
+customElements.define("cart-progress-bar", CartProgressBar);
 //#endregion
 export { CartProgressBar, ProgressBar };

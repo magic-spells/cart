@@ -22,7 +22,9 @@ class ProgressBar extends HTMLElement {
 }
 
 // Define ProgressBar custom element immediately so it's available for CartProgressBar
-customElements.define('progress-bar', ProgressBar);
+if (!customElements.get('progress-bar')) {
+	customElements.define('progress-bar', ProgressBar);
+}
 
 /**
  * CartProgressBar main component
@@ -284,7 +286,9 @@ class CartProgressBar extends HTMLElement {
 }
 
 // Define CartProgressBar custom element
-customElements.define('cart-progress-bar', CartProgressBar);
+if (!customElements.get('cart-progress-bar')) {
+	customElements.define('cart-progress-bar', CartProgressBar);
+}
 
 // Export components for external use
 export { CartProgressBar, ProgressBar };
