@@ -596,7 +596,7 @@
 			/* ---- The line item skin ---- */
 			.line-item {
 				display: flex;
-				align-items: center;
+				align-items: flex-start;
 				gap: 0.9rem;
 				padding: 1.1rem 1.5rem;
 				border-bottom: 1px solid var(--border);
@@ -626,10 +626,14 @@
 				font-size: 0.95rem;
 			}
 
+			/* Spans the row so the remove sits at the top edge and the price at
+			   the bottom, whatever height the middle column runs to. */
 			.line-side {
 				display: flex;
 				flex-direction: column;
 				align-items: flex-end;
+				align-self: stretch;
+				justify-content: space-between;
 				gap: 0.75rem;
 			}
 
@@ -653,9 +657,12 @@
 				color: var(--jade-text);
 			}
 
+			/* The package fixes the control at 2.5rem tall; the children must fill
+			   it edge to edge or a gap shows above and below the buttons. */
 			quantity-input {
 				display: inline-flex;
-				align-items: center;
+				align-items: stretch;
+				height: 2.5rem;
 				border: 1px solid var(--border-accent);
 				border-radius: 6px;
 				overflow: hidden;
@@ -663,7 +670,7 @@
 
 			quantity-input button {
 				width: 1.9rem;
-				height: 1.9rem;
+				height: 100%;
 				color: var(--text-dim);
 				background: var(--bg-well);
 				border: none;
@@ -685,7 +692,7 @@
 
 			quantity-input input {
 				width: 2.4rem;
-				height: 1.9rem;
+				height: 100%;
 				color: var(--cream);
 				background: transparent;
 				border: none;

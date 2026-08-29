@@ -428,6 +428,10 @@ class CartPanel extends HTMLElement {
 			cartObj = _.#withSectionMarkup(cartObj, await _.getCartSection());
 		}
 
+		// An optimistic mutation may still be in the air - a refresh (say, the
+		// panel opening) must not flash that line's pre-mutation number back
+		cartObj = _.#preserveInFlightLines(cartObj);
+
 		_.#currentCart = cartObj;
 		_.#renderCartItems(cartObj);
 		_.#renderCartPanel(cartObj);
