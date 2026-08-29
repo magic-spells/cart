@@ -278,10 +278,12 @@ var CartItem = class CartItem extends HTMLElement {
 			_.#updateQuantityInput();
 			return;
 		}
+		const focusState = _.#captureFocus();
 		_.setState("ready");
 		_.#render();
 		_.#queryDOM();
 		_.#updateLinePriceElements();
+		_.#restoreFocus(focusState);
 	}
 	/**
 	* Refresh the remembered quantity from item data, falling back to whatever

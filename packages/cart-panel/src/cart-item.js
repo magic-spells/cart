@@ -388,11 +388,16 @@ class CartItem extends HTMLElement {
 			return;
 		}
 
-		// HTML is different, proceed with full update
+		// HTML is different, proceed with full update. Focus is carried across the
+		// redraw the same way a section swap carries it - a template that prints
+		// the quantity redraws on every change, and losing the field mid-adjust
+		// is how a keyboard user gets thrown out of the cart.
+		const focusState = _.#captureFocus();
 		_.setState('ready');
 		_.#render();
 		_.#queryDOM();
 		_.#updateLinePriceElements();
+		_.#restoreFocus(focusState);
 	}
 
 	/**
