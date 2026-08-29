@@ -20,6 +20,31 @@ A powerful, e-commerce web component for automatic gift-with-purchase threshold 
 npm install @magic-spells/gift-with-purchase
 ```
 
+The package is ESM-only. Import it once, anywhere in your bundle, to register the custom element:
+
+```javascript
+import '@magic-spells/gift-with-purchase';
+```
+
+The CSS is shipped as a separate file rather than injected, so load it too:
+
+```css
+/* unminified */
+@import '@magic-spells/gift-with-purchase/css';
+
+/* or minified */
+@import '@magic-spells/gift-with-purchase/css/min';
+```
+
+Without a bundler, use the UMD build (exposes the `GiftWithPurchase` global):
+
+```html
+<link
+	rel="stylesheet"
+	href="https://unpkg.com/@magic-spells/gift-with-purchase/dist/gift-with-purchase.min.css" />
+<script src="https://unpkg.com/@magic-spells/gift-with-purchase/dist/gift-with-purchase.min.js"></script>
+```
+
 ## Basic Usage
 
 ```html
@@ -39,10 +64,6 @@ npm install @magic-spells/gift-with-purchase
 	</div>
 	<p data-content-gwp-message class="text-sm font-medium"></p>
 </gift-with-purchase>
-```
-
-```css
-@import '@magic-spells/gift-with-purchase/css';
 ```
 
 ## Cart Integration
@@ -397,9 +418,9 @@ In your Shopify cart template, you can identify and handle gift items:
 - Safari 14+
 - All modern browsers with Custom Elements support
 
-## TypeScript Support
+## State Shape
 
-Type definitions are included in the package:
+`getState()` returns:
 
 ```typescript
 interface GiftWithPurchaseState {
@@ -419,6 +440,24 @@ interface GiftWithPurchaseState {
 // Component automatically handles message injection
 // Style your content and message elements with any CSS classes
 ```
+
+## Development
+
+```bash
+npm run dev    # build to demo/dist/ in watch mode and serve demo/ on http://localhost:3000
+npm run build  # build the published dist/ (ESM, minified UMD, CSS, minified CSS)
+npm run lint   # ESLint over src/ and scripts/
+```
+
+The build is a plain Node script (`scripts/build.mjs`) driving Vite's JS API — there is no
+`vite.config.js`. It emits exactly four files into `dist/`:
+
+| File                          | Format                                  |
+| ----------------------------- | --------------------------------------- |
+| `gift-with-purchase.esm.js`   | ES module (unminified)                  |
+| `gift-with-purchase.min.js`   | UMD, minified, global `GiftWithPurchase` |
+| `gift-with-purchase.css`      | Stylesheet                              |
+| `gift-with-purchase.min.css`  | Stylesheet, minified                    |
 
 ## Contributing
 

@@ -77,7 +77,19 @@ Family policy, applied to all packages including `cart-panel` when it arrives:
 - **No sass.** No `sass` dependency, no `.scss` sources, no `./scss` export. Existing `.scss` is
   ported to plain CSS preserving the custom-property API, the way `cart-panel/src/cart-item.css`
   was ported.
-- `npm run dev` writes its output into the package's `demo/`, never into `dist/`.
+- `npm run dev` writes its output into the package's `demo/dist/`, never into `dist/`.
+- No source maps in the published `dist/` (`sourcemap: isDev`). Rolldown inlines `sourcesContent`,
+  which shipped the whole source tree twice in the tarball; `sheet` already made this call.
+- Each package keeps a fixed dev port: `cart-progress-bar` 3001, `gift-with-purchase` 3000,
+  `cart-panel` to be assigned on import.
+
+Two things change relative to the standalone repos:
+
+- **`demo/dist/` is gitignored here**, following tarot, where dev-mode build output is not
+  committed. The standalone repos committed their demo bundles because GitHub Pages served the
+  demo straight out of the repo. That demo-hosting story has to be rebuilt for the monorepo
+  (one Pages deploy covering `packages/*/demo`), and is **not** part of this migration.
+- Published `dist/` **is** still committed, which is the existing house policy.
 
 `gift-with-purchase` was the only package still carrying sass (a `.scss` source, the `sass`
 devDependency, and a published `./scss` entry point); dropping it is a breaking change for anyone
@@ -86,6 +98,20 @@ who imported that entry, which the 2.0.0 major covers.
 These build changes live in the 2.0.0 commits on `release/2.0.0` — deliberately **not** rewritten
 into the imported history, so the imported commits still describe what those packages actually
 were at the time.
+
+### Known follow-up: class names are mangled in `.min.js`
+
+Rolldown rewrites `class Foo extends HTMLElement {}` into `var Foo = class extends HTMLElement {}`
+before Terser runs, so Terser's `mangle.keep_classnames: true` finds no named class to keep and
+the name is lost. The old rollup builds kept it.
+
+Impact is cosmetic — devtools display and `constructor.name`. `customElements.define()` and the
+UMD named exports are unaffected, so nothing functional depends on it.
+
+This is **not** specific to the cart packages: `sticky-header` has the same shape, which means the
+whole house build pattern has it. The fix is a one-line `rolldownOptions.output.keepNames` in the
+shared pattern, applied everywhere at once. Deliberately **not** patched here in isolation —
+diverging one repo from the house pattern costs more than the cosmetic name is worth.
 
 ## Branches
 

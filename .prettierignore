@@ -1,0 +1,9 @@
+# generated bundles — never reformat build output
+**/dist/
+**/*.min.js
+**/*.min.css
+node_modules/
+
+# prose keeps its hand-written formatting
+*.md
+**/*.md
