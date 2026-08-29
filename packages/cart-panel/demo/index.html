@@ -491,18 +491,25 @@
 				font-weight: 400;
 			}
 
-			/* The brackets are drawn, not typed, so `hide-count-when-empty` takes
-			   them away with the number instead of leaving "Cart ()" behind. */
+			/* A circular badge, so `hide-count-when-empty` takes the whole chip
+			   away with the number. The display serif's figures sit unevenly at
+			   this size, so the badge switches to the sans with lining figures. */
 			.cart-title-count {
-				color: var(--jade-text);
-			}
-
-			.cart-title-count::before {
-				content: '(';
-			}
-
-			.cart-title-count::after {
-				content: ')';
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				min-width: 1.6em;
+				height: 1.6em;
+				padding: 0 0.35em;
+				vertical-align: 0.2em;
+				color: var(--bg-deep);
+				background: var(--jade);
+				border-radius: 999px;
+				font-family: var(--font-body);
+				font-size: 0.95rem;
+				font-weight: 600;
+				font-variant-numeric: lining-nums tabular-nums;
+				line-height: 1;
 			}
 
 			.cart-close {
