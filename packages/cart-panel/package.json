@@ -1,0 +1,97 @@
+{
+	"name": "@magic-spells/cart-panel",
+	"version": "2.0.0",
+	"description": "Shopping cart panel web component for Shopify. Manages cart data and AJAX, delegates modal behavior to dialog-panel. The root import registers the panel and the cart item; each is also available on its own subpath.",
+	"author": "Cory Schulz",
+	"license": "MIT",
+	"type": "module",
+	"main": "dist/index.esm.js",
+	"module": "dist/index.esm.js",
+	"unpkg": "dist/index.min.js",
+	"style": "dist/index.css",
+	"exports": {
+		".": {
+			"import": "./dist/index.esm.js",
+			"default": "./dist/index.esm.js"
+		},
+		"./css": "./dist/index.css",
+		"./css/min": "./dist/index.min.css",
+		"./panel": {
+			"import": "./dist/cart-panel.esm.js",
+			"default": "./dist/cart-panel.esm.js"
+		},
+		"./panel/css": "./dist/cart-panel.css",
+		"./panel/css/min": "./dist/cart-panel.min.css",
+		"./cart-item": {
+			"import": "./dist/cart-item.esm.js",
+			"default": "./dist/cart-item.esm.js"
+		},
+		"./cart-item/css": "./dist/cart-item.css",
+		"./cart-item/css/min": "./dist/cart-item.min.css"
+	},
+	"sideEffects": true,
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/magic-spells/cart-panel"
+	},
+	"homepage": "https://github.com/magic-spells/cart-panel#readme",
+	"bugs": {
+		"url": "https://github.com/magic-spells/cart-panel/issues"
+	},
+	"keywords": [
+		"cart-panel",
+		"cart-item",
+		"web-components",
+		"e-commerce",
+		"shopping-cart",
+		"custom-elements",
+		"shopify",
+		"modal",
+		"dialog",
+		"accessibility",
+		"a11y"
+	],
+	"files": [
+		"dist/",
+		"src/"
+	],
+	"scripts": {
+		"build": "rollup -c",
+		"lint": "eslint src/ rollup.config.mjs",
+		"format": "prettier --write .",
+		"prepublishOnly": "npm run build",
+		"serve": "rollup -c --watch",
+		"dev": "rollup -c --watch"
+	},
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"browserslist": [
+		"last 2 versions",
+		"not dead",
+		"not ie <= 11"
+	],
+	"devDependencies": {
+		"@eslint/js": "^9.38.0",
+		"@rollup/plugin-node-resolve": "^15.2.3",
+		"@rollup/plugin-terser": "^1.0.0",
+		"eslint": "^9.38.0",
+		"globals": "^15.15.0",
+		"prettier": "^3.3.3",
+		"rollup": "^3.0.0",
+		"rollup-plugin-postcss": "^4.0.2",
+		"rollup-plugin-serve": "^1.1.1"
+	},
+	"dependencies": {
+		"@magic-spells/event-emitter": "^0.1.0"
+	},
+	"peerDependencies": {
+		"@magic-spells/dialog-panel": "^1.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@magic-spells/dialog-panel": {
+			"optional": true
+		}
+	}
+}
