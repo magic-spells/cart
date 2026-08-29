@@ -118,6 +118,10 @@ class CartPanel extends HTMLElement {
 	#hasRenderedCartItems = false;
 	#isAwaitingCartItemDefinition = false;
 
+	// One record per line key while a mutation is in flight or queued.
+	// { seq, inFlight, pending, removed } - see #queueLineMutation.
+	#lineRequests = new Map();
+
 	constructor() {
 		super();
 		this.#eventEmitter = new EventEmitter();
@@ -134,6 +138,27 @@ class CartPanel extends HTMLElement {
 
 	disconnectedCallback() {
 		// Clean up handled by garbage collection
+	}
+
+	// =========================================================================
+	// Public API - Attributes
+	// =========================================================================
+
+	/**
+	 * Whether quantity changes and removals are applied locally before the
+	 * server answers
+	 * @returns {boolean}
+	 */
+	get optimistic() {
+		return this.hasAttribute('optimistic');
+	}
+
+	/**
+	 * @param {boolean} value - Turn optimistic updates on or off
+	 */
+	set optimistic(value) {
+		if (value) this.setAttribute('optimistic', '');
+		else this.removeAttribute('optimistic');
 	}
 
 	// =========================================================================
@@ -255,7 +280,7 @@ class CartPanel extends HTMLElement {
 		const _ = this;
 
 		// Fetch from server if no cart object provided
-		cartObj = cartObj || (await _.getCart());
+		cartObj = cartObj || (await _.#fetchCartState());
 		if (!cartObj || cartObj.error) {
 			console.warn('Cart data has error or is null:', cartObj);
 			return cartObj;
@@ -358,6 +383,11 @@ class CartPanel extends HTMLElement {
 		const _ = this;
 		const { cartKey, element } = e.detail;
 
+		if (_.optimistic) {
+			_.#applyOptimisticMutation(cartKey, 0, element);
+			return;
+		}
+
 		element.setState('processing');
 
 		_.updateCartItem(cartKey, 0)
@@ -389,6 +419,11 @@ class CartPanel extends HTMLElement {
 		const _ = this;
 		const { cartKey, quantity, element } = e.detail;
 
+		if (_.optimistic) {
+			_.#applyOptimisticMutation(cartKey, quantity, element);
+			return;
+		}
+
 		element.setState('processing');
 
 		_.updateCartItem(cartKey, quantity)
@@ -410,6 +445,286 @@ class CartPanel extends HTMLElement {
 				element.setState('ready');
 				console.error('Error updating cart item quantity:', error);
 			});
+	}
+
+	// =========================================================================
+	// Private Methods - Optimistic Updates
+	//
+	// With `optimistic` set, a quantity change or a removal is applied to the
+	// local cart and drawn immediately - no processing state, no waiting on the
+	// network. The request goes out behind it and the answer only ever
+	// reconciles: it never drives the first paint.
+	//
+	// Three rules keep that honest under fast fingers, and #lineRequests is
+	// where all three live:
+	//   1. coalescing - at most one request per line key is in flight; the
+	//      newest value waits its turn and the ones it overtook are dropped;
+	//   2. sequence ids - every queued value bumps the key's counter, and a
+	//      response is applied only if its counter is still the current one, so
+	//      a slow answer can never overwrite newer local state;
+	//   3. remove wins - a removal marks the key, and changes queued behind it
+	//      are ignored until it settles.
+	// =========================================================================
+
+	/**
+	 * Apply a line mutation locally and send it in the background
+	 * @param {string} key - Cart line key
+	 * @param {number} quantity - New quantity, 0 to remove
+	 * @param {HTMLElement} element - The cart-item element that raised the event
+	 * @private
+	 */
+	#applyOptimisticMutation(key, quantity, element) {
+		const _ = this;
+		const parsed = Number.parseInt(quantity, 10);
+		const nextQuantity = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+
+		// a line already on its way out ignores anything but its own removal
+		if (_.#lineRequests.get(key)?.removed && nextQuantity > 0) return;
+
+		// the element leaves at once - the animation is the acknowledgement
+		if (nextQuantity === 0 && typeof element?.destroyYourself === 'function') {
+			element.destroyYourself();
+		}
+
+		const projectedCart = _.#projectCart(_.#currentCart, key, nextQuantity);
+		if (projectedCart) {
+			_.#currentCart = projectedCart;
+			_.#renderCartItems(projectedCart);
+			_.#renderCartPanel(projectedCart);
+
+			// progress bars and gifts react to this the instant the click lands
+			const cartWithCalculatedFields = _.#addCalculatedFields(projectedCart);
+			_.#emit('cart-panel:updated', { cart: cartWithCalculatedFields });
+			_.#emit('cart-panel:data-changed', cartWithCalculatedFields);
+		}
+
+		_.#queueLineMutation(key, nextQuantity);
+	}
+
+	/**
+	 * Build the cart the server is about to agree with: one line's quantity and
+	 * line price recalculated, everything else untouched
+	 * @param {Object} cartData - Current cart object
+	 * @param {string} key - Cart line key
+	 * @param {number} quantity - New quantity, 0 to remove
+	 * @returns {Object|null} Projected cart, or null if the line is not in it
+	 * @private
+	 */
+	#projectCart(cartData, key, quantity) {
+		if (!cartData || !Array.isArray(cartData.items)) return null;
+
+		const index = cartData.items.findIndex((item) => (item.key || item.id) === key);
+		if (index === -1) return null;
+
+		const items = cartData.items.slice();
+
+		if (quantity === 0) {
+			items.splice(index, 1);
+		} else {
+			const item = items[index];
+			const unitPrice = this.#unitPrice(item);
+			const projectedItem = { ...item, quantity, line_price: unitPrice * quantity };
+
+			// mirror the other line totals only when the cart actually carries them
+			if (typeof item.final_line_price === 'number') {
+				projectedItem.final_line_price = unitPrice * quantity;
+			}
+			if (typeof item.original_line_price === 'number') {
+				const originalUnit =
+					typeof item.original_price === 'number' ? item.original_price : unitPrice;
+				projectedItem.original_line_price = originalUnit * quantity;
+			}
+
+			items[index] = projectedItem;
+		}
+
+		const item_count = items.reduce((total, item) => total + item.quantity, 0);
+
+		// the section markup on the old cart described the old quantities, so it
+		// is dropped rather than re-applied - the server's answer brings fresh HTML
+		const projectedCart = { ...cartData, items, item_count };
+		delete projectedCart.sections;
+
+		return projectedCart;
+	}
+
+	/**
+	 * Work out a line's unit price, falling back to the line total when the cart
+	 * JSON is thin (a stand-in cart, or an older Shopify payload)
+	 * @private
+	 */
+	#unitPrice(item) {
+		if (typeof item.final_price === 'number') return item.final_price;
+		if (typeof item.price === 'number') return item.price;
+		if (typeof item.line_price === 'number' && item.quantity > 0) {
+			return Math.round(item.line_price / item.quantity);
+		}
+		return 0;
+	}
+
+	/**
+	 * Queue a line mutation, coalescing on the key
+	 * @private
+	 */
+	#queueLineMutation(key, quantity) {
+		const _ = this;
+		let entry = _.#lineRequests.get(key);
+
+		if (!entry) {
+			entry = { seq: 0, inFlight: false, pending: null, removed: false };
+			_.#lineRequests.set(key, entry);
+		}
+
+		if (quantity === 0) entry.removed = true;
+
+		// trailing edge: the newest value replaces whatever was waiting
+		entry.pending = quantity;
+		entry.seq += 1;
+
+		if (!entry.inFlight) _.#drainLineMutation(key);
+	}
+
+	/**
+	 * Send the queued value for a key, then either send what arrived while it
+	 * was out or apply the answer
+	 * @private
+	 */
+	async #drainLineMutation(key) {
+		const _ = this;
+		const entry = _.#lineRequests.get(key);
+		if (!entry || entry.inFlight || entry.pending === null) return;
+
+		const quantity = entry.pending;
+		const seq = entry.seq;
+		entry.pending = null;
+		entry.inFlight = true;
+
+		let response;
+		try {
+			response = await _.updateCartItem(key, quantity);
+		} catch (error) {
+			response = { error: true, message: error?.message };
+		}
+
+		entry.inFlight = false;
+
+		// anything queued while this was out is newer than the answer we hold
+		const isStale = seq !== entry.seq;
+		if (entry.pending !== null) _.#drainLineMutation(key);
+		if (isStale) return;
+
+		if (!response || response.error) {
+			await _.#revertToServerTruth(key, response);
+		} else {
+			_.#reconcileWithServerCart(response);
+		}
+
+		// settled and idle - drop the record so a re-added line with the same
+		// key (Shopify reuses them) starts clean
+		const settled = _.#lineRequests.get(key);
+		if (settled && !settled.inFlight && settled.pending === null && settled.seq === seq) {
+			_.#lineRequests.delete(key);
+		}
+	}
+
+	/**
+	 * Take the server's cart as truth, quietly - an event only if it disagrees
+	 * with what is already on screen
+	 * @private
+	 */
+	#reconcileWithServerCart(serverCart) {
+		const _ = this;
+		const reconciledCart = _.#preserveInFlightLines(serverCart);
+		const agrees = _.#cartsAgree(_.#currentCart, reconciledCart);
+
+		_.#currentCart = reconciledCart;
+		_.#renderCartItems(reconciledCart);
+		_.#renderCartPanel(reconciledCart);
+
+		if (agrees) return;
+
+		const cartWithCalculatedFields = _.#addCalculatedFields(reconciledCart);
+		_.#emit('cart-panel:updated', { cart: cartWithCalculatedFields });
+		_.#emit('cart-panel:data-changed', cartWithCalculatedFields);
+	}
+
+	/**
+	 * Keep the locally projected quantity of any line that still has a mutation
+	 * of its own in the air. Another line's response describes those lines as
+	 * they were before their request landed, and rendering that would flash the
+	 * old number back.
+	 * @private
+	 */
+	#preserveInFlightLines(serverCart) {
+		const _ = this;
+		if (_.#lineRequests.size === 0 || !Array.isArray(serverCart?.items)) return serverCart;
+
+		let items = serverCart.items;
+		let changed = false;
+
+		_.#lineRequests.forEach((entry, key) => {
+			if (!entry.inFlight && entry.pending === null) return;
+
+			const index = items.findIndex((item) => (item.key || item.id) === key);
+
+			if (entry.removed) {
+				if (index === -1) return;
+				items = items.filter((item, itemIndex) => itemIndex !== index);
+				changed = true;
+				return;
+			}
+
+			const localItem = _.#currentCart?.items?.find((item) => (item.key || item.id) === key);
+			if (index === -1 || !localItem || items[index].quantity === localItem.quantity) return;
+
+			items = items.slice();
+			items[index] = localItem;
+			changed = true;
+		});
+
+		if (!changed) return serverCart;
+
+		const item_count = items.reduce((total, item) => total + item.quantity, 0);
+		return { ...serverCart, items, item_count };
+	}
+
+	/**
+	 * Compare two carts line for line - keys, quantities and line prices
+	 * @private
+	 */
+	#cartsAgree(cartA, cartB) {
+		const itemsA = cartA?.items;
+		const itemsB = cartB?.items;
+		if (!Array.isArray(itemsA) || !Array.isArray(itemsB)) return false;
+		if (itemsA.length !== itemsB.length) return false;
+
+		return itemsA.every((item, index) => {
+			const other = itemsB[index];
+			return (
+				(item.key || item.id) === (other.key || other.id) &&
+				item.quantity === other.quantity &&
+				(item.line_price || 0) === (other.line_price || 0)
+			);
+		});
+	}
+
+	/**
+	 * Put the server's cart back on screen after a failed mutation and announce
+	 * the failure. A line that was removed optimistically animates back in.
+	 * @private
+	 */
+	async #revertToServerTruth(key, error) {
+		const _ = this;
+		const serverCart = await _.#fetchCartState();
+
+		if (serverCart && !serverCart.error) {
+			_.#currentCart = serverCart;
+			_.#renderCartItems(serverCart);
+			_.#renderCartPanel(serverCart);
+			_.#emit('cart-panel:data-changed', _.#addCalculatedFields(serverCart));
+		}
+
+		_.#emit('cart-panel:error', { key, error });
 	}
 
 	// =========================================================================
@@ -511,7 +826,7 @@ class CartPanel extends HTMLElement {
 		}
 
 		// Get current DOM items
-		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+		const currentItems = _.#getLiveCartItems(itemsContainer);
 		const currentKeys = new Set(currentItems.map((item) => item.getAttribute('key')));
 
 		// Get new cart data keys
@@ -560,7 +875,7 @@ class CartPanel extends HTMLElement {
 	 * @private
 	 */
 	#removeItemsFromDOM(itemsContainer, newKeysSet) {
-		const currentItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+		const currentItems = this.#getLiveCartItems(itemsContainer);
 		const itemsToRemove = currentItems.filter((item) => !newKeysSet.has(item.getAttribute('key')));
 
 		itemsToRemove.forEach((item) => {
@@ -574,7 +889,7 @@ class CartPanel extends HTMLElement {
 	 */
 	#updateItemsInDOM(itemsContainer, cartData) {
 		const visibleItems = this.#getVisibleCartItems(cartData);
-		const existingItems = Array.from(itemsContainer.querySelectorAll('cart-item'));
+		const existingItems = this.#getLiveCartItems(itemsContainer);
 
 		existingItems.forEach((cartItemEl) => {
 			const key = cartItemEl.getAttribute('key');
@@ -605,7 +920,9 @@ class CartPanel extends HTMLElement {
 					let insertAfter = null;
 					for (let i = targetIndex - 1; i >= 0; i--) {
 						const prevKey = newKeys[i];
-						const prevItem = itemsContainer.querySelector(`cart-item[key="${prevKey}"]`);
+						const prevItem = itemsContainer.querySelector(
+							`cart-item[key="${prevKey}"]:not([state='destroying'])`
+						);
 						if (prevItem) {
 							insertAfter = prevItem;
 							break;
@@ -625,6 +942,29 @@ class CartPanel extends HTMLElement {
 	// =========================================================================
 	// Private Methods - Helpers
 	// =========================================================================
+
+	/**
+	 * The single "what does the server say" entry point: used by refreshCart()
+	 * and by the revert after a failed optimistic mutation
+	 * @returns {Promise<Object>} Cart data object
+	 * @private
+	 */
+	async #fetchCartState() {
+		return this.getCart();
+	}
+
+	/**
+	 * The cart-item elements currently in the container, ignoring any that are
+	 * mid-destroy. A collapsing element is already gone as far as the cart is
+	 * concerned, and counting it would stop the same key from animating back in -
+	 * which is exactly what a failed optimistic removal has to do.
+	 * @private
+	 */
+	#getLiveCartItems(itemsContainer) {
+		return Array.from(itemsContainer.querySelectorAll('cart-item')).filter(
+			(item) => item.getAttribute('state') !== 'destroying'
+		);
+	}
 
 	/**
 	 * Filter cart items to exclude hidden items
