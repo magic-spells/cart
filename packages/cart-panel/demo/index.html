@@ -25,10 +25,18 @@
 			rel="stylesheet"
 			href="https://unpkg.com/@magic-spells/split-text@0.2.0/dist/split-text.min.css" />
 		<script defer src="https://unpkg.com/@magic-spells/split-text@0.2.0"></script>
-		<link rel="stylesheet" href="https://unpkg.com/@magic-spells/dialog-panel/dist/dialog-panel.css" />
 		<link
 			rel="stylesheet"
-			href="https://unpkg.com/@magic-spells/quantity-input/dist/quantity-input.css" />
+			href="https://unpkg.com/@magic-spells/dialog-panel@2.0.1/dist/dialog-panel.css" />
+		<link
+			rel="stylesheet"
+			href="https://unpkg.com/@magic-spells/quantity-input@1.0.2/dist/quantity-input.css" />
+		<link
+			rel="stylesheet"
+			href="https://unpkg.com/@magic-spells/cart-progress-bar@1.0.0/dist/cart-progress-bar.min.css" />
+		<link
+			rel="stylesheet"
+			href="https://unpkg.com/@magic-spells/gift-with-purchase@1.0.0/dist/gift-with-purchase.min.css" />
 
 		<!-- this package: two entry points, two stylesheets -->
 		<link rel="stylesheet" href="./cart-panel.css" />
@@ -679,6 +687,100 @@
 				outline-offset: -2px;
 			}
 
+			/* ---- The set: two sibling packages, skinned to the same palette ---- */
+			cart-progress-bar {
+				--cart-progress-bar-height: 5px;
+				--cart-progress-bar-border-radius: 100px;
+				--cart-progress-bar-bg: var(--bg-well);
+				--cart-progress-bar-fill-before: var(--jade-dim);
+				--cart-progress-bar-fill-after: var(--jade);
+
+				padding: 1.15rem 1.5rem;
+				border-bottom: 1px solid var(--border);
+			}
+
+			/* The package styles the message at (0,1,2); this has to match to land. */
+			cart-progress-bar p[data-content-cart-progress-message] {
+				margin-bottom: 0.7rem;
+				color: var(--text-dim);
+				font-family: var(--font-mono);
+				font-size: 0.72rem;
+				letter-spacing: 0.16em;
+				text-transform: uppercase;
+			}
+
+			cart-progress-bar[complete='true'] p[data-content-cart-progress-message] {
+				color: var(--jade-text);
+				font-weight: 400;
+			}
+
+			gift-with-purchase {
+				--gwp-bg-active: var(--bg-well);
+				--gwp-bg-added: rgba(63, 207, 142, 0.07);
+				--gwp-border-active: var(--border);
+				--gwp-border-added: var(--jade-dim);
+				--gwp-text-active: var(--text-dim);
+				--gwp-text-added: var(--cream);
+				--gwp-gap: 0.9rem;
+
+				margin-bottom: 1rem;
+				border-width: 1px;
+			}
+
+			.gwp-message {
+				font-family: var(--font-mono);
+				font-size: 0.72rem;
+				letter-spacing: 0.16em;
+				text-transform: uppercase;
+			}
+
+			/* ---- Reference tables ---- */
+			.ref-heading {
+				margin: 2.25rem 0 0.85rem;
+				color: var(--jade-text);
+				font-family: var(--font-mono);
+				font-size: 0.8rem;
+				font-weight: 400;
+				letter-spacing: 0.2em;
+				text-transform: uppercase;
+			}
+
+			.ref-table {
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				overflow: hidden;
+			}
+
+			.ref-row {
+				display: grid;
+				grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 2fr);
+				gap: 1rem;
+				align-items: baseline;
+				padding: 0.8rem 1rem;
+				border-top: 1px solid var(--border);
+				font-size: 0.94rem;
+				line-height: 1.55;
+			}
+
+			.ref-row:first-child {
+				border-top: 0;
+			}
+
+			.ref-head {
+				color: var(--cream-dim);
+				background: rgba(0, 0, 0, 0.24);
+				font-size: 0.8rem;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+			}
+
+			.ref-row code {
+				color: var(--cream);
+				font-family: var(--font-mono);
+				font-size: 0.84rem;
+				overflow-wrap: anywhere;
+			}
+
 			/* ---- Footer ---- */
 			.site-foot {
 				padding: 2.5rem 1.5rem 3.5rem;
@@ -710,6 +812,15 @@
 
 				.btn {
 					flex: 1 1 auto;
+				}
+
+				.ref-row {
+					grid-template-columns: 1fr;
+					gap: 0.3rem;
+				}
+
+				.ref-head {
+					display: none;
 				}
 			}
 
@@ -743,6 +854,11 @@
 				cart-item[state] cart-item-content,
 				cart-item[state] cart-item-processing {
 					transition: none;
+				}
+
+				/* The bar animates its fill off a custom property, not a class. */
+				cart-progress-bar {
+					--cart-progress-bar-transition-duration: 0s;
 				}
 			}
 		</style>
@@ -822,11 +938,299 @@ import <span class="str">'@magic-spells/cart-panel/cart-item'</span>;</code>
 				</div>
 			</section>
 
+			<!-- ---- The set ---- -->
+			<section class="demo-section">
+				<div class="spec"><span class="spec-key">The set</span></div>
+				<h2>It doesn't <em>work alone</em>.</h2>
+				<p class="demo-desc">
+					Two sibling packages sit inside the panel and listen to
+					<code>cart-panel:data-changed</code>: a shipping bar that fills to $150, and a gift that
+					adds itself to the cart at $200 and takes itself back out below it. Open the cart and add
+					items.
+				</p>
+				<div class="code-aside">
+					<code>import <span class="str">'@magic-spells/cart-panel'</span>;
+import <span class="str">'@magic-spells/cart-panel/cart-item'</span>;
+import <span class="str">'@magic-spells/cart-progress-bar'</span>;
+import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
+				</div>
+			</section>
+
 			<!-- ---- Events ---- -->
 			<section class="demo-section">
 				<div class="spec"><span class="spec-key">Events</span></div>
 				<h2>Everything <em>announces</em>.</h2>
 				<ul class="log" id="log" aria-live="polite"></ul>
+			</section>
+
+			<!-- ---- Reference ---- -->
+			<section class="demo-section" id="reference">
+				<div class="spec"><span class="spec-key">Reference</span></div>
+				<h2>The full <em>reference</em>.</h2>
+
+				<h3 class="ref-heading">Panel attributes</h3>
+				<div class="ref-table">
+					<div class="ref-row ref-head">
+						<div>Attribute</div>
+						<div>Default</div>
+						<div>Description</div>
+					</div>
+					<div class="ref-row">
+						<div><code>manual</code></div>
+						<div>absent</div>
+						<div>Skip the refresh on connect. You call <code>refreshCart()</code> yourself.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>state</code></div>
+						<div>reflected</div>
+						<div>
+							<code>has-items</code> or <code>empty</code>. Drives
+							<code>[data-cart-has-items]</code> and <code>[data-cart-is-empty]</code>.
+						</div>
+					</div>
+				</div>
+
+				<h3 class="ref-heading">Panel methods</h3>
+				<div class="ref-table">
+					<div class="ref-row ref-head">
+						<div>Method</div>
+						<div>Returns</div>
+						<div>Description</div>
+					</div>
+					<div class="ref-row">
+						<div><code>show(trigger?, cart?)</code></div>
+						<div>void</div>
+						<div>Opens the nearest <code>&lt;dialog-panel&gt;</code> ancestor.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>hide()</code></div>
+						<div>void</div>
+						<div>Closes it. Also bound to <code>[data-action-hide-cart]</code>.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>getCart()</code></div>
+						<div>Promise</div>
+						<div>Fetches <code>/cart.json</code>. Override it to fake the cart, as here.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>updateCartItem(key, qty)</code></div>
+						<div>Promise</div>
+						<div>POSTs <code>/cart/change.json</code>. <code>qty: 0</code> removes.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>refreshCart(cart?)</code></div>
+						<div>Promise</div>
+						<div>Renders the given cart, or fetches one first.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>setCartItemTemplate(name, fn)</code></div>
+						<div>void</div>
+						<div>
+							Line-item markup for a template name. Items pick one with
+							<code>_cart_template</code>, else <code>default</code>.
+						</div>
+					</div>
+					<div class="ref-row">
+						<div><code>setCartItemProcessingTemplate(fn)</code></div>
+						<div>void</div>
+						<div>The overlay drawn while a line is in flight.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>on(event, fn)</code> / <code>off()</code></div>
+						<div>this</div>
+						<div>Chainable subscription, the same events as below.</div>
+					</div>
+				</div>
+
+				<h3 class="ref-heading">Panel events</h3>
+				<div class="ref-table">
+					<div class="ref-row ref-head">
+						<div>Event</div>
+						<div>Detail</div>
+						<div>Fires</div>
+					</div>
+					<div class="ref-row">
+						<div><code>cart-panel:show</code></div>
+						<div><code>{ triggerElement }</code></div>
+						<div>On <code>show()</code>.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>cart-panel:hide</code></div>
+						<div>—</div>
+						<div>On <code>hide()</code>.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>cart-panel:refreshed</code></div>
+						<div><code>{ cart }</code></div>
+						<div>After a refresh.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>cart-panel:updated</code></div>
+						<div><code>{ cart }</code></div>
+						<div>After a quantity change.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>cart-panel:data-changed</code></div>
+						<div>
+							cart + <code>calculated_count</code>, <code>calculated_subtotal</code>
+						</div>
+						<div>Any change. The one the progress bar and the gift listen to.</div>
+					</div>
+				</div>
+
+				<h3 class="ref-heading">Selectors</h3>
+				<div class="ref-table">
+					<div class="ref-row ref-head">
+						<div>Selector</div>
+						<div>Where</div>
+						<div>Role</div>
+					</div>
+					<div class="ref-row">
+						<div><code>[data-content-cart-items]</code></div>
+						<div>Panel</div>
+						<div>Container the items render into.</div>
+					</div>
+					<div class="ref-row">
+						<div>
+							<code>[data-cart-has-items]</code><br /><code>[data-cart-is-empty]</code>
+						</div>
+						<div>Panel</div>
+						<div>Shown and hidden by <code>state</code>.</div>
+					</div>
+					<div class="ref-row">
+						<div>
+							<code>[data-content-cart-count]</code><br /><code>[data-content-cart-subtotal]</code>
+						</div>
+						<div>Anywhere</div>
+						<div>Written on every change, page-wide.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>[data-action-hide-cart]</code></div>
+						<div>Panel</div>
+						<div>Close buttons.</div>
+					</div>
+					<div class="ref-row">
+						<div>
+							<code>[data-action-remove-item]</code><br /><code>[data-cart-quantity]</code><br /><code
+								>[data-content-line-price]</code
+							>
+						</div>
+						<div>Item template</div>
+						<div>Remove button, quantity field, formatted line price.</div>
+					</div>
+				</div>
+
+				<h3 class="ref-heading">Line item properties</h3>
+				<div class="ref-table">
+					<div class="ref-row ref-head">
+						<div>Property</div>
+						<div>Effect</div>
+						<div>Used by</div>
+					</div>
+					<div class="ref-row">
+						<div><code>_hide_in_cart</code></div>
+						<div>In the cart, out of the list.</div>
+						<div>Gifts, bundle children.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>_ignore_price_in_subtotal</code></div>
+						<div>Out of <code>calculated_subtotal</code>.</div>
+						<div>Gifts, so they can't unlock themselves.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>_cart_template</code></div>
+						<div>Picks a named template.</div>
+						<div>Anything that renders differently.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>_group_id</code> / <code>_group_role</code></div>
+						<div>Groups lines together.</div>
+						<div>Bundles.</div>
+					</div>
+				</div>
+
+				<h3 class="ref-heading">Cart item</h3>
+				<div class="ref-table">
+					<div class="ref-row ref-head">
+						<div>Member</div>
+						<div>Kind</div>
+						<div>Description</div>
+					</div>
+					<div class="ref-row">
+						<div>
+							<code>CartItem.setTemplate()</code><br /><code>CartItem.setProcessingTemplate()</code
+							><br /><code>CartItem.createAnimated()</code>
+						</div>
+						<div>Static</div>
+						<div>Templates globally, and one item built mid-animation.</div>
+					</div>
+					<div class="ref-row">
+						<div>
+							<code>setState()</code> · <code>setData()</code> · <code>destroyYourself()</code>
+						</div>
+						<div>Instance</div>
+						<div>Drive one line by hand.</div>
+					</div>
+					<div class="ref-row">
+						<div>
+							<code>ready</code> · <code>processing</code> · <code>destroying</code> ·
+							<code>appearing</code>
+						</div>
+						<div>States</div>
+						<div>On the <code>state</code> attribute. Blur, scale and height come from CSS.</div>
+					</div>
+					<div class="ref-row">
+						<div>
+							<code>cart-item:remove</code><br /><code>cart-item:quantity-change</code>
+						</div>
+						<div>Events</div>
+						<div>Bubble to the panel, which does the AJAX.</div>
+					</div>
+				</div>
+
+				<h3 class="ref-heading">CSS custom properties</h3>
+				<div class="ref-table">
+					<div class="ref-row ref-head">
+						<div>Property</div>
+						<div>Default</div>
+						<div>Description</div>
+					</div>
+					<div class="ref-row">
+						<div><code>--cart-item-loader-color</code></div>
+						<div><code>#000</code></div>
+						<div>The processing dots. Jade here.</div>
+					</div>
+					<div class="ref-row">
+						<div>
+							<code>--cart-item-processing-duration</code><br /><code
+								>--cart-item-destroying-duration</code
+							><br /><code>--cart-item-appearing-duration</code>
+						</div>
+						<div><code>250ms</code> · <code>600ms</code> · <code>400ms</code></div>
+						<div>One per state transition.</div>
+					</div>
+					<div class="ref-row">
+						<div>
+							<code>--cart-item-processing-scale</code><br /><code
+								>--cart-item-destroying-scale</code
+							>
+						</div>
+						<div><code>0.98</code> · <code>0.85</code></div>
+						<div>How far a line shrinks.</div>
+					</div>
+					<div class="ref-row">
+						<div>
+							<code>--cart-item-processing-blur</code><br /><code>--cart-item-destroying-blur</code>
+						</div>
+						<div><code>1px</code> · <code>10px</code></div>
+						<div>And how far it goes out of focus.</div>
+					</div>
+					<div class="ref-row">
+						<div><code>--cart-item-shadow-color</code></div>
+						<div><code>rgba(0, 0, 0, 0.15)</code></div>
+						<div>The lift under a line in flight.</div>
+					</div>
+				</div>
 			</section>
 		</main>
 
@@ -846,6 +1250,14 @@ import <span class="str">'@magic-spells/cart-panel/cart-item'</span>;</code>
 							&times;
 						</button>
 					</div>
+					<cart-progress-bar
+						threshold="150.00"
+						money-format="${{amount}}"
+						message-above="Free shipping unlocked"
+						message-below="[amount] away from free shipping">
+						<p data-content-cart-progress-message></p>
+						<progress-bar></progress-bar>
+					</cart-progress-bar>
 					<div class="cart-body">
 						<div data-cart-has-items>
 							<div class="cart-items" data-content-cart-items></div>
@@ -858,6 +1270,20 @@ import <span class="str">'@magic-spells/cart-panel/cart-item'</span>;</code>
 						</div>
 					</div>
 					<div class="cart-foot">
+						<gift-with-purchase
+							threshold="200.00"
+							variant-id="9001"
+							money-format="${{amount}}"
+							message-above="Added to your cart, free"
+							message-below="[amount] away from a free gift">
+							<div class="gwp-product">
+								<div class="line-thumb" aria-hidden="true">🎁</div>
+								<div class="gwp-content">
+									<div class="line-title">Travel Candle</div>
+									<p class="gwp-message" data-content-gwp-message></p>
+								</div>
+							</div>
+						</gift-with-purchase>
 						<div class="cart-total">
 							Subtotal <span data-content-cart-subtotal>$0.00</span>
 						</div>
@@ -868,8 +1294,10 @@ import <span class="str">'@magic-spells/cart-panel/cart-item'</span>;</code>
 		</dialog-panel>
 
 		<script type="module">
-			import 'https://unpkg.com/@magic-spells/dialog-panel/dist/dialog-panel.esm.js';
-			import 'https://unpkg.com/@magic-spells/quantity-input/dist/quantity-input.esm.js';
+			import 'https://unpkg.com/@magic-spells/dialog-panel@2.0.1/dist/dialog-panel.esm.js';
+			import 'https://unpkg.com/@magic-spells/quantity-input@1.0.2/dist/quantity-input.esm.js';
+			import 'https://unpkg.com/@magic-spells/cart-progress-bar@1.0.0/dist/cart-progress-bar.esm.js';
+			import 'https://unpkg.com/@magic-spells/gift-with-purchase@1.0.0/dist/gift-with-purchase.esm.js';
 			// cart-panel does not register cart-item — opt in explicitly
 			// (published as '@magic-spells/cart-panel' and '@magic-spells/cart-panel/cart-item')
 			import './cart-item.esm.js';
@@ -960,6 +1388,42 @@ import <span class="str">'@magic-spells/cart-panel/cart-item'</span>;</code>
 					}, 300);
 				});
 
+			// ---- Simulated Shopify Cart API ----
+			// gift-with-purchase POSTs to the real endpoints, so stand them up
+			// against the same cart object. It also calls getCartAndRefresh().
+			cartPanel.getCartAndRefresh = () => cartPanel.refreshCart();
+
+			const nativeFetch = window.fetch.bind(window);
+			window.fetch = (input, init = {}) => {
+				const url = typeof input === 'string' ? input : input.url;
+				const body = init.body ? JSON.parse(init.body) : {};
+
+				if (url === '/cart/add.js') {
+					body.items.forEach((line) => {
+						cart.items.push({
+							key: `gift-${line.id}`,
+							id: line.id,
+							variant_id: line.id,
+							product_title: 'Travel Candle',
+							quantity: line.quantity,
+							line_price: 0,
+							properties: { ...line.properties, emoji: '🎁' },
+						});
+					});
+				} else if (url === '/cart/change.js') {
+					const index = cart.items.findIndex((item) => item.key === body.id);
+					if (index !== -1) {
+						if (body.quantity === 0) cart.items.splice(index, 1);
+						else cart.items[index].quantity = body.quantity;
+					}
+				} else {
+					return nativeFetch(input, init);
+				}
+
+				cart.item_count = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+				return Promise.resolve(new Response(JSON.stringify(cart), { status: 200 }));
+			};
+
 			cartPanel.refreshCart();
 
 			// ---- Controls ----
@@ -997,6 +1461,10 @@ import <span class="str">'@magic-spells/cart-panel/cart-item'</span>;</code>
 				.on('cart-panel:data-changed', (data) =>
 					logEvent('cart-panel:data-changed', `count: ${data.calculated_count}`)
 				);
+
+			// the gift announces itself too — both events bubble
+			document.addEventListener('gwp:added', () => logEvent('gwp:added', 'Travel Candle'));
+			document.addEventListener('gwp:removed', () => logEvent('gwp:removed'));
 
 			function logEvent(name, note) {
 				const li = document.createElement('li');
