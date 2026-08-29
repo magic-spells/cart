@@ -7,6 +7,8 @@ progress bar and the gift-with-purchase component listen to it and react.
 Each package ships on its own from npm, so you only install the parts you use. They are versioned
 in lockstep as one family, and they are developed together in this monorepo.
 
+[**Live Demo**](https://magic-spells.github.io/cart/) — all three running together.
+
 ## Packages
 
 | Package                                                       | Description                                                       | Size (min + gzip) |
