@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+
+# system files
+.DS_Store
+Thumbs.db
+
+# editor / tooling
+.vscode/
+.idea/
+.claude/
+.eslintcache
+
+# logs
+logs
+*.log
+npm-debug.log*
+
+# environment
+.env
+.env.*
+
+# package tarballs
+*.tgz
+
+# playwright mcp browser-session artifacts
+.playwright-mcp/
+
+# dev-mode build output (written into each demo by `npm run dev`).
+# Published dist/ IS committed — existing house policy.
+/packages/*/demo/dist/

@@ -1,0 +1,29 @@
+{
+	"name": "@magic-spells/cart-monorepo",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"license": "MIT",
+	"engines": {
+		"node": ">=20.19"
+	},
+	"workspaces": [
+		"packages/cart-panel",
+		"packages/cart-progress-bar",
+		"packages/gift-with-purchase"
+	],
+	"scripts": {
+		"build": "npm run build -w @magic-spells/cart-progress-bar -w @magic-spells/gift-with-purchase",
+		"dev:panel": "npm run dev -w @magic-spells/cart-panel",
+		"dev:progress": "npm run dev -w @magic-spells/cart-progress-bar",
+		"dev:gwp": "npm run dev -w @magic-spells/gift-with-purchase",
+		"lint": "npm run lint --workspaces --if-present",
+		"format": "prettier --write ."
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.38.0",
+		"eslint": "^9.38.0",
+		"globals": "^15.15.0",
+		"prettier": "^3.3.3"
+	}
+}
