@@ -9,8 +9,10 @@
 		<link rel="stylesheet" href="https://unpkg.com/@magic-spells/dialog-panel/dist/dialog-panel.css" />
 		<!-- quantity-input styles -->
 		<link rel="stylesheet" href="https://unpkg.com/@magic-spells/quantity-input/dist/quantity-input.css" />
-		<!-- cart-panel styles (includes cart-item) -->
+		<!-- cart-panel styles -->
 		<link rel="stylesheet" href="./cart-panel.css" />
+		<!-- cart-item styles (opt-in, shipped separately) -->
+		<link rel="stylesheet" href="./cart-item.css" />
 
 		<style>
 			/* Demo page styles */
@@ -342,7 +344,7 @@
 			<button id="open-cart-btn" class="trigger-button">
 				Open Shopping Cart (<span data-content-cart-count>0</span> items)
 			</button>
-			<h1>Cart Panel 1.0 Demo</h1>
+			<h1>Cart Panel 2.0 Demo</h1>
 			<p>Shopping cart panel with dialog-panel integration</p>
 		</div>
 
@@ -350,6 +352,7 @@
 			<h2>Cart Panel Features</h2>
 			<p>This cart panel component demonstrates:</p>
 			<ul>
+				<li>Opt-in cart-item via @magic-spells/cart-panel/cart-item</li>
 				<li>Uses dialog-panel for modal behavior (native &lt;dialog&gt;)</li>
 				<li>Slide-in animation from the right side</li>
 				<li>Cart item management with smooth animations</li>
@@ -408,6 +411,9 @@
 			// Import components
 			import 'https://unpkg.com/@magic-spells/dialog-panel/dist/dialog-panel.esm.js';
 			import 'https://unpkg.com/@magic-spells/quantity-input/dist/quantity-input.esm.js';
+			// cart-panel does not register cart-item - opt in explicitly
+			// (published as '@magic-spells/cart-panel' and '@magic-spells/cart-panel/cart-item')
+			import './cart-item.esm.js';
 			import './cart-panel.esm.js';
 
 			// Get elements

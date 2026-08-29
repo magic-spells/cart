@@ -1,4 +1,6 @@
-import './cart-item.css';
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
 
 // =============================================================================
 // CartItem Component
@@ -443,10 +445,13 @@ if (!customElements.get('cart-item-processing')) {
 	customElements.define('cart-item-processing', CartItemProcessing);
 }
 
-export { CartItem, CartItemContent, CartItemProcessing };
-export default CartItem;
-
 // Make CartItem available globally for Shopify themes
 if (typeof window !== 'undefined') {
 	window.CartItem = CartItem;
 }
+
+exports.CartItem = CartItem;
+exports.CartItemContent = CartItemContent;
+exports.CartItemProcessing = CartItemProcessing;
+exports.default = CartItem;
+//# sourceMappingURL=cart-item.cjs.js.map

@@ -11,7 +11,16 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Architecture
 
-This is a web component library for Shopify shopping carts. It provides two main components:
+This is a web component library for Shopify shopping carts. It ships two independent entry points
+in one package.
+
+### Entry Points
+
+- `src/cart-panel.js` → `@magic-spells/cart-panel` - registers `<cart-panel>` only
+- `src/cart-item.js` → `@magic-spells/cart-panel/cart-item` - registers `<cart-item>`, `<cart-item-content>`, `<cart-item-processing>`
+
+The panel never imports the item. Keep it that way: `src/cart-panel.js` must have no import of
+`./cart-item.js`, or the item code lands back in the panel bundle.
 
 ### Core Components
 
@@ -29,6 +38,10 @@ This is a web component library for Shopify shopping carts. It provides two main
 3. **Cart data management**: CartPanel handles all Shopify AJAX (`/cart.json`, `/cart/change.json`) and cart item rendering with smart add/update/remove logic.
 
 4. **Event-driven items**: CartItem emits `cart-item:remove` and `cart-item:quantity-change` events that bubble up to CartPanel.
+
+5. **Opt-in cart-item**: CartPanel resolves the item constructor with `customElements.get('cart-item')` at render time. If nothing is registered it warns once on the render path (module-scoped flag in `src/cart-panel.js`), skips item rendering, and leaves count/subtotal/state rendering intact. It then waits on `customElements.whenDefined('cart-item')` and re-renders once the element shows up (guarded on the panel still being connected, having cart data, and not having rendered items already).
+
+6. **Order-independent templates**: `setCartItemTemplate()` / `setCartItemProcessingTemplate()` buffer their calls in a module-scoped queue when `<cart-item>` is not registered yet, then replay them on `whenDefined`. The buffered templates are always flushed before the late-registration re-render. The render-path warn-once flag is separate from the template path so a setter call can never swallow the render warning. A registered element that lacks the static method warns once per method name.
 
 ### Usage Structure
 
@@ -106,14 +119,25 @@ This is a web component library for Shopify shopping carts. It provides two main
 - `@magic-spells/event-emitter` - Event system (bundled)
 - `@magic-spells/dialog-panel` - Modal behavior (peer dependency)
 - `@magic-spells/quantity-input` - Optional, for quantity controls in templates
+- `@magic-spells/quantity-modifier` - Optional, for quantity controls in templates
+
+CartItem listens for both `quantity-input:change` and `quantity-modifier:change` and syncs the
+`value` of whichever element is present.
 
 ### Build System
 
-Rollup creates multiple formats:
-- **ESM**: `dist/cart-panel.esm.js`
-- **CommonJS**: `dist/cart-panel.cjs.js`
-- **UMD**: `dist/cart-panel.js` / `dist/cart-panel.min.js`
-- **CSS**: `dist/cart-panel.css` (includes cart-item styles)
+Rollup builds the same four formats for each entry point via `buildsFor()` in `rollup.config.mjs`:
+- **ESM**: `dist/cart-panel.esm.js` / `dist/cart-item.esm.js`
+- **CommonJS**: `dist/cart-panel.cjs.js` / `dist/cart-item.cjs.js`
+- **UMD**: `dist/cart-panel.js` + `.min.js` (global `CartPanel`) / `dist/cart-item.js` + `.min.js`
+  (global `MagicSpellsCartItem` - namespaced so the UMD exports object does not clobber the
+  `window.CartItem` class global that `src/cart-item.js` sets for Shopify themes)
+- **CSS**: `dist/cart-panel.css` and `dist/cart-item.css`, extracted separately from
+  `src/cart-panel.css` and `src/cart-item.css`
+
+`@magic-spells/event-emitter` stays external in ESM/CJS and is bundled into UMD. Watch mode adds one
+dev config per entry point, each copying its own ESM bundle, sourcemap, and stylesheet into `demo/`,
+so edits to either source tree refresh the demo.
 
 ### Line Item Properties
 

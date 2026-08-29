@@ -1,5 +1,3 @@
-import './cart-item.css';
-
 // =============================================================================
 // CartItem Component
 // =============================================================================
@@ -443,10 +441,10 @@ if (!customElements.get('cart-item-processing')) {
 	customElements.define('cart-item-processing', CartItemProcessing);
 }
 
-export { CartItem, CartItemContent, CartItemProcessing };
-export default CartItem;
-
 // Make CartItem available globally for Shopify themes
 if (typeof window !== 'undefined') {
 	window.CartItem = CartItem;
 }
+
+export { CartItem, CartItemContent, CartItemProcessing, CartItem as default };
+//# sourceMappingURL=cart-item.esm.js.map
