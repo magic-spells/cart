@@ -211,9 +211,9 @@ class CartItem extends HTMLElement {
 
 		// Check if changed element is a quantity input
 		const quantityInput = e.target.closest('[data-cart-quantity]');
-		if (quantityInput) {
-			this.#emitQuantityChangeEvent(quantityInput.value);
-		}
+		// a quantity component owns its own commit - see #handleKeydown
+		if (quantityInput && !quantityInput.closest('quantity-input, quantity-modifier'))
+			this.#commitQuantityInput(quantityInput);
 	}
 
 	/**
@@ -649,15 +649,17 @@ class CartItem extends HTMLElement {
 		requestAnimationFrame(() => {
 			_.style.height = `${initialHeight}px`;
 
-			// read the css custom property for timing, defaulting to 400ms
+			// read the css custom property for timing, defaulting to 600ms
 			const destroyDuration =
-				getComputedStyle(_).getPropertyValue('--cart-item-destroying-duration')?.trim() || '400ms';
+				getComputedStyle(_).getPropertyValue('--cart-item-destroying-duration')?.trim() || '600ms';
 
 			// animate only the height to zero; other properties stay under stylesheet control
 			_.style.transition = `height ${destroyDuration} ease`;
 			_.style.height = '0px';
 
-			setTimeout(() => _.remove(), 600);
+			// failsafe only - transitionend owns removal when the transition runs
+			const durationMs = parseFloat(destroyDuration) * (/ms$/.test(destroyDuration) ? 1 : 1000);
+			setTimeout(() => _.remove(), (Number.isNaN(durationMs) ? 600 : durationMs) + 100);
 		});
 	}
 }

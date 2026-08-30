@@ -98,8 +98,8 @@ var CartProgressBar = class extends HTMLElement {
 				_.#attachListeners();
 				break;
 			case "listen-event":
-				_.#listenEvent = newVal || "cart-panel:data-changed";
 				_.#detachListeners();
+				_.#listenEvent = newVal || "cart-panel:data-changed";
 				_.#attachListeners();
 		}
 	}

@@ -50,7 +50,6 @@ Without a bundler, use the UMD build (exposes the `GiftWithPurchase` global):
 ```html
 <gift-with-purchase
 	threshold="75.00"
-	current="45.00"
 	variant-id="12345678"
 	money-format="${{amount}}"
 	message-above="🎉 Congratulations! You've qualified for your FREE gift!"
@@ -129,7 +128,7 @@ console.log(gwp.isDisabled);        // boolean - promo ended OR product unavaila
 | Attribute       | Description                                                          | Example                                                      |
 | --------------- | -------------------------------------------------------------------- | ------------------------------------------------------------ |
 | `threshold`     | Spending threshold to unlock the gift (auto-converts for multi-currency) | `"75.00"`                                                    |
-| `current`       | Current cart amount (typically set automatically via cart-panel)     | `"45.00"`                                                    |
+| `current`       | Optional starting amount. The component tracks the live cart total internally from `cart-panel:data-changed` and never writes this attribute back, so don't template it from Liquid | `"45.00"`                     |
 | `variant-id`    | Shopify variant ID for the gift product                              | `"12345678"`                                                 |
 | `promo-ended`   | Disables the promo and hides the component                           | `"true"`                                                     |
 | `product-available` | Whether the gift product is available (disables if false)        | `"true"`                                                     |

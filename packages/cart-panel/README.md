@@ -119,7 +119,9 @@ A replacement element has to satisfy the contract the panel calls into:
 - **Static methods** - `setTemplate(name, fn)`, `setProcessingTemplate(fn)`,
   `createAnimated(itemData, cartData)`. A missing static template method logs a warning and the
   template is ignored.
-- **Instance methods** - `setData(itemData, cartData)`, `setState(state)`, `destroyYourself()`.
+- **Instance methods** - `setData(itemData, cartData)`, `setState(state)`, `destroyYourself()`. The
+  `section` attribute additionally requires `setContent(html)`, and `section` plus `optimistic`
+  requires `applyItemData(itemData, cartData)`, which the panel silently skips when it is missing.
 
 ## Usage
 
@@ -332,13 +334,13 @@ const cartData = await cartPanel.getCart();
 const updatedCart = await cartPanel.updateCartItem('item-key', 2);
 await cartPanel.refreshCart();
 
-// Event emitter pattern (chainable)
+// Event emitter pattern (chainable) - .on() receives the raw payload, not a CustomEvent
 cartPanel
-  .on('cart-panel:show', (e) => {
-    console.log('Cart opened by:', e.detail.triggerElement);
+  .on('cart-panel:show', ({ triggerElement }) => {
+    console.log('Cart opened by:', triggerElement);
   })
-  .on('cart-panel:data-changed', (e) => {
-    console.log('Cart updated:', e.detail);
+  .on('cart-panel:data-changed', (cart) => {
+    console.log('Cart updated:', cart);
     // Update header cart count, etc.
   });
 
@@ -527,8 +529,8 @@ The cart-panel supports Shopify line item properties for enhanced functionality:
 | `_hide_in_cart`             | Hide item from display (still in cart) |
 | `_ignore_price_in_subtotal` | Exclude from subtotal calculation      |
 | `_cart_template`            | Use specific template name for rendering |
-| `_group_id`                 | Group items together (bundles)         |
-| `_group_role`               | Role within a group: "parent" or "child" |
+| `_group_id`                 | Group items together (bundles) - convention only |
+| `_group_role`               | Role within a group: "parent" or "child" - convention only |
 
 ### Hidden Items (`_hide_in_cart`)
 
@@ -555,6 +557,10 @@ The cart-panel supports Shopify line item properties for enhanced functionality:
 ```
 
 ### Bundle Grouping (`_group_id` / `_group_role`)
+
+These two are a naming convention for your own templates and Liquid, not something the library reads.
+Nothing in cart-panel acts on them - hiding a child line still comes from `_hide_in_cart`, and the
+parent's markup still comes from `_cart_template`.
 
 ```javascript
 // Bundle: Parent shows, children hidden
@@ -626,9 +632,9 @@ The cart-panel supports Shopify line item properties for enhanced functionality:
   const cartPanel = document.querySelector('cart-panel');
 
   // Update header cart count on changes
-  cartPanel.on('cart-panel:data-changed', (e) => {
+  cartPanel.on('cart-panel:data-changed', (cart) => {
     document.querySelector('.header-cart-count').textContent =
-      e.detail.calculated_count;
+      cart.calculated_count;
   });
 </script>
 ```
