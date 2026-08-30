@@ -2,7 +2,7 @@
 
 A beautiful, accessible cart progress bar web component for free shipping thresholds and e-commerce sites.
 
-[**Live Demo**](https://magic-spells.github.io/cart-progress-bar/demo/)
+[**Live Demo**](https://magic-spells.github.io/cart/)
 
 ## Features
 

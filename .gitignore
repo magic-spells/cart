@@ -29,3 +29,9 @@ npm-debug.log*
 # dev-mode build output (written into each demo by `npm run dev`).
 # Published dist/ IS committed — existing house policy.
 /packages/*/demo/dist/
+
+# ...except the flagship demo. GitHub Pages serves this repo off the `main`
+# branch with no build step, so what the site needs has to be in the tree.
+# Rebuild it with `npm run build:demo` — never with `npm run dev`, whose watcher
+# leaves whatever it last wrote.
+!/packages/cart-panel/demo/dist/

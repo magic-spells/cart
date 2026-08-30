@@ -14,6 +14,7 @@
 	],
 	"scripts": {
 		"build": "npm run build -w @magic-spells/cart-panel -w @magic-spells/cart-progress-bar -w @magic-spells/gift-with-purchase",
+		"build:demo": "npm run build:demo -w @magic-spells/cart-panel",
 		"dev:panel": "npm run dev -w @magic-spells/cart-panel",
 		"dev:progress": "npm run dev -w @magic-spells/cart-progress-bar",
 		"dev:gwp": "npm run dev -w @magic-spells/gift-with-purchase",

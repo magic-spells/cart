@@ -80,9 +80,9 @@ Family policy, applied to all packages including `cart-panel` when it arrives:
 Two things change relative to the standalone repos:
 
 - **`demo/dist/` is gitignored here**, following tarot, where dev-mode build output is not
-  committed. The standalone repos committed their demo bundles because GitHub Pages served the
-  demo straight out of the repo. That demo-hosting story has to be rebuilt for the monorepo
-  (one Pages deploy covering `packages/*/demo`), and is **not** part of this migration.
+  committed — with one exception. Pages still serves the demo straight out of the repo (see
+  *Demo hosting* below), so `packages/cart-panel/demo/dist/` is un-ignored and committed. The
+  other two packages' `demo/dist/` stay ignored; nothing serves them.
 - Published `dist/` **is** still committed, which is the existing house policy.
 
 `gift-with-purchase` was the only package still carrying sass (a `.scss` source, the `sass`
@@ -131,14 +131,47 @@ the same three-line block belongs in the shared pattern everywhere.
 
 `packages/cart-panel/demo` is the one page that drives all three packages together, so it is also
 the integration test. It loads `cart-progress-bar` and `gift-with-purchase` from their **workspace**
-builds, not from unpkg: `npm run dev` copies their committed `dist/` into
-`packages/cart-panel/demo/dist/vendor/` before starting the server. `dialog-panel`,
+builds, not from unpkg: the demo build copies their committed `dist/` into
+`packages/cart-panel/demo/dist/vendor/` before bundling. `dialog-panel`,
 `quantity-input` and `split-text` stay on pinned unpkg URLs — they are external packages, not
 siblings.
 
 The demo used to carry a one-line `cartPanel.getCartAndRefresh = () => cartPanel.refreshCart()`
 shim, because `gift-with-purchase@1.0.0` called a method the panel had removed. The 2.0.0 source in
 this repo calls `refreshCart()` and only falls back to `getCartAndRefresh()`, so the shim is gone.
+
+## Demo hosting
+
+**Resolved.** One Pages site, serving the flagship demo for the whole family.
+
+GitHub Pages is configured on `magic-spells/cart` the simple way — **branch `main`, folder `/`** —
+so there is no Actions workflow and no build step on GitHub's side. The site is whatever is
+committed, which decides the rest:
+
+- **`packages/cart-panel/demo/dist/` is committed**, un-ignored out of the blanket
+  `/packages/*/demo/dist/` rule. Pages cannot build it, so it has to be in the tree.
+- **`npm run build:demo` is what writes it** (`DEMO_BUILD=1` → `packages/cart-panel/scripts/build.mjs`).
+  It is `npm run dev` with the watcher and the dev server switched off: same config object, same
+  entry, same `external: []`, same sourcemap, same `demo/dist/vendor/` copies. Sharing the code path
+  is the point — a separate "build the demo for publishing" path would be free to drift from what
+  developers actually look at, and nobody would notice until the site was wrong. The one-shot modes
+  wipe `outDir` first, so the committed output is a function of the sources and stale files cannot
+  survive into the site.
+- **Rebuild it with `npm run build:demo`, not `npm run dev`.** Both write the same place, but the
+  watcher leaves behind whatever it last saw, mid-edit sources included. Check `git status` on
+  `demo/dist/` after a dev session.
+- **The root `index.html`** is a meta-refresh to `./packages/cart-panel/demo/` with a canonical
+  link, so `https://magic-spells.github.io/cart/` lands on the demo. The demo keeps living where it
+  is developed instead of being copied to a publish directory.
+- **A root `.nojekyll`** stops Pages running the tree through Jekyll. Nothing here needs it, and it
+  removes a class of silent surprise (Jekyll's default excludes, `_`-prefixed paths) from files that
+  must be served byte-for-byte.
+- All three package READMEs now link `https://magic-spells.github.io/cart/`. The flagship demo
+  drives all three packages, so one link serves them all — and archiving the standalone repos no
+  longer breaks any demo link.
+
+The site goes live when `release/2.0.0` merges to `main`; until then the URL 404s, which is
+expected.
 
 ## Branches
 
@@ -166,7 +199,6 @@ Everything below is still open. Nothing in this repo has been pushed, tagged or 
 1. Archive the standalone `magic-spells/cart-panel`, `magic-spells/cart-progress-bar` and
    `magic-spells/gift-with-purchase` repos on GitHub.
 2. `npm deprecate @magic-spells/cart-item` pointing at `@magic-spells/cart-panel/cart-item`.
-3. Rebuild the demo-hosting story — one GitHub Pages deploy covering `packages/*/demo`, replacing
-   the three standalone Pages sites. Until that exists, all three package READMEs still link their
-   **Live Demo** at the old standalone Pages URL (`magic-spells.github.io/<package>/demo/`), which
-   keeps working only while those repos stay unarchived. Re-point all three together.
+3. Confirm the Pages site actually came up at `https://magic-spells.github.io/cart/` once `main`
+   has the merge — the only step that cannot be checked before shipping. See *Demo hosting* above;
+   the READMEs already point there, so archiving (1) is unblocked.

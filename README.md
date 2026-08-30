@@ -1,5 +1,7 @@
 # @magic-spells/cart
 
+[**Live Demo**](https://magic-spells.github.io/cart/) — all three components running together.
+
 The Magic Spells cart family — a set of web components that build a complete Shopify cart
 experience out of small, independent pieces. The panel owns the cart data and the AJAX; the
 progress bar and the gift-with-purchase component listen to it and react.

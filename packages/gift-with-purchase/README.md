@@ -2,7 +2,7 @@
 
 A powerful, e-commerce web component for automatic gift-with-purchase threshold promotions. Seamlessly integrates with Shopify and automatically manages gift items in the cart based on spending thresholds.
 
-[**Live Demo**](https://magic-spells.github.io/gift-with-purchase/demo/)
+[**Live Demo**](https://magic-spells.github.io/cart/)
 
 ## Features
 

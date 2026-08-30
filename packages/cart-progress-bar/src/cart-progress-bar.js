@@ -22,7 +22,9 @@ class ProgressBar extends HTMLElement {
 }
 
 // Define ProgressBar custom element immediately so it's available for CartProgressBar
-customElements.define('progress-bar', ProgressBar);
+if (!customElements.get('progress-bar')) {
+	customElements.define('progress-bar', ProgressBar);
+}
 
 /**
  * CartProgressBar main component
@@ -44,7 +46,15 @@ class CartProgressBar extends HTMLElement {
 	#listenHandler = null;
 
 	static get observedAttributes() {
-		return ['threshold', 'current', 'message-above', 'message-below', 'money-format', 'listen-selector', 'listen-event'];
+		return [
+			'threshold',
+			'current',
+			'message-above',
+			'message-below',
+			'money-format',
+			'listen-selector',
+			'listen-event',
+		];
 	}
 
 	constructor() {
@@ -178,7 +188,7 @@ class CartProgressBar extends HTMLElement {
 
 		// Update message
 		if (_.#msgEl) {
-			let tpl = complete ? _.#msgAbove : (_.#msgBelow || _.#msgAbove);
+			let tpl = complete ? _.#msgAbove : _.#msgBelow || _.#msgAbove;
 			if (tpl) {
 				_.#msgEl.textContent = tpl.replace(/\[\s*amount\s*\]/g, formatted);
 				_.#msgEl.style.display = 'block';
@@ -276,15 +286,27 @@ class CartProgressBar extends HTMLElement {
 	}
 
 	// Getters (with backwards compatibility)
-	get currentAmount() { return this.#current; }
-	get thresholdAmount() { return this.#threshold; }
-	get minAmount() { return this.#threshold; }
-	get percent() { return this.#percent; }
-	get isComplete() { return this.#current >= this.#converted(); }
+	get currentAmount() {
+		return this.#current;
+	}
+	get thresholdAmount() {
+		return this.#threshold;
+	}
+	get minAmount() {
+		return this.#threshold;
+	}
+	get percent() {
+		return this.#percent;
+	}
+	get isComplete() {
+		return this.#current >= this.#converted();
+	}
 }
 
 // Define CartProgressBar custom element
-customElements.define('cart-progress-bar', CartProgressBar);
+if (!customElements.get('cart-progress-bar')) {
+	customElements.define('cart-progress-bar', CartProgressBar);
+}
 
 // Export components for external use
 export { CartProgressBar, ProgressBar };
