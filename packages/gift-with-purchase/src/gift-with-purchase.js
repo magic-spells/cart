@@ -18,7 +18,7 @@ class GiftWithPurchase extends HTMLElement {
 	#debounceTimer = null;
 	#attachRetryTimer = null;
 	#isMutating = false; // prevents overlapping cart mutations
-	#pendingCart = null; // stores cart snapshot during mutation for recheck
+	#missedUpdate = false; // a cart update was dropped mid-mutation - refresh after
 	#messageAbove = null;
 	#messageBelow = null;
 	#moneyFormat = null;
@@ -57,6 +57,9 @@ class GiftWithPurchase extends HTMLElement {
 		_.#render();
 		_.#updateVisualState();
 		_.#attachListeners();
+		// a live panel's own boot refresh drives the same removal - only cover the gap
+		// where nothing else will emit a cart snapshot
+		if (_.#isDisabled && (!_.#cartPanel || _.#cartPanel.hasAttribute('manual'))) _.#updateState(null);
 	}
 
 	#calculateInitialState() {
@@ -106,11 +109,14 @@ class GiftWithPurchase extends HTMLElement {
 		}
 
 		// Recalculate state and update UI if component is connected
-		if (_.isConnected) {
-			_.#calculateInitialState();
-			_.#updateVisualState();
-			_.#updateMessages();
-		}
+		if (!_.isConnected) return;
+
+		const wasDisabled = _.#isDisabled;
+		_.#calculateInitialState();
+		_.#updateVisualState();
+		_.#updateMessages();
+		// only the transition into disabled needs to clear the gift
+		if (_.#isDisabled && !wasDisabled) _.#updateState(null);
 	}
 
 	#render() {
@@ -211,6 +217,11 @@ class GiftWithPurchase extends HTMLElement {
 
 		_.#debounceTimer = setTimeout(() => {
 			_.#debounceTimer = null;
+			// a snapshot taken during a mutation predates it - the post-mutation refresh has truth
+			if (_.#isMutating) {
+				_.#missedUpdate = true;
+				return;
+			}
 			_.#currentAmount = parseFloat(cart.calculated_subtotal / 100) || 0;
 			_.#checkGiftInCart(cart);
 			_.#updateState(cart);
@@ -219,47 +230,76 @@ class GiftWithPurchase extends HTMLElement {
 
 	#checkGiftInCart(cart) {
 		const _ = this;
-		const giftLines = _.#getGiftLines(cart, true);
+		const giftLines = _.#getGiftLines(cart);
 		_.#isAdded = giftLines.length > 0;
+		// an out-of-order add can double the line, and the gift is hidden in cart -
+		// trim it back so a duplicate never rides to checkout unseen
+		const duplicate = giftLines.find((item) => item.quantity > 1);
+		if (duplicate) _.#trimGiftQuantity(duplicate);
 	}
 
-	#getGiftLines(cart, matchVariantId = true) {
+	async #trimGiftQuantity(item) {
 		const _ = this;
-		if (!cart?.items) return [];
+		_.#isMutating = true;
+		try {
+			const res = await fetch('/cart/change.js', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+				body: JSON.stringify({ id: item.key, quantity: 1 }),
+			});
+			if (!res.ok) throw new Error(`http ${res.status}`);
+			_.#refreshCartPanel();
+		} catch (err) {
+			console.error('giftwithpurchase: quantity trim error', err);
+			_.dispatchEvent(new CustomEvent('gwp:error', { detail: { action: 'trim', error: err.message }, bubbles: true }));
+		} finally {
+			_.#isMutating = false;
+			_.#discardStaleCart();
+		}
+	}
+
+	#getGiftLines(cart) {
+		const _ = this;
+		if (!cart?.items || !_.#variantId) return [];
 		return cart.items.filter((item) => {
 			if (item.properties?._gwp_item !== 'true') return false;
-			if (!matchVariantId) return true;
-			if (!_.#variantId) return false;
 			return item.variant_id?.toString() === _.#variantId.toString();
 		});
 	}
 
-	#recheckIfPending() {
+	/**
+	 * Cart snapshots held across a mutation predate it - drop them and ask for fresh truth.
+	 */
+	#discardStaleCart() {
 		const _ = this;
-		if (_.#pendingCart) {
-			const cart = _.#pendingCart;
-			_.#pendingCart = null;
-			_.#checkGiftInCart(cart);
-			_.#updateState(cart);
+		if (_.#debounceTimer) {
+			clearTimeout(_.#debounceTimer);
+			_.#debounceTimer = null;
+			_.#missedUpdate = true;
 		}
+		if (!_.#missedUpdate) return;
+		_.#missedUpdate = false;
+		// with no panel to re-fetch for us the replay would vanish - re-derive locally
+		if (_.#cartPanel) _.#refreshCartPanel();
+		else _.#updateState(null);
 	}
 
 	#updateState(cart) {
 		const _ = this;
 
-		// If mutation in progress, queue this cart for recheck later
+		// If mutation in progress, drop this update and refresh once it settles
 		if (_.#isMutating) {
-			_.#pendingCart = cart;
+			_.#missedUpdate = true;
 			return;
 		}
 
-		const wasActive = _.#isActive;
 		const convertedThreshold = _.#getConvertedThreshold();
 		_.#isDisabled = _.#promoEnded || !_.#productAvailable;
 		_.#isActive = _.#currentAmount >= convertedThreshold && !_.#isDisabled;
 
-		if (_.#isDisabled) _.#removeAllGiftsFromCart(cart);
-		else if (_.#isActive && !wasActive && !_.#isAdded && _.#variantId) _.#addGiftToCart();
+		if (_.#isDisabled) _.#removeGiftFromCart(cart);
+		else if (_.#isActive && !_.#isAdded && _.#variantId) _.#addGiftToCart();
 		else if (!_.#isActive && _.#isAdded && _.#variantId) _.#removeGiftFromCart(cart);
 
 		_.#updateVisualState();
@@ -308,45 +348,48 @@ class GiftWithPurchase extends HTMLElement {
 			_.dispatchEvent(new CustomEvent('gwp:error', { detail: { action: 'add', error: err.message }, bubbles: true }));
 		} finally {
 			_.#isMutating = false;
-			_.#recheckIfPending();
+			_.#discardStaleCart();
 		}
 	}
 
 	async #removeGiftFromCart(cart) {
 		const _ = this;
-		if (!cart?.items) return;
-
-		const giftLines = _.#getGiftLines(cart, true);
-		if (!giftLines.length) {
-			_.#isAdded = false;
-			return;
-		}
-
+		// flag set before the fetch so concurrent updates queue instead of racing
 		_.#isMutating = true;
 		try {
+			// setters and attribute changes pass no cart - fetch live truth instead of bailing
+			if (!cart?.items) cart = await _.#fetchCart();
+			if (!cart?.items) return;
+
+			const giftLines = _.#getGiftLines(cart);
+			if (!giftLines.length) {
+				_.#isAdded = false;
+				return;
+			}
+
 			await _.#removeAllGiftItems(giftLines);
 		} finally {
 			_.#isMutating = false;
-			_.#recheckIfPending();
+			_.#discardStaleCart();
 		}
 	}
 
-	async #removeAllGiftsFromCart(cart) {
+	async #fetchCart() {
 		const _ = this;
-		if (!cart?.items) return;
-
-		const giftLines = _.#getGiftLines(cart, false);
-		if (!giftLines.length) {
-			_.#isAdded = false;
-			return;
-		}
-
-		_.#isMutating = true;
 		try {
-			await _.#removeAllGiftItems(giftLines);
-		} finally {
-			_.#isMutating = false;
-			_.#recheckIfPending();
+			let cart;
+			if (typeof _.#cartPanel?.getCart === 'function') {
+				cart = await _.#cartPanel.getCart();
+			} else {
+				const res = await fetch('/cart.js', { credentials: 'same-origin' });
+				if (!res.ok) throw new Error(`http ${res.status}`);
+				cart = await res.json();
+			}
+			// getCart resolves { error: true } rather than rejecting
+			return cart?.error ? null : cart;
+		} catch (err) {
+			console.error('giftwithpurchase: cart fetch error', err);
+			return null;
 		}
 	}
 
@@ -419,14 +462,14 @@ class GiftWithPurchase extends HTMLElement {
 	setCurrentAmount(amount) {
 		const _ = this;
 		_.#currentAmount = parseFloat(amount) || 0;
-		_.#updateState({ items: [] });
+		_.#updateState(null);
 		_.#updateMessages();
 	}
 
 	setThreshold(threshold) {
 		const _ = this;
 		_.#threshold = parseFloat(threshold) || 0;
-		_.#updateState({ items: [] });
+		_.#updateState(null);
 		_.#updateMessages();
 	}
 

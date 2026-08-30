@@ -865,10 +865,12 @@ class CartPanel extends HTMLElement {
 		const serverCart = await _.#fetchCartState();
 
 		if (serverCart && !serverCart.error) {
-			_.#currentCart = serverCart;
-			_.#renderCartItems(serverCart);
-			_.#renderCartPanel(serverCart);
-			_.#emit('cart-panel:data-changed', _.#addCalculatedFields(serverCart));
+			// this key's own record is already settled, so only other live lines stay projected
+			const revertedCart = _.#preserveInFlightLines(serverCart);
+			_.#currentCart = revertedCart;
+			_.#renderCartItems(revertedCart);
+			_.#renderCartPanel(revertedCart);
+			_.#emit('cart-panel:data-changed', _.#addCalculatedFields(revertedCart));
 		}
 
 		_.#emit('cart-panel:error', { key, error });
@@ -914,7 +916,7 @@ class CartPanel extends HTMLElement {
 	 * @private
 	 */
 	#renderCartSubtotal(cartData) {
-		if (!cartData) return;
+		if (!cartData?.items) return;
 
 		const pricedItems = cartData.items.filter((item) => {
 			const ignorePrice = item.properties?._ignore_price_in_subtotal;
@@ -1081,8 +1083,18 @@ class CartPanel extends HTMLElement {
 	#addItemsToDOM({ itemsContainer, itemsToAdd, newKeys, cartData, CartItemElement }) {
 		setTimeout(() => {
 			itemsToAdd.forEach((itemData) => {
-				const cartItem = CartItemElement.createAnimated(itemData, cartData);
 				const key = itemData.key || itemData.id;
+
+				// a render that started after this one may already have drawn the key
+				const existing = itemsContainer.querySelector(
+					`cart-item[key="${key}"]:not([state='destroying'])`
+				);
+				if (existing) {
+					existing.setData(itemData, cartData);
+					return;
+				}
+
+				const cartItem = CartItemElement.createAnimated(itemData, cartData);
 				this.#insertAtKeyOrder(itemsContainer, cartItem, key, newKeys);
 			});
 		}, 100);
@@ -1190,6 +1202,17 @@ class CartPanel extends HTMLElement {
 
 		setTimeout(() => {
 			keysToAdd.forEach((key) => {
+				// a render that started after this one may already have drawn the key
+				const existing = itemsContainer.querySelector(
+					`cart-item[key="${key}"]:not([state='destroying'])`
+				);
+				if (existing) {
+					if (typeof existing.setContent === 'function')
+						existing.setContent(parsedItems.get(key).innerHTML);
+					else warnAboutMissingSetContent();
+					return;
+				}
+
 				const cartItem = _.#createSectionItem({
 					key,
 					parsedItems,

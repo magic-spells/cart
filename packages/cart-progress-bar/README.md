@@ -81,16 +81,16 @@ progressBar.setMessages('Almost there!', 'Only ${ amount } more to go!');
 
 ## Cart Integration
 
-The component automatically listens for cart data changes when placed inside a `<cart-dialog>` component from the `@magic-spells/cart-panel` package:
+The component automatically listens for cart data changes when placed inside a `<cart-panel>` component from the `@magic-spells/cart-panel` package:
 
 ```html
-<cart-dialog>
+<cart-panel>
 	<cart-progress-bar threshold="75.00" message-below="Add ${ amount } more for FREE shipping!">
 	</cart-progress-bar>
-</cart-dialog>
+</cart-panel>
 ```
 
-When the cart-dialog emits a `cart-dialog:data-changed` event (typically from Shopify cart API updates), the progress bar will automatically update with the calculated cart subtotal.
+When the cart-panel emits a `cart-panel:data-changed` event (typically from Shopify cart API updates), the progress bar will automatically update with the calculated cart subtotal. Point it at a different ancestor with `listen-selector` and `listen-event`.
 
 ### Smart Pricing Logic
 
@@ -109,6 +109,9 @@ The progress bar uses intelligent pricing calculation:
 | `current`       | Current cart amount                       | `"25.50"`                      |
 | `message-above` | Success message when threshold is reached | `"🎉 FREE shipping unlocked!"` |
 | `message-below` | Message template shown below the bar      | `"Add ${ amount } more!"`       |
+| `money-format`  | Shopify money format string; uses `{{amount}}` placeholders and formats the amount that fills `[amount]` in the messages | `"${{amount}}"`   |
+| `listen-selector` | `closest()` selector for the element to listen on | `"cart-panel"` (default) |
+| `listen-event`  | Event name to listen for on that element  | `"cart-panel:data-changed"` (default) |
 
 ## Customization
 

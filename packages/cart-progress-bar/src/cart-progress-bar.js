@@ -112,8 +112,9 @@ class CartProgressBar extends HTMLElement {
 				_.#attachListeners();
 				break;
 			case 'listen-event':
-				_.#listenEvent = newVal || 'cart-panel:data-changed';
+				// detach under the old event name before adopting the new one
 				_.#detachListeners();
+				_.#listenEvent = newVal || 'cart-panel:data-changed';
 				_.#attachListeners();
 				break;
 		}
