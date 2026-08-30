@@ -765,7 +765,7 @@
 				--gwp-text-added: var(--cream);
 				--gwp-gap: 0.9rem;
 
-				margin-bottom: 1rem;
+				margin: 0.75rem 1rem 1rem;
 				border-width: 1px;
 			}
 
@@ -1402,6 +1402,20 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 					<div class="cart-body">
 						<div data-cart-has-items>
 							<div class="cart-items" data-content-cart-items></div>
+							<gift-with-purchase
+								threshold="200.00"
+								variant-id="9001"
+								money-format="${{amount}}"
+								message-above="Added to your cart, free"
+								message-below="[amount] away from a free gift">
+								<div class="gwp-product">
+									<div class="line-thumb" aria-hidden="true">🎁</div>
+									<div class="gwp-content">
+										<div class="line-title">Travel Candle</div>
+										<p class="gwp-message" data-content-gwp-message></p>
+									</div>
+								</div>
+							</gift-with-purchase>
 						</div>
 						<div data-cart-is-empty>
 							<div class="cart-empty">
@@ -1411,20 +1425,6 @@ import <span class="str">'@magic-spells/gift-with-purchase'</span>;</code>
 						</div>
 					</div>
 					<div class="cart-foot">
-						<gift-with-purchase
-							threshold="200.00"
-							variant-id="9001"
-							money-format="${{amount}}"
-							message-above="Added to your cart, free"
-							message-below="[amount] away from a free gift">
-							<div class="gwp-product">
-								<div class="line-thumb" aria-hidden="true">🎁</div>
-								<div class="gwp-content">
-									<div class="line-title">Travel Candle</div>
-									<p class="gwp-message" data-content-gwp-message></p>
-								</div>
-							</div>
-						</gift-with-purchase>
 						<div class="cart-total">
 							Subtotal <span data-content-cart-subtotal>$0.00</span>
 						</div>
