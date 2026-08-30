@@ -55,6 +55,10 @@ The component integrates with a parent element by listening for data-change even
 - `listen-selector`: CSS selector for `closest()` to find the target element (default: `'cart-panel'`)
 - `listen-event`: event name to listen for on that element (default: `'cart-panel:data-changed'`)
 
+Both attribute handlers detach before they reattach, and `listen-event` must detach *before* the
+private field is reassigned — `#detachListeners()` calls `removeEventListener` with `#listenEvent`,
+so writing the new name first would leave the old listener attached forever.
+
 **Smart Pricing Logic**: The progress bar uses `calculated_subtotal` when available, which properly excludes items with the `_ignore_price_in_subtotal` property (such as gifts with purchase). Falls back to `total_price` for backwards compatibility. This ensures that:
 - Bundle items that are hidden (`_hide_in_cart`) but should count toward free shipping are included
 - Gift items with `_ignore_price_in_subtotal` are excluded from the progress calculation
@@ -63,10 +67,10 @@ The component integrates with a parent element by listening for data-change even
 Uses `[amount]` placeholders in message templates (with or without spaces, e.g. `[ amount ]`). Users include currency symbols directly in their messages.
 
 Shows different messages based on completion status:
-- `message-below`: Shown when cart total is below threshold (e.g., "Add ${ amount } more for free shipping!")
+- `message-below`: Shown when cart total is below threshold (e.g., "Add $[amount] more for free shipping!")
 - `message-above`: Shown when cart total meets/exceeds threshold (e.g., "🎉 FREE shipping unlocked!")
 
-Amount formatting: Uses `toFixed(2).replace('.00', '')` to keep amounts compact (e.g., "15" instead of "15.00", but "15.50" stays "15.50").
+Amount formatting (no `money-format` attribute): uses `toFixed(2).replace(/\.00$/, '')` to keep amounts compact (e.g., "15" instead of "15.00", but "15.50" stays "15.50").
 
 ## Development Notes
 
@@ -81,8 +85,8 @@ Uses CSS custom properties for theming:
 - `--cart-progress-bar-bg`
 - `--cart-progress-bar-fill-before`
 - `--cart-progress-bar-fill-after`
-- `--cart-progress-bar-fill-current` (dynamic, set by JavaScript)
-- `--cart-progress-percent` (dynamic, set by JavaScript)
+- `--cart-progress-bar-fill-current` (dynamic, switched between the before/after colors by the `cart-progress-bar[complete='true'|'false']` rules in CSS)
+- `--cart-progress-percent` (dynamic, set by JavaScript in `ProgressBar.setPercent()`)
 
 ### Browser Support
 Targets modern browsers with Custom Elements support. Uses browserslist config: "last 2 versions", "not dead", "not ie <= 11".

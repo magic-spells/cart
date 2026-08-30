@@ -249,7 +249,11 @@ The cart-panel supports Shopify line item properties:
 - `_hide_in_cart` - Hide item from display (still in actual cart)
 - `_ignore_price_in_subtotal` - Exclude from subtotal calculation
 - `_cart_template` - Use a specific template name for this item
-- `_group_id` / `_group_role` - For bundle grouping
+
+`_group_id` / `_group_role` are a naming convention for bundle grouping in consumers' own templates
+and Liquid. **No code in this package reads either property** - hiding a child line still comes from
+`_hide_in_cart`, and the parent's markup still comes from `_cart_template`. Do not describe them as
+supported behavior.
 
 ### HTML Selectors
 
@@ -281,6 +285,11 @@ cart-item {
   --cart-item-destroying-blur: 10px;
 }
 ```
+
+`--cart-item-destroying-duration` is the one property JS also reads: `destroyYourself()` pulls it
+with `getComputedStyle()` to drive the height transition and to size the removal failsafe timer
+(duration + 100ms). Do not hardcode that timer back to 600ms — an override longer than the default
+would then remove the element mid-animation.
 
 ### Template System
 
