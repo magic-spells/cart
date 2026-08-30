@@ -13,9 +13,9 @@ in lockstep as one family, and they are developed together in this monorepo.
 
 | Package                                                       | Description                                                       | Size (min + gzip) |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------- |
-| [`@magic-spells/cart-panel`](packages/cart-panel)             | Slide-out shopping cart that owns cart data, Shopify AJAX and item rendering. | 4.9 kB both · 2.8 kB panel · 2.8 kB cart item |
+| [`@magic-spells/cart-panel`](packages/cart-panel)             | Slide-out shopping cart that owns cart data, Shopify AJAX and item rendering. | 7.5 kB both · 4.8 kB panel · 3.5 kB cart item |
 | [`@magic-spells/cart-progress-bar`](packages/cart-progress-bar) | Progress bar for free-shipping and other cart spend thresholds.   | 2.1 kB            |
-| [`@magic-spells/gift-with-purchase`](packages/gift-with-purchase) | Automatic gift-with-purchase threshold promotions.                | 2.8 kB            |
+| [`@magic-spells/gift-with-purchase`](packages/gift-with-purchase) | Automatic gift-with-purchase threshold promotions.                | 2.9 kB            |
 
 ### [@magic-spells/cart-panel](packages/cart-panel)
 
@@ -29,9 +29,9 @@ pays for the panel only.
 
 | Import                                  | Registers                              | min + gzip                       |
 | --------------------------------------- | -------------------------------------- | -------------------------------- |
-| `@magic-spells/cart-panel`              | `<cart-panel>` **and** `<cart-item>`   | **4.9 kB** (3.9 JS, 1.0 CSS)     |
-| `@magic-spells/cart-panel/panel`        | `<cart-panel>`                         | **2.8 kB** (2.7 JS, 0.1 CSS)     |
-| `@magic-spells/cart-panel/cart-item`    | `<cart-item>`                          | **2.8 kB** (1.8 JS, 1.0 CSS)     |
+| `@magic-spells/cart-panel`              | `<cart-panel>` **and** `<cart-item>`   | **7.5 kB** (6.5 JS, 1.0 CSS)     |
+| `@magic-spells/cart-panel/panel`        | `<cart-panel>`                         | **4.8 kB** (4.7 JS, 0.1 CSS)     |
+| `@magic-spells/cart-panel/cart-item`    | `<cart-item>`                          | **3.5 kB** (2.5 JS, 1.0 CSS)     |
 
 `<cart-item>` ships in this same package rather than as a standalone one.
 
@@ -46,7 +46,7 @@ npm install @magic-spells/cart-panel
 ### [@magic-spells/cart-progress-bar](packages/cart-progress-bar)
 
 A cart progress bar web component for free shipping thresholds and other e-commerce spend goals.
-Template-based messaging, five CSS variables for theming, and automatic updates when it sits
+Template-based messaging, six CSS variables for theming, and automatic updates when it sits
 inside a `<cart-panel>`.
 
 **2.1 kB** min + gzip (1.7 kB JS, 0.4 kB CSS).
@@ -61,7 +61,7 @@ A web component for automatic gift-with-purchase threshold promotions. Adds and 
 line item through the Shopify Cart API as the cart subtotal crosses the threshold, honoring the
 panel's `calculated_subtotal` so bundles count and other gifts do not.
 
-**2.8 kB** min + gzip (2.4 kB JS, 0.4 kB CSS).
+**2.9 kB** min + gzip (2.6 kB JS, 0.4 kB CSS).
 
 ```bash
 npm install @magic-spells/gift-with-purchase

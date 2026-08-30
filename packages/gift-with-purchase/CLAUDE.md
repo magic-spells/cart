@@ -40,7 +40,7 @@ This is a **Web Components library** that provides a gift-with-purchase componen
 - **Currency Formatting**: Supports Shopify-style `money-format` attribute (e.g., `${{amount}}`, `€{{amount}}`) for proper currency display
 - **Multi-Currency**: Automatically converts threshold and `[amount]` using `Shopify.currency.rate`
   - Set threshold in base currency; component converts to customer's selected currency
-- **Disabled States**: `promo-ended` and `product-available` attributes control visibility and auto-remove gifts when disabled
+- **Disabled States**: `promo-ended` and `product-available` attributes control visibility and auto-remove the gift when disabled. Removal is scoped to this component's own `variant-id` (`#getGiftLines()` matches `_gwp_item` **and** `variant_id`), so a multi-tier page disabling one tier never clears another tier's gift
 - **Smart Line Item Properties**: Adds multiple properties to gift line items:
   - `_gwp_item: "true"` - identifies the item as a gift with purchase
   - `_hide_in_cart: "true"` - hides the gift from cart display (handled by cart-panel)
@@ -69,6 +69,17 @@ The component integrates seamlessly with `@magic-spells/cart-panel`:
 - **Threshold Calculation**: Only includes items that should count toward the gift threshold (excludes gifts with purchase, bundle hidden items, etc.)
 - **Gift Exclusion**: Gifts added by this component are automatically excluded from future threshold calculations via `_ignore_price_in_subtotal`
 - **Requires cart-panel**: The component requires `calculated_subtotal` in cart events; it will not process events without this field
+
+### Mutation Safety Invariants
+
+Cart snapshots arrive by event and go stale the moment this component mutates the cart, so:
+
+- **`#isMutating`** is set before every fetch (`add`, `remove`, `trim`) and cleared in `finally`. Any `#updateState()` or debounced snapshot arriving while it is set is dropped and recorded in **`#missedUpdate`**.
+- **`#discardStaleCart()`** runs in that same `finally`: it kills a pending debounce (a timer armed mid-mutation holds a pre-mutation cart) and, if anything was missed, asks the panel to re-fetch — or re-derives locally when there is no panel.
+- **Never act on a snapshot captured before a mutation.** `#removeGiftFromCart(cart)` takes a cart only when it is fresh; setters, attribute changes and disable transitions pass `null` and go through **`#fetchCart()`** for live truth.
+- **The gift adds on state, not on an edge.** `#updateState()` adds whenever `isActive && !isAdded`, so a missed rising edge still converges.
+- **A doubled gift line self-heals.** `#checkGiftInCart()` trims any gift line with `quantity > 1` back to 1, because the line is `_hide_in_cart` and a duplicate would otherwise ride to checkout unseen.
+- Removal is always scoped by `variant-id`; there is deliberately no "remove every gift" path.
 
 ### Styling Architecture
 
