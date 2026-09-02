@@ -236,9 +236,18 @@ async function main() {
 		return;
 	}
 
-	// Watch builds never resolve, so they are fired unawaited.
-	build(demoBuild).catch((error) => {
-		console.error('build error:', error);
+	// In watch mode `build()` resolves to the rolldown watcher as soon as it is
+	// set up, before anything is on disk. Hold the server (and the browser it
+	// opens) until the first bundle is written: the demo's inline module script
+	// imports dist/index.esm.js, so Vite pre-transforms it on every request for
+	// `/`, and a request that lands mid-write parses a truncated file and logs
+	// a bogus "invalid JS syntax" error at 1:0. ERROR unblocks too, so a broken
+	// first build still brings the server up and the next rebuild fixes it.
+	const watcher = await build(demoBuild);
+	await new Promise((resolve) => {
+		watcher.on('event', (event) => {
+			if (event.code === 'END' || event.code === 'ERROR') resolve();
+		});
 	});
 
 	const server = await createServer({
