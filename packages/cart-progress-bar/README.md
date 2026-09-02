@@ -6,8 +6,8 @@ A beautiful, accessible cart progress bar web component for free shipping thresh
 
 ## Features
 
-- 🎯 **Smart Messaging** - Template-based messages with flexible placeholder formats
-- 🎨 **Simplified Theming** - Just 5 CSS variables to control all colors and appearance
+- 🎯 **Smart Messaging** - Template-based messages with an `[amount]` placeholder
+- 🎨 **Simplified Theming** - Just 6 CSS variables to control all colors and appearance
 - 📱 **Responsive** - Mobile-optimized with responsive breakpoints
 - ⚡ **Smooth Animations** - Buttery smooth transitions and completion effects
 - 🔧 **Easy Integration** - Drop-in web component that works with any framework
@@ -28,8 +28,8 @@ import '@magic-spells/cart-progress-bar';
 import { CartProgressBar, ProgressBar } from '@magic-spells/cart-progress-bar';
 ```
 
-The stylesheet is bundled into the JS entry, so a bundler picks it up
-automatically. To load it yourself instead:
+The stylesheet is extracted into its own file rather than injected by the JS, so
+load it yourself:
 
 ```css
 @import '@magic-spells/cart-progress-bar/css'; /* unminified */
@@ -51,8 +51,8 @@ exposes the global `CartProgressBar`:
 	threshold="75.00"
 	current="25.50"
 	message-above="🎉 Congratulations! You've qualified for FREE shipping!"
-	message-below="Add ${ amount } more for FREE shipping!">
-	<p data-content-cart-progress-message>Add ${ amount } more for FREE shipping!</p>
+	message-below="Add $[amount] more for FREE shipping!">
+	<p data-content-cart-progress-message>Add $[amount] more for FREE shipping!</p>
 	<progress-bar></progress-bar>
 </cart-progress-bar>
 ```
@@ -76,21 +76,21 @@ const info = progressBar.getProgress();
 console.log(info.percent, info.isComplete, info.thresholdAmount);
 
 // Update message templates
-progressBar.setMessages('Almost there!', 'Only ${ amount } more to go!');
+progressBar.setMessages('Almost there!', 'Only $[amount] more to go!');
 ```
 
 ## Cart Integration
 
-The component automatically listens for cart data changes when placed inside a `<cart-dialog>` component from the `@magic-spells/cart-panel` package:
+The component automatically listens for cart data changes when placed inside a `<cart-panel>` component from the `@magic-spells/cart-panel` package:
 
 ```html
-<cart-dialog>
-	<cart-progress-bar threshold="75.00" message-below="Add ${ amount } more for FREE shipping!">
+<cart-panel>
+	<cart-progress-bar threshold="75.00" message-below="Add $[amount] more for FREE shipping!">
 	</cart-progress-bar>
-</cart-dialog>
+</cart-panel>
 ```
 
-When the cart-dialog emits a `cart-dialog:data-changed` event (typically from Shopify cart API updates), the progress bar will automatically update with the calculated cart subtotal.
+When the cart-panel emits a `cart-panel:data-changed` event (typically from Shopify cart API updates), the progress bar will automatically update with the calculated cart subtotal. Point it at a different ancestor with `listen-selector` and `listen-event`.
 
 ### Smart Pricing Logic
 
@@ -108,7 +108,10 @@ The progress bar uses intelligent pricing calculation:
 | `threshold`     | Threshold amount for free shipping        | `"75.00"`                      |
 | `current`       | Current cart amount                       | `"25.50"`                      |
 | `message-above` | Success message when threshold is reached | `"🎉 FREE shipping unlocked!"` |
-| `message-below` | Message template shown below the bar      | `"Add ${ amount } more!"`       |
+| `message-below` | Message template shown below the bar      | `"Add $[amount] more!"`         |
+| `money-format`  | Shopify money format string; uses `{{amount}}` placeholders and formats the amount that fills `[amount]` in the messages | `"${{amount}}"`   |
+| `listen-selector` | `closest()` selector for the element to listen on | `"cart-panel"` (default) |
+| `listen-event`  | Event name to listen for on that element  | `"cart-panel:data-changed"` (default) |
 
 ## Customization
 
@@ -117,8 +120,6 @@ Use CSS custom properties to customize the appearance:
 ```css
 cart-progress-bar {
 	/* Core color customization */
-	--cart-progress-section-bg: #f8f9fa;
-	--cart-progress-section-color: #333;
 	--cart-progress-bar-bg: #e9ecef;
 	--cart-progress-bar-fill-before: #ff6b6b;
 	--cart-progress-bar-fill-after: #28a745;
@@ -126,6 +127,7 @@ cart-progress-bar {
 	/* Structure (optional) */
 	--cart-progress-bar-height: 16px;
 	--cart-progress-bar-border-radius: 8px;
+	--cart-progress-bar-transition-duration: 0.3s;
 }
 ```
 
@@ -135,8 +137,6 @@ cart-progress-bar {
 
 | Property                          | Description                          | Default       |
 | --------------------------------- | ------------------------------------ | ------------- |
-| `--cart-progress-section-bg`      | Background color of entire component | `transparent` |
-| `--cart-progress-section-color`   | Text/foreground color                | `#495057`     |
 | `--cart-progress-bar-bg`          | Background of progress bar track     | `#e9ecef`     |
 | `--cart-progress-bar-fill-before` | Fill color before reaching threshold | `#28a745`     |
 | `--cart-progress-bar-fill-after`  | Fill color after reaching threshold  | `#007bff`     |
@@ -147,38 +147,43 @@ cart-progress-bar {
 | --------------------------------------- | --------------------------------- | ------- |
 | `--cart-progress-bar-height`            | Height of the progress bar        | `12px`  |
 | `--cart-progress-bar-border-radius`     | Border radius                     | `6px`   |
-| `--cart-progress-bar-shadow`            | Box shadow for progress bar       | `inset 0 1px 2px rgba(0, 0, 0, 0.1)` |
 | `--cart-progress-bar-transition-duration` | Animation transition duration   | `0.3s`  |
+
+Two more are set for you and are not meant to be overridden:
+`--cart-progress-percent` (the fill width, written by JavaScript) and
+`--cart-progress-bar-fill-current` (switched between the before/after colors by the
+`complete` attribute).
 
 ## Message Templates
 
-Use placeholder formats in your message templates and include the currency symbol:
+Use the `[amount]` placeholder in your message templates and include the currency symbol:
 
 ```html
 <cart-progress-bar
 	message-above="🎉 FREE shipping unlocked!"
-	message-below="You need ${ amount } more for free shipping!">
-	<p data-content-cart-progress-message>You need ${ amount } more for free shipping!</p>
+	message-below="You need $[amount] more for free shipping!">
+	<p data-content-cart-progress-message>You need $[amount] more for free shipping!</p>
 </cart-progress-bar>
 ```
 
-### Supported Placeholder Formats
+### Supported Placeholder Format
 
-- `{ amount }` - spaces around amount
-- `{amount}` - no spaces
-- `[amount]` - square brackets (with or without spaces)
+`[amount]` — square brackets, with or without spaces inside (`[amount]`, `[ amount ]`). Square
+brackets avoid clashing with Liquid's `{{ }}` and JavaScript template literals, so curly-brace
+forms are **not** substituted in messages. (`money-format` is the one place `{{amount}}` is used,
+and it formats the number that fills `[amount]`.)
 
 ### Examples
 
 ```html
 <!-- Dollar amounts -->
-<cart-progress-bar message-below="Add ${ amount } more for free shipping!">
+<cart-progress-bar message-below="Add $[amount] more for free shipping!">
 
 <!-- Euro amounts -->
-<cart-progress-bar message-below="Only €{amount} left to unlock free delivery!">
+<cart-progress-bar message-below="Only €[amount] left to unlock free delivery!">
 
-<!-- With square brackets -->
-<cart-progress-bar message-below="Just £[amount] more to go!">
+<!-- Spaces inside the brackets work too -->
+<cart-progress-bar message-below="Just £[ amount ] more to go!">
 ```
 
 The component automatically:

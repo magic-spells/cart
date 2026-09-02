@@ -153,7 +153,7 @@ var CartItem = class CartItem extends HTMLElement {
 			return;
 		}
 		const quantityInput = e.target.closest("[data-cart-quantity]");
-		if (quantityInput) this.#emitQuantityChangeEvent(quantityInput.value);
+		if (quantityInput && !quantityInput.closest("quantity-input, quantity-modifier")) this.#commitQuantityInput(quantityInput);
 	}
 	/**
 	* Handle Enter inside a bare quantity input.
@@ -465,10 +465,11 @@ var CartItem = class CartItem extends HTMLElement {
 		_.setState("destroying");
 		requestAnimationFrame(() => {
 			_.style.height = `${initialHeight}px`;
-			const destroyDuration = getComputedStyle(_).getPropertyValue("--cart-item-destroying-duration")?.trim() || "400ms";
+			const destroyDuration = getComputedStyle(_).getPropertyValue("--cart-item-destroying-duration")?.trim() || "600ms";
 			_.style.transition = `height ${destroyDuration} ease`;
 			_.style.height = "0px";
-			setTimeout(() => _.remove(), 600);
+			const durationMs = parseFloat(destroyDuration) * (/ms$/.test(destroyDuration) ? 1 : 1e3);
+			setTimeout(() => _.remove(), (Number.isNaN(durationMs) ? 600 : durationMs) + 100);
 		});
 	}
 };
@@ -1173,10 +1174,11 @@ var CartPanel = class extends HTMLElement {
 		const _ = this;
 		const serverCart = await _.#fetchCartState();
 		if (serverCart && !serverCart.error) {
-			_.#currentCart = serverCart;
-			_.#renderCartItems(serverCart);
-			_.#renderCartPanel(serverCart);
-			_.#emit("cart-panel:data-changed", _.#addCalculatedFields(serverCart));
+			const revertedCart = _.#preserveInFlightLines(serverCart);
+			_.#currentCart = revertedCart;
+			_.#renderCartItems(revertedCart);
+			_.#renderCartPanel(revertedCart);
+			_.#emit("cart-panel:data-changed", _.#addCalculatedFields(revertedCart));
 		}
 		_.#emit("cart-panel:error", {
 			key,
@@ -1209,7 +1211,7 @@ var CartPanel = class extends HTMLElement {
 	* @private
 	*/
 	#renderCartSubtotal(cartData) {
-		if (!cartData) return;
+		if (!cartData?.items) return;
 		const subtotal = cartData.items.filter((item) => {
 			return !item.properties?._ignore_price_in_subtotal;
 		}).reduce((total, item) => total + (item.line_price || 0), 0);
@@ -1328,8 +1330,13 @@ var CartPanel = class extends HTMLElement {
 	#addItemsToDOM({ itemsContainer, itemsToAdd, newKeys, cartData, CartItemElement }) {
 		setTimeout(() => {
 			itemsToAdd.forEach((itemData) => {
-				const cartItem = CartItemElement.createAnimated(itemData, cartData);
 				const key = itemData.key || itemData.id;
+				const existing = itemsContainer.querySelector(`cart-item[key="${key}"]:not([state='destroying'])`);
+				if (existing) {
+					existing.setData(itemData, cartData);
+					return;
+				}
+				const cartItem = CartItemElement.createAnimated(itemData, cartData);
 				this.#insertAtKeyOrder(itemsContainer, cartItem, key, newKeys);
 			});
 		}, 100);
@@ -1400,6 +1407,12 @@ var CartPanel = class extends HTMLElement {
 		if (keysToAdd.length === 0) return;
 		setTimeout(() => {
 			keysToAdd.forEach((key) => {
+				const existing = itemsContainer.querySelector(`cart-item[key="${key}"]:not([state='destroying'])`);
+				if (existing) {
+					if (typeof existing.setContent === "function") existing.setContent(parsedItems.get(key).innerHTML);
+					else warnAboutMissingSetContent();
+					return;
+				}
 				const cartItem = _.#createSectionItem({
 					key,
 					parsedItems,

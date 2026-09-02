@@ -17,7 +17,7 @@ var GiftWithPurchase = class extends HTMLElement {
 	#debounceTimer = null;
 	#attachRetryTimer = null;
 	#isMutating = false;
-	#pendingCart = null;
+	#missedUpdate = false;
 	#messageAbove = null;
 	#messageBelow = null;
 	#moneyFormat = null;
@@ -52,6 +52,7 @@ var GiftWithPurchase = class extends HTMLElement {
 		_.#render();
 		_.#updateVisualState();
 		_.#attachListeners();
+		if (_.#isDisabled && (!_.#cartPanel || _.#cartPanel.hasAttribute("manual"))) _.#updateState(null);
 	}
 	#calculateInitialState() {
 		const _ = this;
@@ -92,11 +93,12 @@ var GiftWithPurchase = class extends HTMLElement {
 				break;
 			case "money-format": _.#moneyFormat = newValue;
 		}
-		if (_.isConnected) {
-			_.#calculateInitialState();
-			_.#updateVisualState();
-			_.#updateMessages();
-		}
+		if (!_.isConnected) return;
+		const wasDisabled = _.#isDisabled;
+		_.#calculateInitialState();
+		_.#updateVisualState();
+		_.#updateMessages();
+		if (_.#isDisabled && !wasDisabled) _.#updateState(null);
 	}
 	#render() {
 		this.classList.add("gift-with-purchase");
@@ -170,6 +172,10 @@ var GiftWithPurchase = class extends HTMLElement {
 		if (_.#debounceTimer) clearTimeout(_.#debounceTimer);
 		_.#debounceTimer = setTimeout(() => {
 			_.#debounceTimer = null;
+			if (_.#isMutating) {
+				_.#missedUpdate = true;
+				return;
+			}
 			_.#currentAmount = parseFloat(cart.calculated_subtotal / 100) || 0;
 			_.#checkGiftInCart(cart);
 			_.#updateState(cart);
@@ -177,39 +183,77 @@ var GiftWithPurchase = class extends HTMLElement {
 	}
 	#checkGiftInCart(cart) {
 		const _ = this;
-		_.#isAdded = _.#getGiftLines(cart, true).length > 0;
+		const giftLines = _.#getGiftLines(cart);
+		_.#isAdded = giftLines.length > 0;
+		const duplicate = giftLines.find((item) => item.quantity > 1);
+		if (duplicate) _.#trimGiftQuantity(duplicate);
 	}
-	#getGiftLines(cart, matchVariantId = true) {
+	async #trimGiftQuantity(item) {
 		const _ = this;
-		if (!cart?.items) return [];
+		_.#isMutating = true;
+		try {
+			const res = await fetch("/cart/change.js", {
+				method: "POST",
+				credentials: "same-origin",
+				headers: {
+					"Content-Type": "application/json",
+					"X-Requested-With": "XMLHttpRequest"
+				},
+				body: JSON.stringify({
+					id: item.key,
+					quantity: 1
+				})
+			});
+			if (!res.ok) throw new Error(`http ${res.status}`);
+			_.#refreshCartPanel();
+		} catch (err) {
+			console.error("giftwithpurchase: quantity trim error", err);
+			_.dispatchEvent(new CustomEvent("gwp:error", {
+				detail: {
+					action: "trim",
+					error: err.message
+				},
+				bubbles: true
+			}));
+		} finally {
+			_.#isMutating = false;
+			_.#discardStaleCart();
+		}
+	}
+	#getGiftLines(cart) {
+		const _ = this;
+		if (!cart?.items || !_.#variantId) return [];
 		return cart.items.filter((item) => {
 			if (item.properties?._gwp_item !== "true") return false;
-			if (!matchVariantId) return true;
-			if (!_.#variantId) return false;
 			return item.variant_id?.toString() === _.#variantId.toString();
 		});
 	}
-	#recheckIfPending() {
+	/**
+	* Cart snapshots held across a mutation predate it - drop them and ask for fresh truth.
+	*/
+	#discardStaleCart() {
 		const _ = this;
-		if (_.#pendingCart) {
-			const cart = _.#pendingCart;
-			_.#pendingCart = null;
-			_.#checkGiftInCart(cart);
-			_.#updateState(cart);
+		if (_.#debounceTimer) {
+			clearTimeout(_.#debounceTimer);
+			_.#debounceTimer = null;
+			_.#missedUpdate = true;
 		}
+		if (!_.#missedUpdate) return;
+		_.#missedUpdate = false;
+		if (_.#cartPanel) _.#refreshCartPanel();
+		else _.#updateState(null);
 	}
 	#updateState(cart) {
 		const _ = this;
 		if (_.#isMutating) {
-			_.#pendingCart = cart;
+			_.#missedUpdate = true;
 			return;
 		}
-		const wasActive = _.#isActive;
 		const convertedThreshold = _.#getConvertedThreshold();
 		_.#isDisabled = _.#promoEnded || !_.#productAvailable;
 		_.#isActive = _.#currentAmount >= convertedThreshold && !_.#isDisabled;
-		if (_.#isDisabled) _.#removeAllGiftsFromCart(cart);
-		else if (_.#isActive && !wasActive && !_.#isAdded && _.#variantId) _.#addGiftToCart();
+		if (_.#isDisabled) _.#removeGiftFromCart(cart);
+		else if (_.#isActive && !_.#isAdded && _.#variantId) _.#addGiftToCart();
 		else if (!_.#isActive && _.#isAdded && _.#variantId) _.#removeGiftFromCart(cart);
 		_.#updateVisualState();
 		_.#updateMessages();
@@ -271,39 +315,40 @@ var GiftWithPurchase = class extends HTMLElement {
 			}));
 		} finally {
 			_.#isMutating = false;
-			_.#recheckIfPending();
+			_.#discardStaleCart();
 		}
 	}
 	async #removeGiftFromCart(cart) {
 		const _ = this;
-		if (!cart?.items) return;
-		const giftLines = _.#getGiftLines(cart, true);
-		if (!giftLines.length) {
-			_.#isAdded = false;
-			return;
-		}
 		_.#isMutating = true;
 		try {
+			if (!cart?.items) cart = await _.#fetchCart();
+			if (!cart?.items) return;
+			const giftLines = _.#getGiftLines(cart);
+			if (!giftLines.length) {
+				_.#isAdded = false;
+				return;
+			}
 			await _.#removeAllGiftItems(giftLines);
 		} finally {
 			_.#isMutating = false;
-			_.#recheckIfPending();
+			_.#discardStaleCart();
 		}
 	}
-	async #removeAllGiftsFromCart(cart) {
+	async #fetchCart() {
 		const _ = this;
-		if (!cart?.items) return;
-		const giftLines = _.#getGiftLines(cart, false);
-		if (!giftLines.length) {
-			_.#isAdded = false;
-			return;
-		}
-		_.#isMutating = true;
 		try {
-			await _.#removeAllGiftItems(giftLines);
-		} finally {
-			_.#isMutating = false;
-			_.#recheckIfPending();
+			let cart;
+			if (typeof _.#cartPanel?.getCart === "function") cart = await _.#cartPanel.getCart();
+			else {
+				const res = await fetch("/cart.js", { credentials: "same-origin" });
+				if (!res.ok) throw new Error(`http ${res.status}`);
+				cart = await res.json();
+			}
+			return cart?.error ? null : cart;
+		} catch (err) {
+			console.error("giftwithpurchase: cart fetch error", err);
+			return null;
 		}
 	}
 	async #removeAllGiftItems(giftLines) {
@@ -385,13 +430,13 @@ var GiftWithPurchase = class extends HTMLElement {
 	setCurrentAmount(amount) {
 		const _ = this;
 		_.#currentAmount = parseFloat(amount) || 0;
-		_.#updateState({ items: [] });
+		_.#updateState(null);
 		_.#updateMessages();
 	}
 	setThreshold(threshold) {
 		const _ = this;
 		_.#threshold = parseFloat(threshold) || 0;
-		_.#updateState({ items: [] });
+		_.#updateState(null);
 		_.#updateMessages();
 	}
 	setVariantId(variantId) {

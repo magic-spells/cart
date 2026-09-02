@@ -11,7 +11,7 @@ A powerful, e-commerce web component for automatic gift-with-purchase threshold 
 - 📱 **Cart Panel Sync** - Automatically syncs with cart-panel components using `calculated_subtotal`
 - 🎨 **Highly Customizable** - CSS custom properties and swappable content elements
 - ⚡ **Event-Driven** - Custom events for gift addition, removal, and errors
-- 🔧 **Flexible Content** - Data attributes for dynamic image, title, and variant updates
+- 🔧 **Flexible Content** - Your own markup inside the element; the component only writes the `[data-content-gwp-message]` element
 - 📱 **Responsive** - Mobile-optimized with responsive design
 
 ## Installation
@@ -50,7 +50,6 @@ Without a bundler, use the UMD build (exposes the `GiftWithPurchase` global):
 ```html
 <gift-with-purchase
 	threshold="75.00"
-	current="45.00"
 	variant-id="12345678"
 	money-format="${{amount}}"
 	message-above="🎉 Congratulations! You've qualified for your FREE gift!"
@@ -129,7 +128,7 @@ console.log(gwp.isDisabled);        // boolean - promo ended OR product unavaila
 | Attribute       | Description                                                          | Example                                                      |
 | --------------- | -------------------------------------------------------------------- | ------------------------------------------------------------ |
 | `threshold`     | Spending threshold to unlock the gift (auto-converts for multi-currency) | `"75.00"`                                                    |
-| `current`       | Current cart amount (typically set automatically via cart-panel)     | `"45.00"`                                                    |
+| `current`       | Optional starting amount. The component tracks the live cart total internally from `cart-panel:data-changed` and never writes this attribute back, so don't template it from Liquid | `"45.00"`                     |
 | `variant-id`    | Shopify variant ID for the gift product                              | `"12345678"`                                                 |
 | `promo-ended`   | Disables the promo and hides the component                           | `"true"`                                                     |
 | `product-available` | Whether the gift product is available (disables if false)        | `"true"`                                                     |
@@ -256,7 +255,7 @@ gwp.addEventListener('gwp:removed', (event) => {
 // Error occurred during add/remove
 gwp.addEventListener('gwp:error', (event) => {
 	console.error('Error:', event.detail.error);
-	console.log('Action:', event.detail.action); // 'add' or 'remove'
+	console.log('Action:', event.detail.action); // 'add', 'remove', or 'trim'
 });
 ```
 
@@ -271,7 +270,7 @@ gift-with-purchase {
 	--gwp-bg-active: #e8f5e8;
 	--gwp-border-active: #28a745;
 	--gwp-text-active: #155724;
-	--gwp-image-size: 80px;
+	--gwp-gap: 1.5rem;
 }
 ```
 
@@ -299,7 +298,9 @@ The component automatically applies a `state` attribute based on its current con
 - `state="ended"` - Promo ended (component hidden)
 - `state="disabled"` - Gift unavailable (component hidden)
 
-Note: `ended` and `disabled` both hide the component while still removing any existing gift items.
+Note: `ended` and `disabled` both hide the component while still removing the gift line for **this**
+component's `variant-id`. Another tier's gift is left alone, so disabling one tier never clears
+another's.
 
 ## Shopify Integration Details
 
@@ -308,8 +309,8 @@ Note: `ended` and `disabled` both hide the component while still removing any ex
 The component uses Shopify's Cart API endpoints:
 
 - `POST /cart/add.js` - Adds the gift to cart
-- `GET /cart.js` - Gets current cart state
-- `POST /cart/change.js` - Removes gift from cart
+- `GET /cart.js` - Gets current cart state (only when the parent cart-panel cannot supply it)
+- `POST /cart/change.js` - Removes the gift line, and trims a doubled gift line back to `quantity: 1`
 
 ### Line Item Properties
 
@@ -404,9 +405,9 @@ In your Shopify cart template, you can identify and handle gift items:
 /* Compact mobile style */
 @media (max-width: 768px) {
 	gift-with-purchase {
-		--gwp-image-size: 40px;
 		--gwp-padding: 0.5rem;
 		--gwp-gap: 0.5rem;
+		--gwp-border-radius: 4px;
 	}
 }
 ```

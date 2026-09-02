@@ -6,9 +6,9 @@ A slide-out shopping cart web component. The panel owns the cart data, the Shopi
 
 ## Size & scope
 
-**4.9 kB** min + gzip for the whole cart (3.9 kB JS, 1.0 kB CSS) — panel and item, one import.
+**7.5 kB** min + gzip for the whole cart (6.5 kB JS, 1.0 kB CSS) — panel and item, one import.
 
-Both halves are also published on their own subpaths, so a page that brings its own item element takes the panel alone at **2.8 kB** (2.7 kB JS, 0.1 kB CSS), and a page that only wants the item takes it at **2.8 kB** (1.8 kB JS, 1.0 kB CSS).
+Both halves are also published on their own subpaths, so a page that brings its own item element takes the panel alone at **4.8 kB** (4.7 kB JS, 0.1 kB CSS), and a page that only wants the item takes it at **3.5 kB** (2.5 kB JS, 1.0 kB CSS).
 
 ## Features
 
@@ -119,7 +119,9 @@ A replacement element has to satisfy the contract the panel calls into:
 - **Static methods** - `setTemplate(name, fn)`, `setProcessingTemplate(fn)`,
   `createAnimated(itemData, cartData)`. A missing static template method logs a warning and the
   template is ignored.
-- **Instance methods** - `setData(itemData, cartData)`, `setState(state)`, `destroyYourself()`.
+- **Instance methods** - `setData(itemData, cartData)`, `setState(state)`, `destroyYourself()`. The
+  `section` attribute additionally requires `setContent(html)`, and `section` plus `optimistic`
+  requires `applyItemData(itemData, cartData)`, which the panel silently skips when it is missing.
 
 ## Usage
 
@@ -276,7 +278,11 @@ cartPanel.off(eventName, callback)     // Remove event listener
 | `cart-item:remove`        | `{ cartKey, element }`             | Remove button clicked |
 | `cart-item:quantity-change` | `{ cartKey, quantity, element }` | Quantity changed, by a `change` event or by Enter |
 
-**Enter commits a quantity.** A `[data-cart-quantity]` field inside a `<form>` submits the page on Enter, and one outside a form commits nothing until it loses focus. Pressing Enter in a bare quantity field now commits the typed value instead: it is clamped to the field's own `min`/`max`, written back into the field, and emitted only if the quantity actually changed. Fields inside `<quantity-input>` or `<quantity-modifier>` are left alone — those components own their commit logic, and handling Enter here as well would send the change twice.
+**Committing a quantity.** A bare `[data-cart-quantity]` field commits through one path, whether the browser fires `change` (blur, stepper, spin buttons) or the shopper presses Enter: the value is clamped to the field's own `min`/`max`, the clamped value is written back into the field, and the event is emitted only if the quantity actually changed. A value that will not parse at all is not sent — the field is restored to the last known quantity instead.
+
+Enter is handled at all because a field inside a `<form>` submits the page on it, and one outside a form commits nothing until it loses focus — both read as the cart ignoring you.
+
+Fields inside `<quantity-input>` or `<quantity-modifier>` are left alone by both paths — those components own their commit logic and emit `quantity-input:change` / `quantity-modifier:change`, which the item listens for separately. Enter inside one still has its default prevented, so the form does not submit.
 
 ### CartItem States
 
@@ -332,13 +338,13 @@ const cartData = await cartPanel.getCart();
 const updatedCart = await cartPanel.updateCartItem('item-key', 2);
 await cartPanel.refreshCart();
 
-// Event emitter pattern (chainable)
+// Event emitter pattern (chainable) - .on() receives the raw payload, not a CustomEvent
 cartPanel
-  .on('cart-panel:show', (e) => {
-    console.log('Cart opened by:', e.detail.triggerElement);
+  .on('cart-panel:show', ({ triggerElement }) => {
+    console.log('Cart opened by:', triggerElement);
   })
-  .on('cart-panel:data-changed', (e) => {
-    console.log('Cart updated:', e.detail);
+  .on('cart-panel:data-changed', (cart) => {
+    console.log('Cart updated:', cart);
     // Update header cart count, etc.
   });
 
@@ -518,6 +524,10 @@ cart-item {
 }
 ```
 
+`--cart-item-destroying-duration` is read by JavaScript as well as CSS: the removal animation and
+the failsafe that removes the element are both derived from it, so any value works — not just ones
+shorter than the 600ms default.
+
 ## Line Item Properties
 
 The cart-panel supports Shopify line item properties for enhanced functionality:
@@ -527,8 +537,8 @@ The cart-panel supports Shopify line item properties for enhanced functionality:
 | `_hide_in_cart`             | Hide item from display (still in cart) |
 | `_ignore_price_in_subtotal` | Exclude from subtotal calculation      |
 | `_cart_template`            | Use specific template name for rendering |
-| `_group_id`                 | Group items together (bundles)         |
-| `_group_role`               | Role within a group: "parent" or "child" |
+| `_group_id`                 | Group items together (bundles) - convention only |
+| `_group_role`               | Role within a group: "parent" or "child" - convention only |
 
 ### Hidden Items (`_hide_in_cart`)
 
@@ -555,6 +565,10 @@ The cart-panel supports Shopify line item properties for enhanced functionality:
 ```
 
 ### Bundle Grouping (`_group_id` / `_group_role`)
+
+These two are a naming convention for your own templates and Liquid, not something the library reads.
+Nothing in cart-panel acts on them - hiding a child line still comes from `_hide_in_cart`, and the
+parent's markup still comes from `_cart_template`.
 
 ```javascript
 // Bundle: Parent shows, children hidden
@@ -626,9 +640,9 @@ The cart-panel supports Shopify line item properties for enhanced functionality:
   const cartPanel = document.querySelector('cart-panel');
 
   // Update header cart count on changes
-  cartPanel.on('cart-panel:data-changed', (e) => {
+  cartPanel.on('cart-panel:data-changed', (cart) => {
     document.querySelector('.header-cart-count').textContent =
-      e.detail.calculated_count;
+      cart.calculated_count;
   });
 </script>
 ```

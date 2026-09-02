@@ -153,7 +153,7 @@ var CartItem = class CartItem extends HTMLElement {
 			return;
 		}
 		const quantityInput = e.target.closest("[data-cart-quantity]");
-		if (quantityInput) this.#emitQuantityChangeEvent(quantityInput.value);
+		if (quantityInput && !quantityInput.closest("quantity-input, quantity-modifier")) this.#commitQuantityInput(quantityInput);
 	}
 	/**
 	* Handle Enter inside a bare quantity input.
@@ -465,10 +465,11 @@ var CartItem = class CartItem extends HTMLElement {
 		_.setState("destroying");
 		requestAnimationFrame(() => {
 			_.style.height = `${initialHeight}px`;
-			const destroyDuration = getComputedStyle(_).getPropertyValue("--cart-item-destroying-duration")?.trim() || "400ms";
+			const destroyDuration = getComputedStyle(_).getPropertyValue("--cart-item-destroying-duration")?.trim() || "600ms";
 			_.style.transition = `height ${destroyDuration} ease`;
 			_.style.height = "0px";
-			setTimeout(() => _.remove(), 600);
+			const durationMs = parseFloat(destroyDuration) * (/ms$/.test(destroyDuration) ? 1 : 1e3);
+			setTimeout(() => _.remove(), (Number.isNaN(durationMs) ? 600 : durationMs) + 100);
 		});
 	}
 };
